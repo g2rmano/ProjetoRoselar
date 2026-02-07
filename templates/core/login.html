@@ -1,0 +1,226 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" dir="ltr">
+
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+    <!-- ===============================================-->
+    <!--    Document Title-->
+    <!-- ===============================================-->
+    <title>Login | Boldo</title>
+
+
+    <!-- ===============================================-->
+    <!--    Favicons-->
+    <!-- ===============================================-->
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+    <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
+    <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
+    <meta name="theme-color" content="#ffffff">
+
+
+    <!-- ===============================================-->
+    <!--    Stylesheets-->
+    <!-- ===============================================-->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link href="{% static 'vendors/prism/prism.css' %}" rel="stylesheet">
+    <link href="{% static 'vendors/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
+    
+    <!-- Flowbite CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+
+  </head>
+
+
+  <body>
+
+    <!-- ===============================================-->
+    <!--    Main Content-->
+    <!-- ===============================================-->
+    <main class="main" id="top">
+      <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 60px;" /></a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars text-white fs-3"></i></button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto">
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Sobre</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Blog</a></li>
+              {% if user.is_authenticated %}
+                <li class="nav-item">
+                  <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
+                    <span class="me-2">{{ user.username }}</span>
+                    <svg class="w-2.5 h-2.5" style="width: 14px; height: 14px;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                    </svg>
+                  </button>
+
+                  <!-- Dropdown menu -->
+                  <div id="dropdownUser" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-72">
+                    <div class="px-4 py-3 text-sm text-gray-900">
+                      <div class="font-medium">{{ user.username }}</div>
+                      <div class="truncate">{{ user.email }}</div>
+                    </div>
+                    <ul class="py-2 text-sm text-gray-700">
+                      <li>
+                        <a href="{% url 'core:dashboard' %}" class="block px-4 py-2 hover:bg-gray-100">
+                          <i class="fa-solid fa-user me-2"></i>Minha Conta
+                        </a>
+                      </li>
+                    </ul>
+                    <div class="py-2">
+                      <a href="{% url 'core:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">
+                        <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
+                      </a>
+                    </div>
+                  </div>
+                </li>
+              {% else %}
+                <li class="nav-item"><a class="nav-link btn btn-light text-black w-md-25 w-50 w-lg-100 active" aria-current="page" href="{% url 'core:login' %}">Entrar</a></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <!-- ============================================-->
+      <!-- <section> begin ============================-->
+      <section class="py-8" style="min-height: 100vh;">
+        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 50vh; z-index: -1;"></div>
+        
+        <div class="container">
+          <div class="row justify-content-center align-items-center" style="min-height: calc(100vh - 200px);">
+            <div class="col-lg-5 col-md-7 col-sm-9">
+              <div class="bg-white p-5 rounded-3 shadow-lg">
+                <div class="text-center mb-4">
+                  <h1 class="fw-bold mb-3">Bem-vindo de Volta</h1>
+                  <p class="text-gray">Faça login na sua conta para continuar</p>
+                </div>
+
+                <form method="post" action="{% url 'core:login' %}">
+                  {% csrf_token %}
+                  
+                  {% if messages %}
+                    {% for message in messages %}
+                      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+
+                  <div class="mb-4">
+                    <label for="username" class="form-label fw-bold">E-mail ou Nome de Usuário</label>
+                    <input type="text" class="form-control form-control-lg" id="username" name="username" placeholder="Digite seu e-mail ou nome de usuário" required>
+                  </div>
+
+                  <div class="mb-4">
+                    <label for="password" class="form-label fw-bold">Senha</label>
+                    <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="Digite sua senha" required>
+                  </div>
+
+                  <div class="mb-4 d-flex justify-content-between align-items-center">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                      <label class="form-check-label" for="remember">
+                        Lembrar de mim
+                      </label>
+                    </div>
+                    <a href="#" class="text-decoration-none">Esqueceu a Senha?</a>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary w-100 btn-lg fw-bold" style="background-color: #0A2640; border-color: #0A2640;">
+                    Entrar
+                  </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+        <!-- <section> close ============================-->
+      <section class="pt-0">
+
+        <div class="container">
+          <div class="row justify-content-between">
+            <div class="col-lg-5 col-sm-4"><a href="{% url 'core:index' %}"><img class="img-fluid mt-5 mb-4" src="{% static 'assets/img/LogoBlack.png' %}?v=2" alt="" style="max-width: 200px;" /></a>
+              <p class="w-lg-75 text-gray">Social media validation business model canvas graphical user interface launch party creative facebook iPad twitter.</p>
+            </div>
+            <div class="col-lg-2 col-sm-4">
+              <h3 class="fw-bold fs-1 mt-5 mb-4">Páginas</h3>
+              <ul class="list-unstyled">
+                <li class="my-3 col-md-4"><a href="#">Início</a></li>
+                <li class="my-3"><a href="#">Produtos</a></li>
+                <li class="my-3"><a href="#">Serviços</a></li>
+              </ul>
+            </div>
+            <div class="col-lg-2 col-sm-4">
+              <h3 class="fw-bold fs-1 mt-5 mb-4">Empresa</h3>
+              <ul class="list-unstyled">
+                <li class="my-3"><a href="#">Início</a></li>
+                <li class="my-3"><a href="#">Carreiras</a><span class="py-1 px-2 rounded-2 bg-success fw-bold text-dark ms-2">Contratando!</span></li>
+                <li class="my-3"><a href="#">Serviços</a></li>
+              </ul>
+            </div>
+            <div class="col-lg-2 col-sm-4">
+              <h3 class="fw-bold fs-1 mt-5 mb-4">Recursos</h3>
+              <ul class="list-unstyled">
+                <li class="mb-3"><a href="#">Início</a></li>
+                <li class="mb-3"><a href="#">Produtos</a></li>
+                <li class="mb-3"><a href="#">Serviços</a></li>
+              </ul>
+            </div>
+          </div>
+          <div class="row align-items-center mt-5 mb-3">
+            <div class="col-12 text-center mb-5">
+              <p class="text-gray mb-0">Todos os direitos reservados.</p>
+            </div>
+          </div>
+        </div>
+        <!-- end of .container-->
+
+      </section>
+      <!-- <section> close ============================-->
+      <!-- ============================================-->
+
+
+    </main>
+    <!-- ===============================================-->
+    <!--    End of Main Content-->
+    <!-- ===============================================-->
+
+
+
+
+    <!-- ===============================================-->
+    <!--    JavaScripts-->
+    <!-- ===============================================-->
+    <script src="{% static 'vendors/popper/popper.min.js' %}"></script>
+    <script src="{% static 'vendors/bootstrap/bootstrap.min.js' %}"></script>
+    <script src="{% static 'vendors/anchorjs/anchor.min.js' %}"></script>
+    <script src="{% static 'vendors/is/is.min.js' %}"></script>
+    <script src="{% static 'vendors/fontawesome/all.min.js' %}"></script>
+    <script src="{% static 'vendors/lodash/lodash.min.js' %}"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=window.scroll"></script>
+    <script src="{% static 'vendors/prism/prism.js' %}"></script>
+    <script src="{% static 'vendors/swiper/swiper-bundle.min.js' %}"></script>
+    <script src="{% static 'assets/js/theme.js' %}"></script>
+    
+    <!-- Flowbite JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+
+  </body>
+
+</html>
