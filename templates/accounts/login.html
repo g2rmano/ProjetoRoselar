@@ -79,14 +79,14 @@
                       </li>
                     </ul>
                     <div class="py-2">
-                      <a href="{% url 'core:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">
+                      <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">
                         <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
                       </a>
                     </div>
                   </div>
                 </li>
               {% else %}
-                <li class="nav-item"><a class="nav-link btn btn-light text-black w-md-25 w-50 w-lg-100 active" aria-current="page" href="{% url 'core:login' %}">Entrar</a></li>
+                <li class="nav-item"><a class="nav-link btn btn-light text-black w-md-25 w-50 w-lg-100 active" aria-current="page" href="{% url 'accounts:login' %}">Entrar</a></li>
               {% endif %}
             </ul>
           </div>
@@ -107,7 +107,7 @@
                   <p class="text-gray">Faça login na sua conta para continuar</p>
                 </div>
 
-                <form method="post" action="{% url 'core:login' %}">
+                <form method="post" action="{% url 'accounts:login' %}">
                   {% csrf_token %}
                   
                   {% if messages %}

@@ -7,7 +7,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Boldo | Template de Agência Boldo</title>
+    <title>Roselar | Da Rose pro Mundo</title>
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
     <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
@@ -93,7 +93,7 @@
 					</a>
 					</li>
 					<li>
-					<a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'core:logout' %}">
+					<a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'accounts:logout' %}">
 						<i class="fa-solid fa-right-from-bracket"></i>
 						Sair
 					</a>
@@ -101,7 +101,7 @@
 				</ul>
 				</li>
               {% else %}
-                <li class="nav-item"><a class="nav-link btn btn-light text-black w-md-25 w-50 w-lg-100" aria-current="page" href="{% url 'core:login' %}">Entrar</a></li>
+                <li class="nav-item"><a class="nav-link btn btn-light text-black w-md-25 w-50 w-lg-100" aria-current="page" href="{% url 'accounts:login' %}">Entrar</a></li>
               {% endif %}
             </ul>
           </div>
