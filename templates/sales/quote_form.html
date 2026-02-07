@@ -1,0 +1,655 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" dir="ltr">
+
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{% if quote %}Editar{% else %}Novo{% endif %} Orçamento | Roselar</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+    <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
+    <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
+    <meta name="theme-color" content="#ffffff">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link href="{% static 'vendors/prism/prism.css' %}" rel="stylesheet">
+    <link href="{% static 'vendors/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+
+    <style>
+      .formset-row {
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        background-color: #f8f9fa;
+        position: relative;
+      }
+      .delete-row-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+      }
+      .add-row-btn {
+        margin-top: 1rem;
+      }
+      #customer-results-list .btn {
+        transition: all 0.2s;
+      }
+      #customer-results-list .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="main" id="top">
+      <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;" /></a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars text-white fs-3"></i></button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto">
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Sobre</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Blog</a></li>
+              <li class="nav-item">
+                <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
+                  <span class="me-2">{{ user.username }}</span>
+                  <svg class="w-2.5 h-2.5" style="width: 14px; height: 14px;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                  </svg>
+                </button>
+                <div id="dropdownUser" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-72">
+                  <div class="px-4 py-3 text-sm text-gray-900">
+                    <div class="font-medium">{{ user.username }}</div>
+                    <div class="truncate">{{ user.email }}</div>
+                  </div>
+                  <ul class="py-2 text-sm text-gray-700">
+                    <li>
+                      <a href="{% url 'core:dashboard' %}" class="block px-4 py-2 hover:bg-gray-100">
+                        <i class="fa-solid fa-user me-2"></i>Minha Conta
+                      </a>
+                    </li>
+                  </ul>
+                  <div class="py-2">
+                    <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">
+                      <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
+                    </a>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <section class="py-8" style="min-height: 100vh;">
+        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 30vh; z-index: -1;"></div>
+        
+        <div class="container">
+          <div class="row justify-content-center mt-5">
+            <div class="col-12 col-lg-10">
+              <div class="bg-white p-5 rounded-3 shadow-lg">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                  <h1 class="fw-bold mb-0">
+                    <i class="fa-solid fa-file-invoice me-2"></i>
+                    {% if quote %}Editar Orçamento #{{ quote.number }}{% else %}Novo Orçamento{% endif %}
+                  </h1>
+                  {% if quote %}
+                    <a href="{% url 'sales:quote_detail' quote.id %}" class="btn btn-outline-secondary">
+                      <i class="fa-solid fa-arrow-left me-2"></i>Voltar
+                    </a>
+                  {% endif %}
+                </div>
+
+                <form method="post" id="quote-form">
+                  {% csrf_token %}
+                  
+                  <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                      <h5 class="mb-0"><i class="fa-solid fa-user me-2"></i>Cliente</h5>
+                    </div>
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-md-6 mb-3">
+                          <label for="customer-document" class="form-label fw-bold">CPF ou CNPJ do Cliente</label>
+                          <input type="text" id="customer-document" class="form-control" placeholder="Digite o CPF ou CNPJ">
+                          <small class="text-muted">Digite e aguarde para buscar automaticamente</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                          <label for="customer-name-search" class="form-label fw-bold">Ou buscar por Nome</label>
+                          <input type="text" id="customer-name-search" class="form-control" placeholder="Digite o nome do cliente">
+                          <small class="text-muted">Busca aproximada - encontra nomes similares</small>
+                        </div>
+                      </div>
+                      
+                      <!-- Search results list -->
+                      <div id="customer-search-results" class="d-none mb-3">
+                        <div class="alert alert-warning">
+                          <i class="fa-solid fa-search me-2"></i>
+                          <strong>Resultados da busca:</strong>
+                          <div id="customer-results-list" class="mt-2">
+                            <!-- Results will be populated here -->
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Hidden customer field for form submission -->
+                      <div class="d-none">
+                        {{ form.customer }}
+                      </div>
+                      
+                      <!-- Customer info display (when found) -->
+                      <div id="customer-found" class="alert alert-success d-none mb-0">
+                        <i class="fa-solid fa-check-circle me-2"></i>
+                        Cliente encontrado: <strong id="customer-found-name"></strong>
+                      </div>
+                      
+                      <!-- Customer registration fields (when not found) -->
+                      <div id="customer-register" class="d-none">
+                        <div class="alert alert-info">
+                          <i class="fa-solid fa-info-circle me-2"></i>
+                          Cliente não encontrado. Preencha os dados para cadastrar:
+                        </div>
+                        <div class="row">
+                          <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">CPF ou CNPJ <span class="text-danger">*</span></label>
+                            <input type="text" id="new-customer-document" class="form-control" placeholder="Digite CPF (11 dígitos) ou CNPJ (14 dígitos)">
+                            <small class="text-muted">11 dígitos = Pessoa Física | 14 dígitos = Pessoa Jurídica</small>
+                          </div>
+                          <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Tipo</label>
+                            <input type="text" id="new-customer-type" class="form-control bg-light" readonly>
+                          </div>
+                          <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Nome do Cliente <span class="text-danger">*</span></label>
+                            <input type="text" id="new-customer-name" class="form-control">
+                          </div>
+                          <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Telefone</label>
+                            <input type="text" id="new-customer-phone" class="form-control">
+                          </div>
+                          <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">E-mail</label>
+                            <input type="email" id="new-customer-email" class="form-control">
+                          </div>
+                        </div>
+                        <button type="button" class="btn btn-success" onclick="createCustomer()">
+                          <i class="fa-solid fa-user-plus me-2"></i>Criar Cliente
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                      <h5 class="mb-0"><i class="fa-solid fa-info-circle me-2"></i>Informações do Orçamento</h5>
+                    </div>
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-md-6 mb-3">
+                          <label for="{{ form.number.id_for_label }}" class="form-label fw-bold">Número do Orçamento</label>
+                          {{ form.number }}
+                          {% if form.number.errors %}
+                            <div class="text-danger small">{{ form.number.errors }}</div>
+                          {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                          <label for="{{ form.quote_date.id_for_label }}" class="form-label fw-bold">Data</label>
+                          {{ form.quote_date }}
+                          {% if form.quote_date.errors %}
+                            <div class="text-danger small">{{ form.quote_date.errors }}</div>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="col-md-6 mb-3">
+                          <label for="{{ form.freight_value.id_for_label }}" class="form-label fw-bold">Frete (R$)</label>
+                          {{ form.freight_value }}
+                          {% if form.freight_value.errors %}
+                            <div class="text-danger small">{{ form.freight_value.errors }}</div>
+                          {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                          <label for="{{ form.discount_percent.id_for_label }}" class="form-label fw-bold">Desconto (%)</label>
+                          {{ form.discount_percent }}
+                          {% if form.discount_percent.errors %}
+                            <div class="text-danger small">{{ form.discount_percent.errors }}</div>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="mb-3">
+                        <label for="{{ form.payment_description.id_for_label }}" class="form-label fw-bold">Condição de Pagamento</label>
+                        {{ form.payment_description }}
+                        {% if form.payment_description.errors %}
+                          <div class="text-danger small">{{ form.payment_description.errors }}</div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                      <h5 class="mb-0"><i class="fa-solid fa-box me-2"></i>Itens do Orçamento</h5>
+                    </div>
+                    <div class="card-body">
+                      {{ formset.management_form }}
+                      
+                      <div id="formset-container">
+                        {% for item_form in formset %}
+                          <div class="formset-row" data-formset-row>
+                            {% if item_form.DELETE %}
+                              <button type="button" class="btn btn-danger btn-sm delete-row-btn" onclick="deleteRow(this)">
+                                <i class="fa-solid fa-trash"></i>
+                              </button>
+                              <div class="d-none">{{ item_form.DELETE }}</div>
+                            {% endif %}
+                            
+                            <div class="row">
+                              <div class="col-md-12 mb-3">
+                                <label class="form-label fw-bold">Fornecedor</label>
+                                {{ item_form.supplier }}
+                                {% if item_form.supplier.errors %}
+                                  <div class="text-danger small">{{ item_form.supplier.errors }}</div>
+                                {% endif %}
+                              </div>
+                            </div>
+                            <div class="row">
+                              <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Nome do Produto</label>
+                                {{ item_form.product_name }}
+                                {% if item_form.product_name.errors %}
+                                  <div class="text-danger small">{{ item_form.product_name.errors }}</div>
+                                {% endif %}
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Descrição</label>
+                                {{ item_form.description }}
+                                {% if item_form.description.errors %}
+                                  <div class="text-danger small">{{ item_form.description.errors }}</div>
+                                {% endif %}
+                              </div>
+                            </div>
+                            <div class="row">
+                              <div class="col-md-3 mb-3">
+                                <label class="form-label fw-bold">Quantidade</label>
+                                {{ item_form.quantity }}
+                                {% if item_form.quantity.errors %}
+                                  <div class="text-danger small">{{ item_form.quantity.errors }}</div>
+                                {% endif %}
+                              </div>
+                              <div class="col-md-3 mb-3">
+                                <label class="form-label fw-bold">Valor Unitário (R$)</label>
+                                {{ item_form.unit_value }}
+                                {% if item_form.unit_value.errors %}
+                                  <div class="text-danger small">{{ item_form.unit_value.errors }}</div>
+                                {% endif %}
+                              </div>
+                              <div class="col-md-3 mb-3">
+                                <label class="form-label fw-bold">% Arquiteto</label>
+                                {{ item_form.architect_percent }}
+                                {% if item_form.architect_percent.errors %}
+                                  <div class="text-danger small">{{ item_form.architect_percent.errors }}</div>
+                                {% endif %}
+                              </div>
+                              <div class="col-md-3 mb-3">
+                                <label class="form-label fw-bold">Condição</label>
+                                {{ item_form.condition_text }}
+                                {% if item_form.condition_text.errors %}
+                                  <div class="text-danger small">{{ item_form.condition_text.errors }}</div>
+                                {% endif %}
+                              </div>
+                            </div>
+                            {{ item_form.id }}
+                          </div>
+                        {% endfor %}
+                      </div>
+
+                      <button type="button" class="btn btn-outline-success add-row-btn" onclick="addFormRow()">
+                        <i class="fa-solid fa-plus me-2"></i>Adicionar Item
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="d-flex justify-content-end gap-3">
+                    <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary btn-lg">
+                      <i class="fa-solid fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                      <i class="fa-solid fa-save me-2"></i>Salvar Orçamento
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pt-5 pb-4 bg-dark text-white">
+        <div class="container">
+          <div class="row">
+            <div class="col-12 text-center">
+              <p class="mb-0">© 2026 Roselar. Todos os direitos reservados.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="{% static 'vendors/popper/popper.min.js' %}"></script>
+    <script src="{% static 'vendors/bootstrap/bootstrap.min.js' %}"></script>
+    <script src="{% static 'vendors/anchorjs/anchor.min.js' %}"></script>
+    <script src="{% static 'vendors/is/is.min.js' %}"></script>
+    <script src="{% static 'vendors/fontawesome/all.min.js' %}"></script>
+    <script src="{% static 'vendors/lodash/lodash.min.js' %}"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=window.scroll"></script>
+    <script src="{% static 'vendors/prism/prism.js' %}"></script>
+    <script src="{% static 'vendors/swiper/swiper-bundle.min.js' %}"></script>
+    <script src="{% static 'assets/js/theme.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+
+    <script>
+      // Add form-control class to all form inputs
+      document.addEventListener('DOMContentLoaded', function() {
+        const inputs = document.querySelectorAll('input:not([type="checkbox"]):not([type="hidden"]), select, textarea');
+        inputs.forEach(input => {
+          input.classList.add('form-control');
+        });
+        
+        // Setup customer document search
+        const docInput = document.getElementById('customer-document');
+        let searchTimeout;
+        
+        if (docInput) {
+          docInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const doc = this.value.replace(/\D/g, ''); // Remove non-digits
+            
+            // Clear name search when typing in document field
+            if (doc.length > 0) {
+              document.getElementById('customer-name-search').value = '';
+            }
+            
+            if (doc.length >= 11) { // Min CPF length
+              searchTimeout = setTimeout(() => searchCustomer(doc), 800);
+            } else {
+              hideAllCustomerUI();
+            }
+          });
+        }
+        
+        // Setup new customer document input to auto-detect type
+        const newDocInput = document.getElementById('new-customer-document');
+        if (newDocInput) {
+          newDocInput.addEventListener('input', function() {
+            const doc = this.value.replace(/\D/g, '');
+            const typeInput = document.getElementById('new-customer-type');
+            
+            if (doc.length === 11) {
+              typeInput.value = 'Pessoa Física (CPF)';
+              typeInput.classList.remove('text-danger');
+              typeInput.classList.add('text-success');
+            } else if (doc.length === 14) {
+              typeInput.value = 'Pessoa Jurídica (CNPJ)';
+              typeInput.classList.remove('text-danger');
+              typeInput.classList.add('text-success');
+            } else if (doc.length > 0) {
+              typeInput.value = 'Inválido - Digite 11 ou 14 dígitos';
+              typeInput.classList.remove('text-success');
+              typeInput.classList.add('text-danger');
+            } else {
+              typeInput.value = '';
+              typeInput.classList.remove('text-success', 'text-danger');
+            }
+          });
+        }
+        
+        // Setup name search
+        const nameSearchInput = document.getElementById('customer-name-search');
+        let nameSearchTimeout;
+        
+        if (nameSearchInput) {
+          nameSearchInput.addEventListener('input', function() {
+            clearTimeout(nameSearchTimeout);
+            const query = this.value.trim();
+            
+            // Clear document search when typing in name field
+            if (query.length > 0) {
+              document.getElementById('customer-document').value = '';
+            }
+            
+            if (query.length >= 2) {
+              nameSearchTimeout = setTimeout(() => searchCustomerByName(query), 500);
+            } else {
+              hideAllCustomerUI();
+            }
+          });
+        }
+      });
+
+      function searchCustomer(docNumber) {
+        // Hide search results when searching by document
+        hideAllCustomerUI();
+        
+        fetch(`/api/search-customer/?document=${docNumber}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.found) {
+              // Customer found - show in results list like name search
+              const resultsList = document.getElementById('customer-results-list');
+              const resultsContainer = document.getElementById('customer-search-results');
+              
+              resultsList.innerHTML = '';
+              
+              const customer = {
+                id: data.id,
+                name: data.name,
+                display: data.name,
+                cpf: data.cpf,
+                cnpj: data.cnpj
+              };
+              
+              const button = document.createElement('button');
+              button.type = 'button';
+              button.className = 'btn btn-outline-primary btn-sm me-2 mb-2';
+              button.innerHTML = `<i class="fa-solid fa-user me-1"></i>${customer.name}`;
+              button.onclick = () => selectCustomer(customer);
+              resultsList.appendChild(button);
+              
+              resultsContainer.classList.remove('d-none');
+            } else {
+              // Customer not found - show registration form
+              document.getElementById('customer-found').classList.add('d-none');
+              document.getElementById('customer-register').classList.remove('d-none');
+              
+              // Pre-fill the document field
+              const searchDoc = document.getElementById('customer-document').value.replace(/\D/g, '');
+              const newDocInput = document.getElementById('new-customer-document');
+              newDocInput.value = searchDoc;
+              
+              // Trigger the input event to set the type
+              newDocInput.dispatchEvent(new Event('input'));
+            }
+          })
+          .catch(err => console.error('Error searching customer:', err));
+      }
+
+      function hideCustomerSections() {
+        document.getElementById('customer-found').classList.add('d-none');
+        document.getElementById('customer-register').classList.add('d-none');
+      }
+      
+      function hideAllCustomerUI() {
+        document.getElementById('customer-found').classList.add('d-none');
+        document.getElementById('customer-register').classList.add('d-none');
+        document.getElementById('customer-search-results').classList.add('d-none');
+      }
+
+      function searchCustomerByName(query) {
+        const url = `/api/search-customer-by-name/?query=${encodeURIComponent(query)}`;
+        
+        fetch(url)
+          .then(res => res.json())
+          .then(data => {
+            const resultsList = document.getElementById('customer-results-list');
+            const resultsContainer = document.getElementById('customer-search-results');
+            
+            if (data.results && data.results.length > 0) {
+              resultsList.innerHTML = '';
+              
+              data.results.forEach(customer => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn btn-outline-primary btn-sm me-2 mb-2';
+                button.innerHTML = `<i class="fa-solid fa-user me-1"></i>${customer.display}`;
+                button.onclick = () => selectCustomer(customer);
+                resultsList.appendChild(button);
+              });
+              
+              resultsContainer.classList.remove('d-none');
+              hideCustomerSections();
+            } else {
+              hideAllCustomerUI();
+              // Show registration form if no results found
+              document.getElementById('customer-register').classList.remove('d-none');
+            }
+          })
+          .catch(err => {
+            console.error('Error searching customer by name:', err);
+          });
+      }
+
+      function selectCustomer(customer) {
+        // Set the customer in the hidden select
+        const customerSelect = document.querySelector('select[name="customer"]');
+        if (customerSelect) {
+          customerSelect.value = customer.id;
+        }
+        
+        // Hide all customer UI elements first
+        hideAllCustomerUI();
+        
+        // Show customer found message
+        document.getElementById('customer-found-name').textContent = customer.display;
+        document.getElementById('customer-found').classList.remove('d-none');
+        
+        // Clear search inputs
+        document.getElementById('customer-name-search').value = '';
+        document.getElementById('customer-document').value = '';
+      }
+
+      function createCustomer() {
+        const doc = document.getElementById('new-customer-document').value.replace(/\D/g, '');
+        const name = document.getElementById('new-customer-name').value;
+        const phone = document.getElementById('new-customer-phone').value;
+        const email = document.getElementById('new-customer-email').value;
+        
+        if (!name) {
+          alert('Por favor, preencha o nome do cliente.');
+          return;
+        }
+        
+        if (!doc || (doc.length !== 11 && doc.length !== 14)) {
+          alert('Por favor, digite um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.');
+          return;
+        }
+        
+        const data = {
+          name: name,
+          phone: phone,
+          email: email,
+          cpf: doc.length === 11 ? doc : '',
+          cnpj: doc.length === 14 ? doc : ''
+        };
+        
+        fetch('/api/create-customer/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            // Set the customer in the hidden select
+            const customerSelect = document.querySelector('select[name="customer"]');
+            if (customerSelect) {
+              // Add new option
+              const option = document.createElement('option');
+              option.value = data.customer.id;
+              option.text = data.customer.name;
+              option.selected = true;
+              customerSelect.appendChild(option);
+            }
+            
+            // Show success message
+            document.getElementById('customer-found-name').textContent = data.customer.name;
+            document.getElementById('customer-found').classList.remove('d-none');
+            document.getElementById('customer-register').classList.add('d-none');
+          } else {
+            alert('Erro ao criar cliente: ' + (data.error || 'Erro desconhecido'));
+          }
+        })
+        .catch(err => {
+          console.error('Error creating customer:', err);
+          alert('Erro ao criar cliente. Verifique o console.');
+        });
+      }
+
+      function deleteRow(btn) {
+        const row = btn.closest('[data-formset-row]');
+        const deleteCheckbox = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        if (deleteCheckbox) {
+          deleteCheckbox.checked = true;
+          row.style.display = 'none';
+        } else {
+          row.remove();
+        }
+      }
+
+      function addFormRow() {
+        const container = document.getElementById('formset-container');
+        const totalForms = document.querySelector('input[name$="-TOTAL_FORMS"]');
+        const formNum = parseInt(totalForms.value);
+        
+        // Clone the last form
+        const lastRow = container.querySelector('[data-formset-row]:last-child');
+        const newRow = lastRow.cloneNode(true);
+        
+        // Update form number in all inputs
+        const regex = new RegExp('-' + (formNum - 1) + '-', 'g');
+        newRow.innerHTML = newRow.innerHTML.replace(regex, '-' + formNum + '-');
+        
+        // Clear all input values
+        newRow.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]), select, textarea').forEach(input => {
+          input.value = '';
+        });
+        
+        // Uncheck DELETE checkbox if exists
+        const deleteCheckbox = newRow.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        if (deleteCheckbox) {
+          deleteCheckbox.checked = false;
+        }
+        
+        // Show the row
+        newRow.style.display = '';
+        
+        container.appendChild(newRow);
+        totalForms.value = formNum + 1;
+      }
+    </script>
+  </body>
+</html>
