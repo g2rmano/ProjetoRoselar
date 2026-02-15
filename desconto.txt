@@ -1,0 +1,2 @@
+the desconto option will be a dropdown from 1 to 15 percent, more than that, it will be a custom field and you you will need an admin to give you a password, NIGGGGGAAAAAAAAAAAA!!!!!
+the desconto will be deducted from the total value before the payment tariff, if theres any

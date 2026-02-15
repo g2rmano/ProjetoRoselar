@@ -1,0 +1,9 @@
+1: Tela de pedidos/orçamentos:
+    -Frete com opção de loja, cliente ou transportadora (cadastro da transportadora, adicionar nome da transp, infos, etc.)
+    -Cadastro do fornecedor com opções de pagamento personalizadas por fornecedor (pagamento da loja para o fornecedor), com número de fornecedor e email.
+    -Definir prazo de entrega.
+2: Calendário:
+    -Lembretes de reincidência de leads.
+    -Lembretes de prazos de entrega para averiguação dos produtos.
+3: Tela de simulação de vendas:
+    -

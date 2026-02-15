@@ -1,0 +1,9 @@
+condicao will work this way:
+    a dropdown with those options, and depending on the option, it will open another options:
+    -dinheiro (a vista)
+    -pix (a vista)
+    -cartao (parcelado): you can select up to 12x, each option will have its on increase on the total price, due to the tarif, i will select those porcentages on the admin menu
+    -cheque (a vista)
+    -boleto (parcelado): you can select up to 6x, each option will have its on increase on the total price, due to the tarif, i will select those porcentages on the admin menu
+
+

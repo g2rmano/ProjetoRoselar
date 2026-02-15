@@ -30,6 +30,13 @@ class QuoteStatus(models.TextChoices):
     CANCELED = "CANCELED", "Cancelado"
 
 
+class FreightResponsible(models.TextChoices):
+    """Responsável pelo pagamento do frete."""
+    STORE = "STORE", "Loja"
+    CUSTOMER = "CUSTOMER", "Cliente"
+    CARRIER = "CARRIER", "Transportadora"
+
+
 class Quote(models.Model):
     number = models.CharField(max_length=20, unique=True)
 
@@ -47,13 +54,41 @@ class Quote(models.Model):
     status = models.CharField(max_length=12, choices=QuoteStatus.choices, default=QuoteStatus.DRAFT)
 
     quote_date = models.DateField(default=timezone.localdate)
+    
+    # prazo de entrega
+    delivery_deadline = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Prazo de entrega previsto"
+    )
+    
+    # frete
     freight_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    freight_responsible = models.CharField(
+        max_length=10,
+        choices=FreightResponsible.choices,
+        default=FreightResponsible.CUSTOMER,
+        help_text="Quem paga o frete"
+    )
+    shipping_company = models.ForeignKey(
+        "core.ShippingCompany",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="quotes",
+        help_text="Transportadora responsável (se aplicável)"
+    )
+    shipping_payment_method = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Método de pagamento selecionado da transportadora"
+    )
 
     # desconto
     discount_percent = models.DecimalField(
-        max_digits=6,
-        decimal_places=3,
-        default=Decimal("0.000"),
+        max_digits=5,
+        decimal_places=1,
+        default=Decimal("0.0"),
         validators=[validate_discount_percent],
     )
     discount_authorized_by = models.ForeignKey(
@@ -65,8 +100,28 @@ class Quote(models.Model):
     )
     discount_authorized_at = models.DateTimeField(null=True, blank=True)
 
-    # condição/pagamento (texto, pois varia muito)
-    payment_description = models.CharField(max_length=200, blank=True)
+    # arquiteto
+    has_architect = models.BooleanField(
+        default=False,
+        help_text="Cliente possui arquiteto?"
+    )
+
+    # condição/pagamento
+    payment_type = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Tipo de pagamento (dinheiro, pix, cartão, etc.)"
+    )
+    payment_installments = models.PositiveIntegerField(
+        default=1,
+        help_text="Número de parcelas (1 = à vista)"
+    )
+    payment_fee_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        default=Decimal("0.0"),
+        help_text="Taxa aplicada conforme parcelas"
+    )
 
     # snapshots (opcional, útil para relatórios e evitar recomputar)
     total_value_snapshot = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
@@ -86,6 +141,42 @@ class Quote(models.Model):
     @property
     def has_orders(self) -> bool:
         return self.orders.exists()
+    
+    def get_payment_description(self) -> str:
+        """Retorna descrição formatada do pagamento."""
+        from core.models import PaymentMethodType
+        
+        if self.payment_type:
+            type_display = dict(PaymentMethodType.choices).get(self.payment_type, self.payment_type)
+            if self.payment_installments == 1:
+                return f"{type_display} - À vista"
+            else:
+                return f"{type_display} - {self.payment_installments}x"
+        return "Não definido"
+    
+    def calculate_subtotal(self) -> Decimal:
+        """Calcula subtotal dos itens sem desconto e sem frete."""
+        subtotal = sum(item.line_total for item in self.items.all())
+        return Decimal(str(subtotal))
+    
+    def calculate_total_with_freight_and_discount(self) -> Decimal:
+        """Calcula total com frete e desconto, mas SEM taxa de pagamento."""
+        subtotal = self.calculate_subtotal()
+        with_freight = subtotal + (self.freight_value or Decimal("0.00"))
+        discount_value = with_freight * (self.discount_percent or Decimal("0.000")) / Decimal("100")
+        return with_freight - discount_value
+    
+    def calculate_payment_fee_value(self) -> Decimal:
+        """Calcula o valor da taxa de pagamento."""
+        base_total = self.calculate_total_with_freight_and_discount()
+        fee_value = base_total * (self.payment_fee_percent or Decimal("0.000")) / Decimal("100")
+        return fee_value
+    
+    def calculate_final_total(self) -> Decimal:
+        """Calcula o total final incluindo taxa de pagamento."""
+        base_total = self.calculate_total_with_freight_and_discount()
+        fee_value = self.calculate_payment_fee_value()
+        return base_total + fee_value
 
 
 
@@ -111,7 +202,13 @@ class QuoteItem(models.Model):
     condition_text = models.CharField(max_length=200, blank=True)
 
     # % arquiteto: armazenar, mas NÃO exibir no orçamento/pedido final (regra sua)
-    architect_percent = models.DecimalField(max_digits=6, decimal_places=3, default=Decimal("0.000"))
+    architect_percent = models.DecimalField(
+        max_digits=4, 
+        decimal_places=1, 
+        null=True, 
+        blank=True, 
+        default=Decimal("0.0")
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -224,3 +321,8 @@ class OrderItem(models.Model):
 
     def __str__(self) -> str:
         return f"{self.product_name} ({self.order.number})"
+    
+    @property
+    def line_total(self) -> Decimal:
+        """Calculate the total for this line item."""
+        return (self.purchase_unit_cost or Decimal("0.00")) * Decimal(self.quantity or 0)

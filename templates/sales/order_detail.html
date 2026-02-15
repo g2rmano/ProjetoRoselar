@@ -1,0 +1,343 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" dir="ltr">
+
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Pedido #{{ order.number }} | Roselar</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+    <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
+    <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
+    <meta name="theme-color" content="#ffffff">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link href="{% static 'vendors/prism/prism.css' %}" rel="stylesheet">
+    <link href="{% static 'vendors/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+
+    <style>
+      .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 0;
+        font-weight: 600;
+        font-size: 0.875rem;
+      }
+      .status-OPEN { background-color: #0dcaf0; color: white; }
+      .status-SENT { background-color: #0d6efd; color: white; }
+      .status-DONE { background-color: #198754; color: white; }
+      .status-CANCELED { background-color: #dc3545; color: white; }
+      
+      .info-card {
+        border-left: 4px solid #0A2640;
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 0;
+        margin-bottom: 1.5rem;
+      }
+      .info-label {
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+      }
+      .info-value {
+        font-size: 1.1rem;
+        color: #0A2640;
+        font-weight: 500;
+      }
+      
+      .card {
+        border-radius: 0 !important;
+      }
+      
+      .btn {
+        border-radius: 0 !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="main" id="top">
+      <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;" /></a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars text-white fs-3"></i></button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto">
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Sobre</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
+              <li class="nav-item">
+                <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button" style="border-radius: 0.375rem !important;">
+                  <span class="me-2">{{ user.username }}</span>
+                  <svg class="w-2.5 h-2.5" style="width: 14px; height: 14px;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                  </svg>
+                </button>
+                <div id="dropdownUser" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-72">
+                  <div class="px-4 py-3 text-sm text-gray-900">
+                    <div class="font-medium">{{ user.username }}</div>
+                    <div class="truncate">{{ user.email }}</div>
+                  </div>
+                  <ul class="py-2 text-sm text-gray-700">
+                    <li>
+                      <a href="{% url 'core:dashboard' %}" class="block px-4 py-2 hover:bg-gray-100">
+                        <i class="fa-solid fa-user me-2"></i>Minha Conta
+                      </a>
+                    </li>
+                  </ul>
+                  <div class="py-2">
+                    <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">
+                      <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
+                    </a>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <section class="py-8" style="min-height: 100vh;">
+        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 30vh; z-index: -1;"></div>
+        
+        <div class="container">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 0;">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          <div class="row justify-content-center mt-5">
+            <div class="col-12 col-lg-10">
+              <div class="bg-white p-5 shadow-lg" style="border-radius: 0;">
+                
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                  <div>
+                    <h1 class="fw-bold mb-2">
+                      <i class="fa-solid fa-clipboard-list me-2"></i>
+                      Pedido de Compra #{{ order.number }}
+                    </h1>
+                    <span class="status-badge status-{{ order.status }}">
+                      {{ order.get_status_display }}
+                    </span>
+                    {% if order.is_total_conference %}
+                      <span class="badge bg-info ms-2" style="border-radius: 0; font-size: 0.875rem; padding: 0.5rem 1rem;">
+                        <i class="fa-solid fa-clipboard-check me-1"></i>Pedido Total
+                      </span>
+                    {% endif %}
+                  </div>
+                  <div class="d-flex gap-2 flex-wrap">
+                    {% if not order.is_total_conference and order.supplier %}
+                      <a href="{% url 'sales:order_pdf' order.id %}" class="btn btn-success" target="_blank">
+                        <i class="fa-solid fa-file-pdf me-2"></i>Gerar PDF
+                      </a>
+                    {% endif %}
+                    <a href="{% url 'sales:quote_detail' order.quote.id %}" class="btn btn-outline-info">
+                      <i class="fa-solid fa-file-invoice me-2"></i>Ver Orçamento
+                    </a>
+                    <a href="{% url 'sales:order_list' %}" class="btn btn-outline-secondary">
+                      <i class="fa-solid fa-arrow-left me-2"></i>Voltar à Lista
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Info Cards -->
+                <div class="row mb-4">
+                  <div class="col-md-6">
+                    <div class="info-card">
+                      <div class="info-label">Orçamento Relacionado</div>
+                      <div class="info-value">
+                        <i class="fa-solid fa-link me-2"></i>{{ order.quote.number }}
+                      </div>
+                      <small class="text-muted">
+                        <i class="fa-solid fa-calendar me-1"></i>
+                        {{ order.quote.quote_date|date:"d/m/Y" }}
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="info-card">
+                      <div class="info-label">Cliente</div>
+                      <div class="info-value">
+                        <i class="fa-solid fa-user me-2"></i>{{ order.quote.customer.name }}
+                      </div>
+                      {% if order.quote.customer.phone %}
+                        <small class="text-muted">
+                          <i class="fa-solid fa-phone me-1"></i>{{ order.quote.customer.phone }}
+                        </small>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row mb-4">
+                  {% if order.supplier %}
+                    <div class="col-md-6">
+                      <div class="info-card">
+                        <div class="info-label">Fornecedor</div>
+                        <div class="info-value">
+                          <i class="fa-solid fa-truck me-2"></i>{{ order.supplier.name }}
+                        </div>
+                        {% if order.supplier.phone %}
+                          <small class="text-muted">
+                            <i class="fa-solid fa-phone me-1"></i>{{ order.supplier.phone }}
+                          </small><br>
+                        {% endif %}
+                        {% if order.supplier.email %}
+                          <small class="text-muted">
+                            <i class="fa-solid fa-envelope me-1"></i>{{ order.supplier.email }}
+                          </small>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endif %}
+                  
+                  <div class="col-md-6">
+                    <div class="info-card">
+                      <div class="info-label">Vendedor / Data de Criação</div>
+                      <div class="info-value">
+                        <i class="fa-solid fa-user-tie me-2"></i>{{ order.quote.seller.get_full_name|default:order.quote.seller.username }}
+                      </div>
+                      <small class="text-muted">
+                        <i class="fa-solid fa-calendar me-1"></i>{{ order.created_at|date:"d/m/Y H:i" }}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+
+                {% if order.purchase_condition_text %}
+                  <div class="info-card">
+                    <div class="info-label">Condição de Compra</div>
+                    <div class="info-value">{{ order.purchase_condition_text }}</div>
+                  </div>
+                {% endif %}
+
+                {% if order.notes %}
+                  <div class="info-card">
+                    <div class="info-label">Observações</div>
+                    <div class="info-value">{{ order.notes }}</div>
+                  </div>
+                {% endif %}
+
+                <!-- Items Table -->
+                <div class="card mb-4">
+                  <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                      <i class="fa-solid fa-box me-2"></i>
+                      Itens do Pedido ({{ items.count }})
+                    </h5>
+                  </div>
+                  <div class="card-body p-0">
+                    <div class="table-responsive">
+                      <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                          <tr>
+                            <th>#</th>
+                            <th>Produto</th>
+                            <th>Descrição</th>
+                            <th class="text-center">Quantidade</th>
+                            <th class="text-end">Custo Unit.</th>
+                            <th class="text-end">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for item in items %}
+                            <tr>
+                              <td class="text-muted">{{ forloop.counter }}</td>
+                              <td class="fw-semibold">{{ item.product_name }}</td>
+                              <td>
+                                <small class="text-muted">{{ item.description|truncatewords:15|default:"-" }}</small>
+                              </td>
+                              <td class="text-center">{{ item.quantity }}</td>
+                              <td class="text-end">R$ {{ item.purchase_unit_cost|floatformat:2 }}</td>
+                              <td class="text-end fw-semibold">
+                                R$ {% widthratio item.purchase_unit_cost 1 item.quantity as total %}{{ total|floatformat:2 }}
+                              </td>
+                            </tr>
+                          {% empty %}
+                            <tr>
+                              <td colspan="6" class="text-center text-muted py-4">
+                                <i class="fa-solid fa-inbox fa-2x mb-2"></i>
+                                <p class="mb-0">Nenhum item encontrado</p>
+                              </td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                        {% if items %}
+                          <tfoot class="table-light">
+                            <tr>
+                              <td colspan="5" class="text-end fw-bold">TOTAL:</td>
+                              <td class="text-end fw-bold">
+                                R$ 
+                                {% widthratio 0 1 1 as sum %}
+                                {% for item in items %}
+                                  {% widthratio item.purchase_unit_cost 1 item.quantity as item_total %}
+                                  {% widthratio sum 1 1 as temp %}
+                                  {% widthratio temp 1 1 as sum %}
+                                {% endfor %}
+                                {{ sum|floatformat:2 }}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        {% endif %}
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                  <a href="{% url 'sales:order_list' %}" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-arrow-left me-2"></i>Voltar à Lista
+                  </a>
+                  <div class="d-flex gap-2">
+                    <a href="{% url 'sales:quote_detail' order.quote.id %}" class="btn btn-info">
+                      <i class="fa-solid fa-file-invoice me-2"></i>Ver Orçamento Original
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <section class="py-0 bg-dark">
+        <div class="container">
+          <div class="row justify-content-md-between justify-content-evenly py-4">
+            <div class="col-12 col-sm-8 col-md-6 col-lg-auto text-center text-md-start">
+              <p class="fs--1 my-2 fw-light text-200">Todos os direitos reservados &copy; Roselar <span class="d-none d-sm-inline-block"></span><br class="d-sm-none" />2026</p>
+            </div>
+            <div class="col-12 col-sm-8 col-md-6">
+              <p class="fs--1 my-2 text-center text-md-end text-200"> Feito com &hearts; pela Roselar</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="{% static 'vendors/popper/popper.min.js' %}"></script>
+    <script src="{% static 'vendors/bootstrap/bootstrap.min.js' %}"></script>
+    <script src="{% static 'vendors/is/is.min.js' %}"></script>
+    <script src="{% static 'vendors/prism/prism.js' %}"></script>
+    <script src="{% static 'vendors/swiper/swiper-bundle.min.js' %}"></script>
+    <script src="{% static 'assets/js/theme.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+  </body>
+</html>

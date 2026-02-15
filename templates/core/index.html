@@ -58,7 +58,7 @@
             <ul class="navbar-nav ms-auto">
               <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
               <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Sobre</a></li>
-              <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Blog</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
               {% if user.is_authenticated %}
 				<li class="nav-item dropdown">
 				<button

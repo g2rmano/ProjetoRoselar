@@ -1,0 +1,293 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" dir="ltr">
+
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Lista de Orçamentos | Roselar</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+    <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
+    <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
+    <meta name="theme-color" content="#ffffff">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link href="{% static 'vendors/prism/prism.css' %}" rel="stylesheet">
+    <link href="{% static 'vendors/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+
+    <style>
+      .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 0;
+        font-weight: 600;
+        font-size: 0.875rem;
+        display: inline-block;
+      }
+      .status-DRAFT { background-color: #6c757d; color: white; }
+      .status-SENT { background-color: #0dcaf0; color: white; }
+      .status-APPROVED { background-color: #198754; color: white; }
+      .status-CONVERTED { background-color: #0d6efd; color: white; }
+      .status-CANCELED { background-color: #dc3545; color: white; }
+      
+      .quote-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        background-color: white;
+        transition: all 0.2s;
+      }
+      .quote-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+      }
+      
+      .search-form .form-control,
+      .search-form .form-select,
+      .search-form .btn {
+        border-radius: 0 !important;
+      }
+      
+      .quote-number {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #0A2640;
+      }
+      
+      .quote-info {
+        font-size: 0.9rem;
+        color: #6c757d;
+      }
+      
+      .quote-info strong {
+        color: #0A2640;
+      }
+      
+      #dropdownUserButton {
+        border-radius: 0.375rem !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="main" id="top">
+      <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;" /></a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars text-white fs-3"></i></button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto">
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Sobre</a></li>
+              <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
+              <li class="nav-item">
+                <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
+                  <span class="me-2">{{ user.username }}</span>
+                  <svg class="w-2.5 h-2.5" style="width: 14px; height: 14px;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                  </svg>
+                </button>
+                <div id="dropdownUser" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-72">
+                  <div class="px-4 py-3 text-sm text-gray-900">
+                    <div class="font-medium">{{ user.username }}</div>
+                    <div class="truncate">{{ user.email }}</div>
+                  </div>
+                  <ul class="py-2 text-sm text-gray-700">
+                    <li>
+                      <a href="{% url 'core:dashboard' %}" class="block px-4 py-2 hover:bg-gray-100">
+                        <i class="fa-solid fa-user me-2"></i>Minha Conta
+                      </a>
+                    </li>
+                  </ul>
+                  <div class="py-2">
+                    <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">
+                      <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
+                    </a>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <section class="py-8" style="min-height: 100vh;">
+        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 30vh; z-index: -1;"></div>
+        
+        <div class="container">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 0;">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          <div class="row justify-content-center">
+            <div class="col-lg-11">
+              <div class="bg-white p-5 shadow-lg" style="border-radius: 0;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                  <div>
+                    <h1 class="fw-bold mb-2">
+                      <i class="fa-solid fa-file-invoice me-2"></i>Orçamentos
+                    </h1>
+                    <p class="text-muted mb-0">Gerencie todos os orçamentos</p>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <a href="{% url 'sales:quote_create' %}" class="btn btn-success" style="border-radius: 0;">
+                      <i class="fa-solid fa-plus me-2"></i>Novo Orçamento
+                    </a>
+                    <a href="{% url 'sales:quotes_hub' %}" class="btn btn-outline-secondary" style="border-radius: 0;">
+                      <i class="fa-solid fa-arrow-left me-2"></i>Voltar
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Search and Filter Form -->
+                <form method="get" class="search-form mb-4">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <input 
+                        type="text" 
+                        name="search" 
+                        class="form-control" 
+                        placeholder="Buscar por número, cliente, vendedor..." 
+                        value="{{ search_query }}"
+                      >
+                    </div>
+                    <div class="col-md-3">
+                      <select name="status" class="form-select">
+                        <option value="">Todos os Status</option>
+                        <option value="DRAFT" {% if status_filter == "DRAFT" %}selected{% endif %}>Rascunho</option>
+                        <option value="SENT" {% if status_filter == "SENT" %}selected{% endif %}>Enviado</option>
+                        <option value="APPROVED" {% if status_filter == "APPROVED" %}selected{% endif %}>Aprovado</option>
+                        <option value="CONVERTED" {% if status_filter == "CONVERTED" %}selected{% endif %}>Convertido em Pedido</option>
+                        <option value="CANCELED" {% if status_filter == "CANCELED" %}selected{% endif %}>Cancelado</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <button type="submit" class="btn btn-primary w-100">
+                        <i class="fa-solid fa-search me-2"></i>Buscar
+                      </button>
+                    </div>
+                  </div>
+                  {% if search_query or status_filter %}
+                    <div class="mt-2">
+                      <a href="{% url 'sales:quote_list' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 0;">
+                        <i class="fa-solid fa-times me-1"></i>Limpar filtros
+                      </a>
+                    </div>
+                  {% endif %}
+                </form>
+
+                <!-- Quote Count -->
+                <div class="mb-3">
+                  <p class="text-muted mb-0">
+                    <i class="fa-solid fa-info-circle me-1"></i>
+                    <strong>{{ quotes.count }}</strong> orçamento{{ quotes.count|pluralize }} encontrado{{ quotes.count|pluralize }}
+                  </p>
+                </div>
+
+                <!-- Quotes List -->
+                {% if quotes %}
+                  <div class="quotes-container">
+                    {% for quote in quotes %}
+                      <div class="quote-card">
+                        <div class="row">
+                          <div class="col-md-8">
+                            <div class="mb-2">
+                              <span class="quote-number">
+                                <i class="fa-solid fa-file-invoice me-2"></i>{{ quote.number }}
+                              </span>
+                              <span class="status-badge status-{{ quote.status }} ms-2">
+                                {{ quote.get_status_display }}
+                              </span>
+                            </div>
+                            
+                            <div class="quote-info mb-2">
+                              <i class="fa-solid fa-user me-1"></i>
+                              <strong>Cliente:</strong> {{ quote.customer.name }}
+                            </div>
+                            
+                            <div class="quote-info mb-2">
+                              <i class="fa-solid fa-user-tie me-1"></i>
+                              <strong>Vendedor:</strong> {{ quote.seller.get_full_name|default:quote.seller.username }}
+                            </div>
+                            
+                            <div class="quote-info mb-2">
+                              <i class="fa-solid fa-box me-1"></i>
+                              <strong>Itens:</strong> {{ quote.items.count }}
+                            </div>
+                            
+                            <div class="quote-info">
+                              <i class="fa-solid fa-dollar-sign me-1"></i>
+                              <strong>Valor Total:</strong> R$ {{ quote.total_value_snapshot|floatformat:2 }}
+                            </div>
+                          </div>
+                          
+                          <div class="col-md-4 text-md-end d-flex flex-column justify-content-between">
+                            <div class="quote-info mb-3">
+                              <i class="fa-solid fa-calendar me-1"></i>
+                              {{ quote.quote_date|date:"d/m/Y" }}
+                            </div>
+                            
+                            <div>
+                              <a href="{% url 'sales:quote_detail' quote.id %}" class="btn btn-primary btn-sm" style="border-radius: 0;">
+                                <i class="fa-solid fa-eye me-1"></i>Ver Detalhes
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="alert alert-info" style="border-radius: 0;">
+                    <i class="fa-solid fa-info-circle me-2"></i>
+                    Nenhum orçamento encontrado.
+                    {% if search_query or status_filter %}
+                      <a href="{% url 'sales:quote_list' %}" class="alert-link">Limpar filtros</a>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <section class="py-0 bg-dark">
+        <div class="container">
+          <div class="row justify-content-md-between justify-content-evenly py-4">
+            <div class="col-12 col-sm-8 col-md-6 col-lg-auto text-center text-md-start">
+              <p class="fs--1 my-2 fw-light text-200">Todos os direitos reservados &copy; Roselar <span class="d-none d-sm-inline-block"></span><br class="d-sm-none" />2026</p>
+            </div>
+            <div class="col-12 col-sm-8 col-md-6">
+              <p class="fs--1 my-2 text-center text-md-end text-200"> Feito com &hearts; pela Roselar</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="{% static 'vendors/popper/popper.min.js' %}"></script>
+    <script src="{% static 'vendors/bootstrap/bootstrap.min.js' %}"></script>
+    <script src="{% static 'vendors/is/is.min.js' %}"></script>
+    <script src="{% static 'vendors/prism/prism.js' %}"></script>
+    <script src="{% static 'vendors/swiper/swiper-bundle.min.js' %}"></script>
+    <script src="{% static 'assets/js/theme.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+  </body>
+</html>

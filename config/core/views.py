@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from .models import Customer
+from .models import Customer, ShippingCompany
 import json
 
 def home(request):
@@ -86,3 +86,18 @@ def search_customer_by_name(request):
         })
     
     return JsonResponse({'results': results})
+
+@login_required
+def get_shipping_company_payment_methods(request, company_id):
+    """Get payment methods for a specific shipping company"""
+    try:
+        company = ShippingCompany.objects.get(id=company_id, is_active=True)
+        return JsonResponse({
+            'success': True,
+            'payment_methods': company.payment_methods or ''
+        })
+    except ShippingCompany.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'payment_methods': ''
+        }, status=404)

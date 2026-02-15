@@ -68,7 +68,7 @@
             <ul class="navbar-nav ms-auto">
               <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
               <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Sobre</a></li>
-              <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Blog</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
               <li class="nav-item">
                 <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
                   <span class="me-2">{{ user.username }}</span>
@@ -121,12 +121,18 @@
                     </span>
                   </div>
                   <div class="d-flex gap-2">
+                    <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn btn-success" target="_blank">
+                      <i class="fa-solid fa-file-pdf me-2"></i>PDF Cliente
+                    </a>
+                    <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn btn-info" target="_blank">
+                      <i class="fa-solid fa-file-pdf me-2"></i>PDF Fornecedor
+                    </a>
                     {% if quote.status != 'CONVERTED' and quote.status != 'CANCELED' %}
                       <a href="{% url 'sales:quote_edit' quote.id %}" class="btn btn-outline-primary">
                         <i class="fa-solid fa-edit me-2"></i>Editar
                       </a>
                     {% endif %}
-                    <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary">
+                    <a href="{% url 'core:index' %}" class="btn btn-outline-secondary">
                       <i class="fa-solid fa-arrow-left me-2"></i>Voltar
                     </a>
                   </div>
@@ -171,16 +177,28 @@
                   </div>
                   <div class="col-md-4">
                     <div class="info-card">
-                      <div class="info-label">Total</div>
+                      <div class="info-label">Total Geral</div>
                       <div class="info-value">R$ {{ quote.total_value_snapshot|floatformat:2 }}</div>
+                      {% if quote.payment_fee_percent > 0 %}
+                        <small class="text-muted d-block mt-1">
+                          <i class="fa-solid fa-info-circle me-1"></i>Inclui taxa de {{ quote.payment_fee_percent }}%
+                        </small>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
 
-                {% if quote.payment_description %}
+                {% if quote.payment_type %}
                   <div class="info-card">
                     <div class="info-label">Condição de Pagamento</div>
-                    <div class="info-value">{{ quote.payment_description }}</div>
+                    <div class="info-value">
+                      {{ quote.get_payment_description }}
+                      {% if quote.payment_fee_percent > 0 %}
+                        <span class="badge bg-warning text-dark ms-2">
+                          <i class="fa-solid fa-percent me-1"></i>Taxa: {{ quote.payment_fee_percent }}%
+                        </span>
+                      {% endif %}
+                    </div>
                   </div>
                 {% endif %}
 
@@ -261,10 +279,19 @@
                                 {{ order.items.count }} ite{{ order.items.count|pluralize:"m,ns" }}
                               </small>
                             </div>
-                            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#order-{{ order.id }}" aria-expanded="false">
-                              <i class="fa-solid fa-chevron-down"></i>
-                            </button>
-                          </div>
+                            <div class="d-flex gap-2">
+                              {% if not order.is_total_conference and order.supplier %}
+                                <a href="{% url 'sales:order_pdf' order.id %}" class="btn btn-sm btn-success" target="_blank" title="Baixar PDF">
+                                  <i class="fa-solid fa-file-pdf"></i>
+                                </a>
+                              {% endif %}
+                              <a href="{% url 'sales:order_detail' order.id %}" class="btn btn-sm btn-outline-info" title="Ver Detalhes">
+                                <i class="fa-solid fa-eye"></i>
+                              </a>
+                              <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#order-{{ order.id }}" aria-expanded="false" title="Expandir/Recolher">
+                                <i class="fa-solid fa-chevron-down"></i>
+                              </button>
+                            </div>
                           
                           <div class="collapse mt-3" id="order-{{ order.id }}">
                             <table class="table table-sm table-striped mb-0">

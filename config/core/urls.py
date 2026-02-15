@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import home, dashboard, search_customer, create_customer, search_customer_by_name
+from .views import home, dashboard, search_customer, create_customer, search_customer_by_name, get_shipping_company_payment_methods
 
 app_name = "core"
 
@@ -9,4 +9,5 @@ urlpatterns = [
     path("api/search-customer/", search_customer, name="search_customer"),
     path("api/create-customer/", create_customer, name="create_customer"),
     path("api/search-customer-by-name/", search_customer_by_name, name="search_customer_by_name"),
+    path("api/shipping-company/<int:company_id>/payment-methods/", get_shipping_company_payment_methods, name="shipping_company_payment_methods"),
 ]

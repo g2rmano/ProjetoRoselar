@@ -1,0 +1,33 @@
+the client pdf needs to have those informations:
+Prezado(a) [Nome do Cliente],
+
+A Roselar Móveis busca desde 1998 um comprometimento com qualidade e confiança. Somos especializados em oferecer móveis sob medida que atendem tanto às necessidades de empresas quanto aos desejos de nossos clientes finais, sempre prezando pela durabilidade, funcionalidade e design.
+
+Sabemos o quanto é importante encontrar o equilíbrio perfeito entre estilo e praticidade, e estamos aqui para proporcionar isso a você.
+
+Com base no seu pedido, seguem os detalhes dos produtos selecionados:
+Itens Orçados:
+
+Produto 1: [Descrição do Produto]
+
+Preço: R$ [valor]
+
+Produto 2: [Descrição do Produto]
+
+Preço: R$ [valor]
+
+Produto 3: [Descrição do Produto]
+
+Preço: R$ [valor]
+
+
+Condições de Pagamento:
+Tipo do Frete:
+Valor do Frete:
+Total: R$ [valor total]
+
+Na Roselar Móveis, trabalhamos com valores a prazo, oferecendo condições flexíveis para que você possa realizar a compra da maneira mais conveniente. Para garantir que você tenha uma experiência completa, sugerimos que nos faça uma visita. Estamos sempre dispostos a negociar e oferecer a melhor forma de atendimento, para que sua compra seja satisfatória do início ao fim.
+
+
+
+and for the pedido to the fornecedores pdf, only informations that are necessary to the pedido, only the name of the person, the items, etc, i can change it later

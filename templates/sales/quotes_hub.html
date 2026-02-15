@@ -1,0 +1,202 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" dir="ltr">
+
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Orçamentos | Roselar</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+    <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
+    <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
+    <meta name="theme-color" content="#ffffff">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link href="{% static 'vendors/prism/prism.css' %}" rel="stylesheet">
+    <link href="{% static 'vendors/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+
+    <style>
+      .action-card {
+        border: 2px solid #0A2640;
+        border-radius: 0;
+        padding: 3rem;
+        margin-bottom: 2rem;
+        background-color: white;
+        transition: all 0.3s;
+        cursor: pointer;
+        text-align: center;
+      }
+      .action-card:hover {
+        background-color: #0A2640;
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      }
+      .action-card:hover .action-icon {
+        color: white;
+      }
+      .action-card:hover .action-title {
+        color: white;
+      }
+      .action-card:hover .action-description {
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .action-icon {
+        font-size: 5rem;
+        color: #0A2640;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s;
+      }
+      .action-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #0A2640;
+        margin-bottom: 1rem;
+        transition: all 0.3s;
+      }
+      .action-description {
+        font-size: 1.1rem;
+        color: #6c757d;
+        transition: all 0.3s;
+      }
+      
+      #dropdownUserButton {
+        border-radius: 0.375rem !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="main" id="top">
+      <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;" /></a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars text-white fs-3"></i></button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto">
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Sobre</a></li>
+              <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
+              <li class="nav-item">
+                <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
+                  <span class="me-2">{{ user.username }}</span>
+                  <svg class="w-2.5 h-2.5" style="width: 14px; height: 14px;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                  </svg>
+                </button>
+                <div id="dropdownUser" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-72">
+                  <div class="px-4 py-3 text-sm text-gray-900">
+                    <div class="font-medium">{{ user.username }}</div>
+                    <div class="truncate">{{ user.email }}</div>
+                  </div>
+                  <ul class="py-2 text-sm text-gray-700">
+                    <li>
+                      <a href="{% url 'core:dashboard' %}" class="block px-4 py-2 hover:bg-gray-100">
+                        <i class="fa-solid fa-user me-2"></i>Minha Conta
+                      </a>
+                    </li>
+                  </ul>
+                  <div class="py-2">
+                    <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">
+                      <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
+                    </a>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <section class="py-8" style="min-height: 100vh;">
+        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 30vh; z-index: -1;"></div>
+        
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-lg-10">
+              <div class="bg-white p-5 shadow-lg" style="border-radius: 0;">
+                <div class="text-center mb-5">
+                  <h1 class="fw-bold mb-3">
+                    <i class="fa-solid fa-file-invoice me-2"></i>Gestão de Orçamentos
+                  </h1>
+                  <p class="text-muted fs-5">O que você deseja fazer?</p>
+                </div>
+
+                <div class="row g-4">
+                  <!-- List All Quotes -->
+                  <div class="col-md-6">
+                    <a href="{% url 'sales:quote_list' %}" class="text-decoration-none">
+                      <div class="action-card">
+                        <div class="action-icon">
+                          <i class="fa-solid fa-list"></i>
+                        </div>
+                        <div class="action-title">
+                          Listar Orçamentos
+                        </div>
+                        <div class="action-description">
+                          Visualize, pesquise e gerencie todos os orçamentos cadastrados no sistema
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+
+                  <!-- Create New Quote -->
+                  <div class="col-md-6">
+                    <a href="{% url 'sales:quote_create' %}" class="text-decoration-none">
+                      <div class="action-card">
+                        <div class="action-icon">
+                          <i class="fa-solid fa-plus-circle"></i>
+                        </div>
+                        <div class="action-title">
+                          Novo Orçamento
+                        </div>
+                        <div class="action-description">
+                          Crie um novo orçamento para seus clientes com todos os itens e condições
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+
+                <div class="text-center mt-5">
+                  <a href="{% url 'core:index' %}" class="btn btn-outline-secondary btn-lg" style="border-radius: 0;">
+                    <i class="fa-solid fa-arrow-left me-2"></i>Voltar
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="py-0 bg-dark">
+        <div class="container">
+          <div class="row justify-content-md-between justify-content-evenly py-4">
+            <div class="col-12 col-sm-8 col-md-6 col-lg-auto text-center text-md-start">
+              <p class="fs--1 my-2 fw-light text-200">Todos os direitos reservados &copy; Roselar <span class="d-none d-sm-inline-block"></span><br class="d-sm-none" />2026</p>
+            </div>
+            <div class="col-12 col-sm-8 col-md-6">
+              <p class="fs--1 my-2 text-center text-md-end text-200"> Feito com &hearts; pela Roselar</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="{% static 'vendors/popper/popper.min.js' %}"></script>
+    <script src="{% static 'vendors/bootstrap/bootstrap.min.js' %}"></script>
+    <script src="{% static 'vendors/is/is.min.js' %}"></script>
+    <script src="{% static 'vendors/prism/prism.js' %}"></script>
+    <script src="{% static 'vendors/swiper/swiper-bundle.min.js' %}"></script>
+    <script src="{% static 'assets/js/theme.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+  </body>
+</html>

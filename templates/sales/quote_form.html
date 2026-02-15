@@ -26,9 +26,33 @@
     <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
 
     <style>
+      /* Make all form controls square */
+      .form-control,
+      .form-select,
+      input:not([type="checkbox"]):not([type="radio"]),
+      select,
+      textarea {
+        border-radius: 0 !important;
+      }
+      
+      /* Keep only user dropdown button rounded */
+      #dropdownUserButton {
+        border-radius: 0.375rem !important;
+      }
+      
+      /* Auto-resize textarea */
+      textarea.form-control {
+        min-height: 38px;
+        max-height: 200px;
+        resize: none;
+        overflow-y: auto;
+        transition: height 0.1s ease;
+        line-height: 1.5;
+      }
+      
       .formset-row {
         border: 1px solid #dee2e6;
-        border-radius: 0.5rem;
+        border-radius: 0;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
         background-color: #f8f9fa;
@@ -49,6 +73,21 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       }
+      
+      /* Square cards */
+      .card {
+        border-radius: 0 !important;
+      }
+      
+      /* Square buttons except user dropdown */
+      .btn:not(#dropdownUserButton) {
+        border-radius: 0 !important;
+      }
+      
+      /* Square alerts */
+      .alert {
+        border-radius: 0 !important;
+      }
     </style>
   </head>
 
@@ -61,7 +100,7 @@
             <ul class="navbar-nav ms-auto">
               <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
               <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Sobre</a></li>
-              <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Blog</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
               <li class="nav-item">
                 <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
                   <span class="me-2">{{ user.username }}</span>
@@ -114,6 +153,7 @@
 
                 <form method="post" id="quote-form">
                   {% csrf_token %}
+                  <input type="hidden" id="pdf-action" name="pdf_action" value="">
                   
                   <div class="card mb-4">
                     <div class="card-header bg-info text-white">
@@ -214,26 +254,166 @@
                       </div>
                       <div class="row">
                         <div class="col-md-6 mb-3">
-                          <label for="{{ form.freight_value.id_for_label }}" class="form-label fw-bold">Frete (R$)</label>
-                          {{ form.freight_value }}
-                          {% if form.freight_value.errors %}
-                            <div class="text-danger small">{{ form.freight_value.errors }}</div>
-                          {% endif %}
+                          <label for="discount-select" class="form-label fw-bold">Desconto (%)</label>
+                          <select id="discount-select" class="form-control">
+                            <option value="0">0% - Sem desconto</option>
+                            <option value="1">1%</option>
+                            <option value="2">2%</option>
+                            <option value="3">3%</option>
+                            <option value="4">4%</option>
+                            <option value="5">5%</option>
+                            <option value="6">6%</option>
+                            <option value="7">7%</option>
+                            <option value="8">8%</option>
+                            <option value="9">9%</option>
+                            <option value="10">10%</option>
+                            <option value="11">11%</option>
+                            <option value="12">12%</option>
+                            <option value="13">13%</option>
+                            <option value="14">14%</option>
+                            <option value="15">15%</option>
+                            <option value="custom">Mais de 15% (requer autorização)</option>
+                          </select>
+                          <small class="text-muted">Desconto é aplicado antes das taxas de pagamento</small>
+                        </div>
+                        <div class="col-md-6 mb-3" id="custom-discount-container" style="display: none;">
+                          <label for="custom-discount-input" class="form-label fw-bold">Desconto Customizado (%)</label>
+                          <input type="number" id="custom-discount-input" class="form-control" step="0.001" placeholder="Ex: 20.5">
+                          <small class="text-danger">Requer senha de autorização do admin</small>
+                        </div>
+                      </div>
+                      <div class="row" id="discount-authorization-container" style="display: none;">
+                        <div class="col-md-6 mb-3">
+                          <label for="admin-password" class="form-label fw-bold">Senha de Autorização</label>
+                          <input type="password" id="admin-password" class="form-control" placeholder="Digite a senha do admin">
+                          <button type="button" class="btn btn-sm btn-primary mt-2" onclick="authorizeDiscount()">
+                            <i class="fa-solid fa-lock-open me-1"></i>Autorizar Desconto
+                          </button>
                         </div>
                         <div class="col-md-6 mb-3">
-                          <label for="{{ form.discount_percent.id_for_label }}" class="form-label fw-bold">Desconto (%)</label>
-                          {{ form.discount_percent }}
-                          {% if form.discount_percent.errors %}
-                            <div class="text-danger small">{{ form.discount_percent.errors }}</div>
+                          <div id="discount-authorization-status" class="alert alert-warning mt-4">
+                            <i class="fa-solid fa-exclamation-triangle me-2"></i>Desconto pendente de autorização
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Hidden field for form submission -->
+                      <div class="d-none">
+                        {{ form.discount_percent }}
+                      </div>
+                      <div class="row">
+                        <div class="col-md-6 mb-3">
+                          <div class="form-check">
+                            <input type="checkbox" id="{{ form.has_architect.id_for_label }}" name="{{ form.has_architect.html_name }}" class="form-check-input" {% if form.has_architect.value %}checked{% endif %}>
+                            <label class="form-check-label fw-bold" for="{{ form.has_architect.id_for_label }}">
+                              <i class="fa-solid fa-user-tie me-1"></i>Cliente possui Arquiteto
+                            </label>
+                          </div>
+                          <small class="text-muted">Ao marcar, será aplicada uma porcentagem fixa de comissão configurada no admin</small>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="col-md-6 mb-3">
+                          <label for="{{ form.payment_type.id_for_label }}" class="form-label fw-bold">Método de Pagamento</label>
+                          {{ form.payment_type }}
+                          {% if form.payment_type.errors %}
+                            <div class="text-danger small">{{ form.payment_type.errors }}</div>
+                          {% endif %}
+                          <small class="text-muted d-block mt-1">Selecione como o cliente irá pagar</small>
+                        </div>
+                        <div class="col-md-6 mb-3" id="payment-installments-container" style="display: none;">
+                          <label for="{{ form.payment_installments.id_for_label }}" class="form-label fw-bold">Parcelas</label>
+                          {{ form.payment_installments }}
+                          {% if form.payment_installments.errors %}
+                            <div class="text-danger small">{{ form.payment_installments.errors }}</div>
+                          {% endif %}
+                          <small class="text-muted d-block mt-1" id="installment-fee-info">Selecione o número de parcelas</small>
+                        </div>
+                      </div>
+                      {{ form.payment_fee_percent }}
+                      <div id="payment-summary" class="alert alert-info d-none">
+                        <strong><i class="fa-solid fa-info-circle me-2"></i>Resumo do Pagamento:</strong>
+                        <div class="mt-2">
+                          <div><strong>Método:</strong> <span id="payment-method-display">-</span></div>
+                          <div id="payment-installment-display-container" style="display: none;">
+                            <strong>Parcelas:</strong> <span id="payment-installment-display">-</span>
+                          </div>
+                          <div id="payment-fee-display-container" style="display: none;">
+                            <strong>Taxa:</strong> <span id="payment-fee-display">0%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                      <h5 class="mb-0"><i class="fa-solid fa-truck me-2"></i>Frete</h5>
+                    </div>
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-md-12 mb-3">
+                          <label for="{{ form.freight_responsible.id_for_label }}" class="form-label fw-bold">Responsável pelo Frete</label>
+                          {{ form.freight_responsible }}
+                          {% if form.freight_responsible.errors %}
+                            <div class="text-danger small">{{ form.freight_responsible.errors }}</div>
                           {% endif %}
                         </div>
                       </div>
-                      <div class="mb-3">
-                        <label for="{{ form.payment_description.id_for_label }}" class="form-label fw-bold">Condição de Pagamento</label>
-                        {{ form.payment_description }}
-                        {% if form.payment_description.errors %}
-                          <div class="text-danger small">{{ form.payment_description.errors }}</div>
-                        {% endif %}
+                      
+                      <!-- Loja: freight value + delivery deadline -->
+                      <!-- Transportadora: shipping company + payment methods + freight value + delivery deadline -->
+                      <div id="freight-content">
+                        <div class="row" id="freight-value-container">
+                          <div class="col-md-6 mb-3">
+                            <label for="{{ form.freight_value.id_for_label }}" class="form-label fw-bold">Valor do Frete (R$)</label>
+                            {{ form.freight_value }}
+                            {% if form.freight_value.errors %}
+                              <div class="text-danger small">{{ form.freight_value.errors }}</div>
+                            {% endif %}
+                          </div>
+                        </div>
+                        
+                        <div id="shipping-company-container">
+                          <div class="row">
+                            <div class="col-md-12 mb-3">
+                              <label for="{{ form.shipping_company.id_for_label }}" class="form-label fw-bold">Transportadora</label>
+                              {{ form.shipping_company }}
+                              <small class="text-muted">Selecione a transportadora responsável</small>
+                              {% if form.shipping_company.errors %}
+                                <div class="text-danger small">{{ form.shipping_company.errors }}</div>
+                              {% endif %}
+                            </div>
+                          </div>
+                          
+                          <!-- Display payment methods from selected shipping company -->
+                          <div id="payment-methods-display" class="alert alert-info d-none mb-3">
+                            <strong><i class="fa-solid fa-credit-card me-2"></i>Métodos de Pagamento Disponíveis:</strong>
+                            <div id="payment-methods-list" class="mt-2"></div>
+                          </div>
+                          
+                          <div class="row" id="shipping-payment-method-container">
+                            <div class="col-md-12 mb-3">
+                              <label for="{{ form.shipping_payment_method.id_for_label }}" class="form-label fw-bold">Método de Pagamento Selecionado</label>
+                              {{ form.shipping_payment_method }}
+                              <small class="text-muted">Escolha um dos métodos disponíveis acima</small>
+                              {% if form.shipping_payment_method.errors %}
+                                <div class="text-danger small">{{ form.shipping_payment_method.errors }}</div>
+                              {% endif %}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div id="delivery-fields-container">
+                          <div class="row">
+                            <div class="col-md-6 mb-3">
+                              <label for="{{ form.delivery_deadline.id_for_label }}" class="form-label fw-bold">Prazo de Entrega</label>
+                              {{ form.delivery_deadline }}
+                              {% if form.delivery_deadline.errors %}
+                                <div class="text-danger small">{{ form.delivery_deadline.errors }}</div>
+                              {% endif %}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -295,7 +475,7 @@
                                   <div class="text-danger small">{{ item_form.unit_value.errors }}</div>
                                 {% endif %}
                               </div>
-                              <div class="col-md-3 mb-3">
+                              <div class="col-md-3 mb-3 architect-field-container">
                                 <label class="form-label fw-bold">% Arquiteto</label>
                                 {{ item_form.architect_percent }}
                                 {% if item_form.architect_percent.errors %}
@@ -322,9 +502,12 @@
                   </div>
 
                   <div class="d-flex justify-content-end gap-3">
-                    <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary btn-lg">
-                      <i class="fa-solid fa-times me-2"></i>Cancelar
-                    </a>
+                    <button type="button" class="btn btn-primary btn-lg" onclick="saveThenGeneratePDF('client')">
+                      <i class="fa-solid fa-file-pdf me-2"></i>PDF Cliente
+                    </button>
+                    <button type="button" class="btn btn-primary btn-lg" onclick="saveThenGeneratePDF('supplier')">
+                      <i class="fa-solid fa-file-pdf me-2"></i>PDF Fornecedor
+                    </button>
                     <button type="submit" class="btn btn-primary btn-lg">
                       <i class="fa-solid fa-save me-2"></i>Salvar Orçamento
                     </button>
@@ -366,6 +549,97 @@
         inputs.forEach(input => {
           input.classList.add('form-control');
         });
+        
+        // Setup freight responsible field behavior
+        const freightResponsibleSelect = document.querySelector('select[name="freight_responsible"]');
+        const freightContent = document.getElementById('freight-content');
+        const freightValueContainer = document.getElementById('freight-value-container');
+        const freightValueInput = document.querySelector('input[name="freight_value"]');
+        const shippingCompanyContainer = document.getElementById('shipping-company-container');
+        const shippingCompanySelect = document.querySelector('select[name="shipping_company"]');
+        const shippingPaymentMethodContainer = document.getElementById('shipping-payment-method-container');
+        const shippingPaymentMethodInput = document.querySelector('input[name="shipping_payment_method"]');
+        const deliveryFieldsContainer = document.getElementById('delivery-fields-container');
+        const deliveryDeadlineInput = document.querySelector('input[name="delivery_deadline"]');
+        const paymentMethodsDisplay = document.getElementById('payment-methods-display');
+        const paymentMethodsList = document.getElementById('payment-methods-list');
+        
+        function updateFreightAndDeliveryFields() {
+          const selectedValue = freightResponsibleSelect.value;
+          
+          if (selectedValue === 'CUSTOMER') {
+            // Cliente: hide everything
+            freightContent.style.display = 'none';
+            
+            // Clear all values
+            if (freightValueInput) freightValueInput.value = '0.00';
+            if (shippingCompanySelect) shippingCompanySelect.value = '';
+            if (shippingPaymentMethodInput) shippingPaymentMethodInput.value = '';
+            if (deliveryDeadlineInput) deliveryDeadlineInput.value = '';
+            
+          } else if (selectedValue === 'STORE') {
+            // Loja: freight value + delivery deadline
+            freightContent.style.display = 'block';
+            freightValueContainer.style.display = 'block';
+            shippingCompanyContainer.style.display = 'none';
+            deliveryFieldsContainer.style.display = 'block';
+            
+            // Clear shipping company fields
+            if (shippingCompanySelect) shippingCompanySelect.value = '';
+            if (shippingPaymentMethodInput) shippingPaymentMethodInput.value = '';
+            paymentMethodsDisplay.classList.add('d-none');
+            
+          } else if (selectedValue === 'CARRIER') {
+            // Transportadora: everything
+            freightContent.style.display = 'block';
+            freightValueContainer.style.display = 'block';
+            shippingCompanyContainer.style.display = 'block';
+            deliveryFieldsContainer.style.display = 'block';
+          }
+        }
+        
+        if (freightResponsibleSelect) {
+          // Apply initial state
+          updateFreightAndDeliveryFields();
+          
+          // Listen for changes
+          freightResponsibleSelect.addEventListener('change', updateFreightAndDeliveryFields);
+        }
+        
+        // Setup shipping company change handler to fetch payment methods
+        if (shippingCompanySelect) {
+          shippingCompanySelect.addEventListener('change', function() {
+            const companyId = this.value;
+            
+            if (companyId) {
+              // Fetch payment methods for this shipping company
+              fetch(`/api/shipping-company/${companyId}/payment-methods/`)
+                .then(res => res.json())
+                .then(data => {
+                  if (data.payment_methods && data.payment_methods.trim()) {
+                    // Display payment methods
+                    const methods = data.payment_methods.split('\\n').filter(m => m.trim());
+                    paymentMethodsList.innerHTML = methods.map(m => `<div class=\"py-1\"><i class=\"fa-solid fa-check-circle text-success me-2\"></i>${m}</div>`).join('');
+                    paymentMethodsDisplay.classList.remove('d-none');
+                  } else {
+                    paymentMethodsDisplay.classList.add('d-none');
+                  }
+                })
+                .catch(err => {
+                  console.error('Error fetching payment methods:', err);
+                  paymentMethodsDisplay.classList.add('d-none');
+                });
+            } else {
+              paymentMethodsDisplay.classList.add('d-none');
+              if (shippingPaymentMethodInput) shippingPaymentMethodInput.value = '';
+            }
+          });
+          
+          // Trigger on page load if a company is already selected
+          if (shippingCompanySelect.value) {
+            shippingCompanySelect.dispatchEvent(new Event('change'));
+          }
+        }
         
         // Setup customer document search
         const docInput = document.getElementById('customer-document');
@@ -436,6 +710,70 @@
             }
           });
         }
+        
+        // Auto-resize textareas
+        function autoResizeTextarea(textarea) {
+          textarea.style.height = 'auto';
+          const newHeight = Math.min(textarea.scrollHeight, 200);
+          textarea.style.height = newHeight + 'px';
+          
+          // Enable scroll if content exceeds max height
+          if (textarea.scrollHeight > 200) {
+            textarea.style.overflowY = 'auto';
+          } else {
+            textarea.style.overflowY = 'hidden';
+          }
+        }
+        
+        // Apply auto-resize to all textareas
+        const textareas = document.querySelectorAll('textarea.form-control');
+        textareas.forEach(textarea => {
+          // Set initial height
+          autoResizeTextarea(textarea);
+          
+          // Add event listener for input
+          textarea.addEventListener('input', function() {
+            autoResizeTextarea(this);
+          });
+        });
+
+        // Handle architect checkbox to toggle architect percent fields
+        const hasArchitectCheckbox = document.getElementById('{{ form.has_architect.id_for_label }}');
+        const architectFieldContainers = document.querySelectorAll('.architect-field-container');
+        
+        function toggleArchitectFields() {
+          const isChecked = hasArchitectCheckbox.checked;
+          architectFieldContainers.forEach(container => {
+            if (isChecked) {
+              container.style.display = 'block';
+              // Get the architect commission from backend
+              fetch('/api/get-architect-commission/')
+                .then(response => response.json())
+                .then(data => {
+                  // Set all architect percent fields to the configured value
+                  const architectInputs = container.querySelectorAll('input[name$="architect_percent"]');
+                  architectInputs.forEach(input => {
+                    input.value = data.commission_percent;
+                    input.readOnly = true; // Make it read-only when auto-filled
+                  });
+                });
+            } else {
+              container.style.display = 'none';
+              // Clear architect percent fields
+              const architectInputs = container.querySelectorAll('input[name$="architect_percent"]');
+              architectInputs.forEach(input => {
+                input.value = '0.0';
+                input.readOnly = false;
+              });
+            }
+          });
+        }
+        
+        // Initial state
+        toggleArchitectFields();
+        
+        // Listen for changes
+        hasArchitectCheckbox.addEventListener('change', toggleArchitectFields);
       });
 
       function searchCustomer(docNumber) {
@@ -649,6 +987,276 @@
         
         container.appendChild(newRow);
         totalForms.value = formNum + 1;
+        
+        // Apply auto-resize to new textareas
+        newRow.querySelectorAll('textarea.form-control').forEach(textarea => {
+          textarea.style.height = 'auto';
+          textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            const newHeight = Math.min(this.scrollHeight, 200);
+            this.style.height = newHeight + 'px';
+            
+            if (this.scrollHeight > 200) {
+              this.style.overflowY = 'auto';
+            } else {
+              this.style.overflowY = 'hidden';
+            }
+          });
+        });
+      }
+      
+      function saveThenGeneratePDF(pdfType) {
+        // Set which PDF to generate
+        document.getElementById('pdf-action').value = pdfType;
+        
+        // Submit the form
+        document.getElementById('quote-form').submit();
+      }
+      
+      // ===== DISCOUNT LOGIC =====
+      const discountSelect = document.getElementById('discount-select');
+      const customDiscountContainer = document.getElementById('custom-discount-container');
+      const customDiscountInput = document.getElementById('custom-discount-input');
+      const discountAuthorizationContainer = document.getElementById('discount-authorization-container');
+      const discountPercentField = document.getElementById('{{ form.discount_percent.id_for_label }}');
+      const adminPasswordInput = document.getElementById('admin-password');
+      const discountAuthStatus = document.getElementById('discount-authorization-status');
+      
+      let discountAuthorized = false;
+      
+      if (discountSelect) {
+        // Set initial value from form if editing
+        if (discountPercentField.value) {
+          const currentDiscount = parseFloat(discountPercentField.value);
+          if (currentDiscount <= 15) {
+            discountSelect.value = currentDiscount.toString();
+          } else {
+            discountSelect.value = 'custom';
+            customDiscountInput.value = currentDiscount;
+            customDiscountContainer.style.display = 'block';
+            discountAuthorized = true; // Assume already authorized if editing
+          }
+        }
+        
+        discountSelect.addEventListener('change', function() {
+          const value = this.value;
+          
+          if (value === 'custom') {
+            customDiscountContainer.style.display = 'block';
+            discountAuthorizationContainer.style.display = 'block';
+            discountPercentField.value = '0';
+            discountAuthorized = false;
+          } else {
+            customDiscountContainer.style.display = 'none';
+            discountAuthorizationContainer.style.display = 'none';
+            customDiscountInput.value = '';
+            adminPasswordInput.value = '';
+            discountPercentField.value = value;
+            discountAuthorized = false;
+          }
+        });
+        
+        customDiscountInput.addEventListener('input', function() {
+          // Reset authorization when discount value changes
+          if (discountAuthorized) {
+            discountAuthorized = false;
+            adminPasswordInput.value = '';
+            discountAuthStatus.className = 'alert alert-warning mt-4';
+            discountAuthStatus.innerHTML = '<i class="fa-solid fa-exclamation-triangle me-2"></i>Desconto pendente de autorização';
+          }
+        });
+      }
+      
+      function authorizeDiscount() {
+        const password = adminPasswordInput.value;
+        const customDiscount = parseFloat(customDiscountInput.value);
+        
+        if (!customDiscount || customDiscount <= 15) {
+          alert('Por favor, digite um desconto maior que 15%');
+          return;
+        }
+        
+        if (!password) {
+          alert('Por favor, digite a senha de autorização');
+          return;
+        }
+        
+        // Send authorization request to backend
+        fetch('/sales/api/authorize-discount/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: JSON.stringify({
+            password: password,
+            discount: customDiscount
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.authorized) {
+            discountAuthorized = true;
+            discountPercentField.value = customDiscount.toFixed(1);
+            discountAuthStatus.className = 'alert alert-success mt-4';
+            discountAuthStatus.innerHTML = '<i class="fa-solid fa-check-circle me-2"></i>Desconto autorizado por ' + data.authorized_by;
+            
+            // Store authorization info in hidden fields
+            if (!document.getElementById('discount-authorized-by')) {
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = 'discount_authorized_by';
+              input.id = 'discount-authorized-by';
+              input.value = data.authorized_by;
+              document.getElementById('quote-form').appendChild(input);
+            }
+          } else {
+            alert('Senha incorreta ou autorização negada');
+            discountAuthStatus.className = 'alert alert-danger mt-4';
+            discountAuthStatus.innerHTML = '<i class="fa-solid fa-times-circle me-2"></i>Autorização negada';
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Erro ao autorizar desconto');
+        });
+      }
+      
+      // Prevent form submission if custom discount not authorized
+      document.getElementById('quote-form').addEventListener('submit', function(e) {
+        if (discountSelect.value === 'custom' && !discountAuthorized) {
+          e.preventDefault();
+          alert('Por favor, autorize o desconto customizado antes de salvar o orçamento');
+          return false;
+        }
+      });
+      
+      // ===== PAYMENT METHOD LOGIC =====
+      const paymentTypeSelect = document.getElementById('{{ form.payment_type.id_for_label }}');
+      const paymentInstallmentsSelect = document.getElementById('{{ form.payment_installments.id_for_label }}');
+      const paymentFeePercentInput = document.getElementById('{{ form.payment_fee_percent.id_for_label }}');
+      const paymentInstallmentsContainer = document.getElementById('payment-installments-container');
+      const paymentSummary = document.getElementById('payment-summary');
+      const paymentMethodDisplay = document.getElementById('payment-method-display');
+      const paymentInstallmentDisplayContainer = document.getElementById('payment-installment-display-container');
+      const paymentInstallmentDisplay = document.getElementById('payment-installment-display');
+      const paymentFeeDisplayContainer = document.getElementById('payment-fee-display-container');
+      const paymentFeeDisplay = document.getElementById('payment-fee-display');
+      const installmentFeeInfo = document.getElementById('installment-fee-info');
+      
+      let currentPaymentData = null;
+      
+      if (paymentTypeSelect) {
+        paymentTypeSelect.addEventListener('change', function() {
+          const paymentType = this.value;
+          
+          if (!paymentType) {
+            // Reset everything
+            paymentInstallmentsContainer.style.display = 'none';
+            paymentSummary.classList.add('d-none');
+            paymentInstallmentsSelect.innerHTML = '<option value="1">1x (À vista)</option>';
+            paymentFeePercentInput.value = '0.000';
+            currentPaymentData = null;
+            return;
+          }
+          
+          // Fetch payment method data from API
+          fetch(`/sales/api/payment-method-fees/?payment_type=${paymentType}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.error) {
+                console.error('Error:', data.error);
+                return;
+              }
+              
+              currentPaymentData = data;
+              const tariffs = data.tariffs;
+              
+              // Update payment method display
+              paymentMethodDisplay.textContent = data.type_display;
+              paymentSummary.classList.remove('d-none');
+              
+              // Update installments dropdown
+              paymentInstallmentsSelect.innerHTML = '';
+              
+              if (data.is_installment && tariffs.length > 1) {
+                // Show installments container
+                paymentInstallmentsContainer.style.display = 'block';
+                paymentInstallmentDisplayContainer.style.display = 'block';
+                
+                // Add options for each available installment
+                tariffs.forEach(tariff => {
+                  const option = document.createElement('option');
+                  option.value = tariff.installments;
+                  option.setAttribute('data-fee', tariff.fee_percent);
+                  
+                  if (tariff.installments === 1) {
+                    option.textContent = `À vista (${tariff.fee_percent}%)`;
+                  } else {
+                    option.textContent = `${tariff.installments}x (${tariff.fee_percent}%)`;
+                  }
+                  
+                  paymentInstallmentsSelect.appendChild(option);
+                });
+                
+                // Trigger change to update fee
+                paymentInstallmentsSelect.dispatchEvent(new Event('change'));
+              } else {
+                // Payment method doesn't support installments
+                paymentInstallmentsContainer.style.display = 'none';
+                paymentInstallmentDisplayContainer.style.display = 'none';
+                
+                // Set default values
+                paymentInstallmentsSelect.innerHTML = '<option value="1">À vista</option>';
+                
+                // Check if there's a tariff for à vista
+                const aVistaTariff = tariffs.find(t => t.installments === 1);
+                if (aVistaTariff) {
+                  paymentFeePercentInput.value = aVistaTariff.fee_percent;
+                  paymentFeeDisplay.textContent = aVistaTariff.fee_percent + '%';
+                  if (parseFloat(aVistaTariff.fee_percent) > 0) {
+                    paymentFeeDisplayContainer.style.display = 'block';
+                  } else {
+                    paymentFeeDisplayContainer.style.display = 'none';
+                  }
+                } else {
+                  paymentFeePercentInput.value = '0.000';
+                  paymentFeeDisplayContainer.style.display = 'none';
+                }
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching payment tariffs:', error);
+              alert('Erro ao carregar tarifas do método de pagamento');
+            });
+        });
+        
+        // Handle installments change
+        if (paymentInstallmentsSelect) {
+          paymentInstallmentsSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const fee = selectedOption.getAttribute('data-fee') || '0.000';
+            
+            // Update hidden fee input
+            paymentFeePercentInput.value = fee;
+            
+            // Update displays
+            paymentInstallmentDisplay.textContent = this.options[this.selectedIndex].textContent;
+            paymentFeeDisplay.textContent = fee + '%';
+            
+            // Show/hide fee display
+            if (parseFloat(fee) > 0) {
+              paymentFeeDisplayContainer.style.display = 'block';
+            } else {
+              paymentFeeDisplayContainer.style.display = 'none';
+            }
+          });
+        }
+        
+        // Trigger initial load if payment type is already selected (for edit mode)
+        if (paymentTypeSelect.value) {
+          paymentTypeSelect.dispatchEvent(new Event('change'));
+        }
       }
     </script>
   </body>
