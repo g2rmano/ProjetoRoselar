@@ -10,6 +10,7 @@ urlpatterns = [
     path("quotes/new/", views.quote_create, name="quote_create"),
     path("quotes/<int:quote_id>/", views.quote_detail, name="quote_detail"),
     path("quotes/<int:quote_id>/edit/", views.quote_edit, name="quote_edit"),
+    path("quotes/<int:quote_id>/simulate/", views.quote_simulate_commission, name="quote_simulate"),
     path("quotes/<int:quote_id>/convert/", views.quote_convert_to_orders, name="quote_convert"),
     path("quotes/<int:quote_id>/pdf/client/", views.quote_pdf_client, name="quote_pdf_client"),
     path("quotes/<int:quote_id>/pdf/supplier/", views.quote_pdf_supplier, name="quote_pdf_supplier"),

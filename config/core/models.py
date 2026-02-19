@@ -229,3 +229,47 @@ class ArchitectCommission(models.Model):
         """Retorna a comissão configurada."""
         obj, created = cls.objects.get_or_create(pk=1)
         return obj.commission_percent
+
+
+class SalesMarginConfig(models.Model):
+    """Configuração global de margem / comissão do vendedor (singleton)."""
+    total_margin = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        default=16.0,
+        help_text="Margem total (%) dividida entre desconto, taxa do cartão e comissão",
+    )
+    min_commission = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        default=1.0,
+        help_text="Comissão mínima do vendedor (%)",
+    )
+    max_commission = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        default=5.0,
+        help_text="Comissão máxima do vendedor (%) — quando desconto = 0",
+    )
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Margem e Comissão de Vendedor"
+        verbose_name_plural = "Margem e Comissão de Vendedor"
+
+    def __str__(self) -> str:
+        return (
+            f"Margem {self.total_margin}% · "
+            f"Comissão {self.min_commission}%–{self.max_commission}%"
+        )
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_config(cls):
+        """Retorna (total_margin, min_commission, max_commission)."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj.total_margin, obj.min_commission, obj.max_commission

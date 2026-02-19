@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 from decimal import Decimal
 from io import BytesIO
@@ -11,6 +12,7 @@ from django.db import transaction
 from django.db import models
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from reportlab.lib.pagesizes import A4
@@ -247,12 +249,14 @@ def quote_create(request: HttpRequest) -> HttpResponse:
 
             messages.success(request, f"Orçamento {quote.number} criado.")
             
-            # Check if PDF was requested
+            # Check if PDF or simulation was requested
             pdf_action = request.POST.get('pdf_action')
             if pdf_action == 'client':
                 return redirect("sales:quote_pdf_client", quote_id=quote.id)
             elif pdf_action == 'supplier':
                 return redirect("sales:quote_pdf_supplier", quote_id=quote.id)
+            elif pdf_action == 'simulate':
+                return redirect("sales:quote_simulate", quote_id=quote.id)
             
             return redirect("sales:quote_detail", quote_id=quote.id)
         else:
@@ -316,12 +320,14 @@ def quote_edit(request: HttpRequest, quote_id: int) -> HttpResponse:
 
             messages.success(request, f"Orçamento {quote.number} atualizado.")
             
-            # Check if PDF was requested
+            # Check if PDF or simulation was requested
             pdf_action = request.POST.get('pdf_action')
             if pdf_action == 'client':
                 return redirect("sales:quote_pdf_client", quote_id=quote.id)
             elif pdf_action == 'supplier':
                 return redirect("sales:quote_pdf_supplier", quote_id=quote.id)
+            elif pdf_action == 'simulate':
+                return redirect("sales:quote_simulate", quote_id=quote.id)
             
             return redirect("sales:quote_detail", quote_id=quote.id)
         else:
@@ -792,9 +798,13 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
     
     items = order.items.select_related('quote_item').all()
     
+    # Calculate total
+    total = sum(item.line_total for item in items)
+    
     context = {
         'order': order,
         'items': items,
+        'total': total,
     }
     
     return render(request, 'sales/order_detail.html', context)
@@ -866,8 +876,6 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
             elements.append(Paragraph(f"Telefone: {order.supplier.phone}", normal_style))
         if order.supplier.email:
             elements.append(Paragraph(f"Email: {order.supplier.email}", normal_style))
-        if order.supplier.contact_person:
-            elements.append(Paragraph(f"Contato: {order.supplier.contact_person}", normal_style))
         elements.append(Spacer(1, 0.5*cm))
     
     # Customer info (for supplier reference)
@@ -946,3 +954,149 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
     response.write(pdf)
     
     return response
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpResponse:
+    """
+    Simulation page: discount vs seller commission tradeoff.
+
+    Business rules
+    ──────────────
+    TOTAL_MARGIN = 16 %  (shared between discount + card fee + commission)
+    commission   = clamp(1 %, 5 %, TOTAL_MARGIN − discount − card_fee)
+    max_discount = TOTAL_MARGIN − card_fee − MIN_COMMISSION
+
+    Examples (card fee = 0 %):
+        discount  0 % → commission 5 %
+        discount 15 % → commission 1 %
+
+    Examples (card fee = 5 %):
+        max_discount = 10 %
+        discount  0 % → commission 5 %
+        discount 10 % → commission 1 %
+    """
+    from core.models import SalesMarginConfig, PaymentTariff, PaymentMethodType
+    TOTAL_MARGIN, MIN_COMMISSION, MAX_COMMISSION = SalesMarginConfig.get_config()
+
+    quote = get_object_or_404(
+        Quote.objects.select_related('customer', 'seller'), id=quote_id
+    )
+
+    # Base numbers from the saved quote
+    subtotal = quote.calculate_subtotal()
+    freight_value = quote.freight_value or Decimal("0.00")
+
+    # ── Overrides from simulation form ─────────────────────────────
+    if request.method == "POST":
+        sim_payment_type = request.POST.get('sim_payment_type', '') or quote.payment_type
+        sim_installments = int(request.POST.get('sim_installments', '0') or quote.payment_installments or 1)
+        sim_has_architect = request.POST.get('sim_has_architect') == '1'
+    else:
+        sim_payment_type = quote.payment_type or ''
+        sim_installments = quote.payment_installments or 1
+        sim_has_architect = quote.has_architect
+
+    # Look up the fee for the (possibly overridden) payment method
+    payment_fee_percent = Decimal(str(PaymentTariff.get_fee(sim_payment_type, sim_installments))) if sim_payment_type else Decimal("0")
+
+    # Build options for payment type dropdown
+    payment_type_choices = list(PaymentMethodType.choices)  # [(value, label), ...]
+
+    # Build installments map for every payment type so the JS can populate a select
+    max_installments_map = {
+        'CASH': 1, 'PIX': 1, 'CREDIT_CARD': 12, 'CHEQUE': 1, 'BOLETO': 6,
+    }
+    tariffs_by_type = {}
+    for pt_value, pt_label in payment_type_choices:
+        max_inst = max_installments_map.get(pt_value, 1)
+        existing = {t.installments: float(t.fee_percent) for t in PaymentTariff.objects.filter(payment_type=pt_value)}
+        options = []
+        for i in range(1, max_inst + 1):
+            fee = existing.get(i, 0)
+            if i == 1:
+                lbl = f"À vista ({fee}%)" if fee else "À vista"
+            else:
+                lbl = f"{i}x ({fee}%)" if fee else f"{i}x"
+            options.append({'installments': i, 'fee': fee, 'label': lbl})
+        tariffs_by_type[pt_value] = options
+
+    # Max discount the seller can give (card fee eats into the margin)
+    max_discount = max(Decimal("0"), TOTAL_MARGIN - payment_fee_percent - MIN_COMMISSION)
+
+    # Get simulated discount from POST or fall back to quote value
+    if request.method == "POST":
+        simulated_discount = Decimal(request.POST.get('discount_percent', '0'))
+    else:
+        simulated_discount = quote.discount_percent or Decimal("0")
+
+    # Clamp discount to allowed range
+    simulated_discount = max(Decimal("0"), min(simulated_discount, max_discount))
+
+    # Commission = what remains from the margin after discount and card fee
+    seller_commission_percent = max(
+        MIN_COMMISSION,
+        min(MAX_COMMISSION, TOTAL_MARGIN - simulated_discount - payment_fee_percent),
+    )
+
+    # Money calculations
+    total_before_discount = subtotal + freight_value
+    discount_value = total_before_discount * simulated_discount / Decimal("100")
+    total_after_discount = total_before_discount - discount_value
+
+    payment_fee_value = total_after_discount * payment_fee_percent / Decimal("100")
+    final_total = total_after_discount + payment_fee_value
+
+    # Architect commission (on subtotal — no freight, no taxes)
+    architect_commission_value = Decimal("0")
+    architect_percent = Decimal("0")
+    if sim_has_architect:
+        from core.models import ArchitectCommission
+        architect_percent = ArchitectCommission.get_commission()
+        architect_commission_value = subtotal * architect_percent / Decimal("100")
+
+    # Seller commission base = total after discount MINUS architect commission
+    seller_commission_base = total_after_discount - architect_commission_value
+    seller_commission_value = seller_commission_base * seller_commission_percent / Decimal("100")
+
+    # Build simulated payment description
+    if sim_payment_type:
+        sim_payment_label = dict(PaymentMethodType.choices).get(sim_payment_type, sim_payment_type)
+        if sim_installments == 1:
+            sim_payment_description = f"{sim_payment_label} - À vista"
+        else:
+            sim_payment_description = f"{sim_payment_label} - {sim_installments}x"
+    else:
+        sim_payment_description = "Não definido"
+
+    context = {
+        'quote': quote,
+        'subtotal': subtotal,
+        'freight_value': freight_value,
+        'total_before_discount': total_before_discount,
+        'discount_percent': simulated_discount,
+        'discount_value': discount_value,
+        'total_after_discount': total_after_discount,
+        'payment_fee_percent': payment_fee_percent,
+        'payment_fee_value': payment_fee_value,
+        'final_total': final_total,
+        'max_discount': max_discount,
+        'seller_commission_percent': seller_commission_percent,
+        'seller_commission_value': seller_commission_value,
+        'seller_commission_base': seller_commission_base,
+        'architect_percent': architect_percent,
+        'architect_commission_value': architect_commission_value,
+        'total_margin': TOTAL_MARGIN,
+        'min_commission': MIN_COMMISSION,
+        'max_commission': MAX_COMMISSION,
+        # Payment selector
+        'payment_type_choices': payment_type_choices,
+        'sim_payment_type': sim_payment_type,
+        'sim_installments': sim_installments,
+        'tariffs_by_type_json': json.dumps(tariffs_by_type),
+        'sim_payment_description': sim_payment_description,
+        'sim_has_architect': sim_has_architect,
+    }
+
+    return render(request, 'sales/quote_simulation.html', context)

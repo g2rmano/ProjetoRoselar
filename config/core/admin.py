@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Customer, Supplier, SupplierPaymentOption, ShippingCompany, PaymentTariff, ArchitectCommission
+from .models import Customer, Supplier, SupplierPaymentOption, ShippingCompany, PaymentTariff, ArchitectCommission, SalesMarginConfig
 
 
 @admin.register(Customer)
@@ -79,4 +79,26 @@ class ArchitectCommissionAdmin(admin.ModelAdmin):
     
     def has_delete_permission(self, request, obj=None):
         # Não permite deletar o registro único
+        return False
+
+
+@admin.register(SalesMarginConfig)
+class SalesMarginConfigAdmin(admin.ModelAdmin):
+    list_display = ("total_margin", "min_commission", "max_commission", "updated_at")
+
+    fieldsets = (
+        ("Margem Total", {
+            "fields": ("total_margin",),
+            "description": "Margem total (%) que é dividida entre desconto ao cliente, taxa do cartão e comissão do vendedor.",
+        }),
+        ("Comissão do Vendedor", {
+            "fields": ("min_commission", "max_commission"),
+            "description": "Faixa de comissão do vendedor. 0% de desconto → comissão máxima. Desconto máximo → comissão mínima.",
+        }),
+    )
+
+    def has_add_permission(self, request):
+        return not SalesMarginConfig.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
         return False
