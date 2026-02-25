@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'core',
     'accounts',
     'sales',
+    'calendar_app',
 ]
 
 MIDDLEWARE = [
