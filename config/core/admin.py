@@ -1,30 +1,71 @@
 from django.contrib import admin
-from .models import Customer, Supplier, SupplierPaymentOption, ShippingCompany, PaymentTariff, ArchitectCommission, SalesMarginConfig
+from .models import (
+    Customer, Supplier, SupplierPaymentOption, ShippingCompany,
+    PaymentTariff, ArchitectCommission, SalesMarginConfig,
+    Notification, AuditLog, SalesGoal,
+    Lead, LeadInteraction, CommunicationHistory,
+    QuoteTemplate, QuoteTemplateItem,
+)
+
+
+# ── Permission helpers ────────────────────────────────────────────────
+def _is_admin(user):
+    """True for ADMIN, OWNER or Django superuser."""
+    return user.is_superuser or getattr(user, "role", None) in ("ADMIN", "OWNER")
+
+
+class AdminOnly:
+    """Somente admins/donos podem visualizar ou modificar este modelo."""
+    def has_view_permission(self, request, obj=None):   return _is_admin(request.user)
+    def has_add_permission(self, request):              return _is_admin(request.user)
+    def has_change_permission(self, request, obj=None): return _is_admin(request.user)
+    def has_delete_permission(self, request, obj=None): return _is_admin(request.user)
+
+
+class SellerAccess:
+    """Vendedores podem visualizar/adicionar/editar; somente admins podem excluir."""
+    def has_view_permission(self, request, obj=None):   return True
+    def has_add_permission(self, request):              return True
+    def has_change_permission(self, request, obj=None): return True
+    def has_delete_permission(self, request, obj=None): return _is_admin(request.user)
 
 
 @admin.register(Customer)
-class CustomerAdmin(admin.ModelAdmin):
+class CustomerAdmin(SellerAccess, admin.ModelAdmin):
     list_display = ("id", "name", "phone", "email", "created_at")
-    search_fields = ("name", "phone", "email", "document")
+    search_fields = ("name", "phone", "email", "cpf", "cnpj")
     list_filter = ("created_at",)
+    verbose_name = "Cliente"
+
+    class Meta:
+        verbose_name = "Cliente"
+        verbose_name_plural = "Clientes"
 
 
 class SupplierPaymentOptionInline(admin.TabularInline):
     model = SupplierPaymentOption
     extra = 1
+    verbose_name = "Forma de Pagamento"
+    verbose_name_plural = "Formas de Pagamento"
     fields = ("description", "days_to_pay", "is_default")
 
 
 @admin.register(Supplier)
-class SupplierAdmin(admin.ModelAdmin):
+class SupplierAdmin(AdminOnly, admin.ModelAdmin):
     list_display = ("id", "name", "supplier_number", "email", "phone", "created_at")
+    list_display_links = ("id", "name")
     search_fields = ("name", "supplier_number", "email")
     list_filter = ("created_at",)
     inlines = [SupplierPaymentOptionInline]
+    fieldsets = (
+        ("Informações Básicas", {"fields": ("name", "supplier_number")}),
+        ("Contato", {"fields": ("email", "phone")}),
+        ("Observações", {"fields": ("notes",)}),
+    )
 
 
 @admin.register(ShippingCompany)
-class ShippingCompanyAdmin(admin.ModelAdmin):
+class ShippingCompanyAdmin(AdminOnly, admin.ModelAdmin):
     list_display = ("id", "name", "cnpj", "phone", "email", "is_active", "created_at")
     search_fields = ("name", "cnpj", "email", "contact_person")
     list_filter = ("is_active", "created_at")
@@ -42,19 +83,19 @@ class ShippingCompanyAdmin(admin.ModelAdmin):
 
 
 @admin.register(PaymentTariff)
-class PaymentTariffAdmin(admin.ModelAdmin):
+class PaymentTariffAdmin(AdminOnly, admin.ModelAdmin):
     list_display = ("payment_type", "installments", "fee_percent", "get_description")
     list_filter = ("payment_type",)
     list_editable = ("fee_percent",)
     ordering = ("payment_type", "installments")
-    
+
     fieldsets = (
         ("Configuração da Tarifa", {
             "fields": ("payment_type", "installments", "fee_percent"),
-            "description": "Configure a porcentagem de acréscimo para cada método de pagamento e número de parcelas."
+            "description": "Configure a porcentagem de acréscimo para cada método de pagamento e número de parcelas.",
         }),
     )
-    
+
     def get_description(self, obj):
         if obj.installments == 1:
             return "À vista"
@@ -63,7 +104,7 @@ class PaymentTariffAdmin(admin.ModelAdmin):
 
 
 @admin.register(ArchitectCommission)
-class ArchitectCommissionAdmin(admin.ModelAdmin):
+class ArchitectCommissionAdmin(AdminOnly, admin.ModelAdmin):
     list_display = ("commission_percent", "updated_at")
     
     fieldsets = (
@@ -74,16 +115,16 @@ class ArchitectCommissionAdmin(admin.ModelAdmin):
     )
     
     def has_add_permission(self, request):
-        # Singleton - não permite adicionar mais de um registro
+        if not _is_admin(request.user):
+            return False
         return not ArchitectCommission.objects.exists()
     
     def has_delete_permission(self, request, obj=None):
-        # Não permite deletar o registro único
         return False
 
 
 @admin.register(SalesMarginConfig)
-class SalesMarginConfigAdmin(admin.ModelAdmin):
+class SalesMarginConfigAdmin(AdminOnly, admin.ModelAdmin):
     list_display = ("total_margin", "min_commission", "max_commission", "updated_at")
 
     fieldsets = (
@@ -98,7 +139,97 @@ class SalesMarginConfigAdmin(admin.ModelAdmin):
     )
 
     def has_add_permission(self, request):
+        if not _is_admin(request.user):
+            return False
         return not SalesMarginConfig.objects.exists()
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+# ── Notificação ──────────────────────────────────────────────────────
+@admin.register(Notification)
+class NotificationAdmin(AdminOnly, admin.ModelAdmin):
+    list_display = ("recipient", "notification_type", "title", "read", "created_at")
+    list_filter = ("notification_type", "read", "created_at")
+    search_fields = ("title", "message", "recipient__username")
+    readonly_fields = ("created_at",)
+    raw_id_fields = ("recipient",)
+
+    def get_fields_for_display(self, obj):
+        return "Notificação"
+
+
+# ── Log de Auditoria ─────────────────────────────────────────────────
+@admin.register(AuditLog)
+class AuditLogAdmin(AdminOnly, admin.ModelAdmin):
+    list_display = ("user", "action", "object_type", "object_id", "created_at")
+    list_filter = ("action", "created_at")
+    search_fields = ("description", "object_type", "user__username")
+    raw_id_fields = ("user",)
+    readonly_fields = ("user", "action", "description", "object_type", "object_id", "ip_address", "extra_data", "created_at")
+    date_hierarchy = "created_at"
+
+    def has_add_permission(self, request):              return False
+    def has_change_permission(self, request, obj=None): return False
+
+
+# ── Metas de Vendas ───────────────────────────────────────────────────
+@admin.register(SalesGoal)
+class SalesGoalAdmin(AdminOnly, admin.ModelAdmin):
+    list_display = ("goal_type", "seller", "period", "period_start", "period_end", "target_value", "target_quantity")
+    list_filter = ("goal_type", "period")
+    raw_id_fields = ("seller",)
+    fieldsets = (
+        ("Tipo e Período", {"fields": ("goal_type", "seller", "period", "period_start", "period_end")}),
+        ("Metas", {"fields": ("target_value", "target_quantity")}),
+    )
+
+
+# ── Leads ─────────────────────────────────────────────────────────────
+class LeadInteractionInline(admin.TabularInline):
+    model = LeadInteraction
+    extra = 0
+    verbose_name = "Interação"
+    verbose_name_plural = "Histórico de Interações"
+    readonly_fields = ("created_at",)
+
+
+@admin.register(Lead)
+class LeadAdmin(SellerAccess, admin.ModelAdmin):
+    list_display = ("name", "stage", "source", "seller", "created_at")
+    list_filter = ("stage", "source")
+    search_fields = ("name", "phone", "email")
+    raw_id_fields = ("seller", "customer", "quote")
+    inlines = [LeadInteractionInline]
+    fieldsets = (
+        ("Dados do Lead", {"fields": ("name", "phone", "email", "source", "stage")}),
+        ("Vendedor e Vínculos", {"fields": ("seller", "customer", "quote")}),
+        ("Detalhes", {"fields": ("products_of_interest", "estimated_budget", "notes")}),
+    )
+
+
+# ── Histórico de Comunicação ─────────────────────────────────────────
+@admin.register(CommunicationHistory)
+class CommunicationHistoryAdmin(SellerAccess, admin.ModelAdmin):
+    list_display = ("customer", "channel", "created_by", "created_at")
+    list_filter = ("channel", "created_at")
+    search_fields = ("summary", "customer__name")
+    raw_id_fields = ("customer", "quote", "created_by")
+    readonly_fields = ("created_at",)
+
+
+# ── Modelos de Orçamento ─────────────────────────────────────────────
+class QuoteTemplateItemInline(admin.TabularInline):
+    model = QuoteTemplateItem
+    extra = 1
+    verbose_name = "Item do Modelo"
+    verbose_name_plural = "Itens do Modelo"
+
+
+@admin.register(QuoteTemplate)
+class QuoteTemplateAdmin(AdminOnly, admin.ModelAdmin):
+    list_display = ("name", "created_by", "created_at")
+    search_fields = ("name",)
+    readonly_fields = ("created_at",)
+    inlines = [QuoteTemplateItemInline]

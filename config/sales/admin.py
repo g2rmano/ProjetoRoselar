@@ -2,52 +2,88 @@ from django.contrib import admin
 from .models import Quote, QuoteItem, Order, OrderItem
 
 
+# ── Permission helpers ────────────────────────────────────────────────
+def _is_admin(user):
+    """True for ADMIN, OWNER or Django superuser."""
+    return user.is_superuser or getattr(user, "role", None) in ("ADMIN", "OWNER")
+
+
+class AdminOnly:
+    """Somente admins/donos podem visualizar ou modificar este modelo."""
+    def has_view_permission(self, request, obj=None):   return _is_admin(request.user)
+    def has_add_permission(self, request):              return _is_admin(request.user)
+    def has_change_permission(self, request, obj=None): return _is_admin(request.user)
+    def has_delete_permission(self, request, obj=None): return _is_admin(request.user)
+
+
+class SellerAccess:
+    """Vendedores podem visualizar/adicionar/editar; somente admins podem excluir."""
+    def has_view_permission(self, request, obj=None):   return True
+    def has_add_permission(self, request):              return True
+    def has_change_permission(self, request, obj=None): return True
+    def has_delete_permission(self, request, obj=None): return _is_admin(request.user)
+
+
 class QuoteItemInline(admin.TabularInline):
     model = QuoteItem
     extra = 1
-    fields = ("supplier", "product_name", "quantity", "unit_value", "condition_text")
+    verbose_name = "Item do Orçamento"
+    verbose_name_plural = "Itens do Orçamento"
+    fields = ("supplier", "product_name", "quantity", "unit_value")
 
 
 @admin.register(Quote)
-class QuoteAdmin(admin.ModelAdmin):
-    list_display = ("number", "customer", "seller", "status", "quote_date", "delivery_deadline", "created_at")
+class QuoteAdmin(SellerAccess, admin.ModelAdmin):
+    list_display = ("number", "customer", "seller", "status", "quote_date", "delivery_deadline", "total_value_snapshot", "created_at")
+    list_display_links = ("number",)
     list_filter = ("status", "quote_date", "freight_responsible", "created_at")
     search_fields = ("number", "customer__name", "seller__username")
+    date_hierarchy = "quote_date"
     inlines = [QuoteItemInline]
+    readonly_fields = ("created_at", "discount_authorized_at", "total_value_snapshot")
     fieldsets = (
         ("Informações Básicas", {
-            "fields": ("number", "customer", "seller", "status", "quote_date")
+            "fields": ("number", "customer", "seller", "status", "quote_date", "total_value_snapshot"),
         }),
         ("Prazo de Entrega", {
-            "fields": ("delivery_deadline",)
+            "fields": ("delivery_deadline",),
         }),
         ("Frete", {
-            "fields": ("freight_value", "freight_responsible", "shipping_company", "shipping_payment_method")
+            "fields": ("freight_value", "freight_responsible", "shipping_company", "shipping_payment_method"),
         }),
         ("Desconto", {
-            "fields": ("discount_percent", "discount_authorized_by", "discount_authorized_at")
+            "fields": ("discount_percent", "discount_authorized_by", "discount_authorized_at"),
         }),
         ("Pagamento", {
-            "fields": ("payment_description",)
+            "fields": ("payment_type", "payment_installments", "payment_fee_percent"),
+        }),
+        ("Arquiteto", {
+            "fields": ("has_architect",),
         }),
     )
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(SellerAccess, admin.ModelAdmin):
     list_display = ("number", "quote", "supplier", "status", "is_total_conference", "created_at")
     list_filter = ("status", "is_total_conference", "created_at")
-    search_fields = ("number", "quote__number")
+    search_fields = ("number", "quote__number", "supplier__name")
+    readonly_fields = ("created_at",)
+    fieldsets = (
+        ("Identificação", {"fields": ("number", "quote", "supplier", "is_total_conference")}),
+        ("Status", {"fields": ("status", "purchase_condition_text", "notes")}),
+    )
 
 
 @admin.register(QuoteItem)
-class QuoteItemAdmin(admin.ModelAdmin):
+class QuoteItemAdmin(SellerAccess, admin.ModelAdmin):
     list_display = ("id", "quote", "product_name", "supplier", "quantity", "unit_value")
     list_filter = ("quote__status",)
-    search_fields = ("product_name", "quote__number")
+    search_fields = ("product_name", "quote__number", "supplier__name")
 
 
 @admin.register(OrderItem)
-class OrderItemAdmin(admin.ModelAdmin):
+class OrderItemAdmin(AdminOnly, admin.ModelAdmin):
     list_display = ("id", "order", "product_name", "quantity", "purchase_unit_cost")
     search_fields = ("product_name", "order__number")
+    readonly_fields = ("quote_item",)

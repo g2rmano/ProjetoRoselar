@@ -1,18 +1,29 @@
 from __future__ import annotations
 
+import io
 import re
 from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.db import models
 from django.utils import timezone
+from PIL import Image as PILImage
+
+
+QUOTE_ITEM_IMAGE_SIZE = (600, 600)  # Fixed normalized size for PDF
+
+
+def quote_item_image_path(instance: "QuoteItemImage", filename: str) -> str:
+    """Permanent storage path for quote item images."""
+    return f"quotes/{instance.item.quote.number}/items/{instance.item_id}/{filename}"
 
 
 def quote_item_tmp_path(instance: "QuoteItemImage", filename: str) -> str:
-    # organização por orçamento e item
-    return f"tmp/quotes/{instance.item.quote.number}/items/{instance.item_id}/{filename}"
+    # kept for backwards compat with old migrations
+    return quote_item_image_path(instance, filename)
 
 
 def validate_discount_percent(value: Decimal):
@@ -38,36 +49,40 @@ class FreightResponsible(models.TextChoices):
 
 
 class Quote(models.Model):
-    number = models.CharField(max_length=20, unique=True)
+    number = models.CharField(max_length=20, unique=True, verbose_name="Número")
 
     customer = models.ForeignKey(
         "core.Customer",
         on_delete=models.PROTECT,
         related_name="quotes",
+        verbose_name="Cliente",
     )
     seller = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="quotes",
+        verbose_name="Vendedor",
     )
 
-    status = models.CharField(max_length=12, choices=QuoteStatus.choices, default=QuoteStatus.DRAFT)
+    status = models.CharField(max_length=12, choices=QuoteStatus.choices, default=QuoteStatus.DRAFT, verbose_name="Status")
 
-    quote_date = models.DateField(default=timezone.localdate)
+    quote_date = models.DateField(default=timezone.localdate, verbose_name="Data")
     
     # prazo de entrega
     delivery_deadline = models.DateField(
         null=True,
         blank=True,
+        verbose_name="Prazo de Entrega",
         help_text="Prazo de entrega previsto"
     )
     
     # frete
-    freight_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    freight_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="Valor do Frete")
     freight_responsible = models.CharField(
         max_length=10,
         choices=FreightResponsible.choices,
         default=FreightResponsible.CUSTOMER,
+        verbose_name="Responsável pelo Frete",
         help_text="Quem paga o frete"
     )
     shipping_company = models.ForeignKey(
@@ -76,11 +91,13 @@ class Quote(models.Model):
         blank=True,
         on_delete=models.PROTECT,
         related_name="quotes",
+        verbose_name="Transportadora",
         help_text="Transportadora responsável (se aplicável)"
     )
     shipping_payment_method = models.CharField(
         max_length=200,
         blank=True,
+        verbose_name="Forma de Pagamento (Frete)",
         help_text="Método de pagamento selecionado da transportadora"
     )
 
@@ -89,6 +106,7 @@ class Quote(models.Model):
         max_digits=5,
         decimal_places=1,
         default=Decimal("0.0"),
+        verbose_name="Desconto (%)",
         validators=[validate_discount_percent],
     )
     discount_authorized_by = models.ForeignKey(
@@ -97,12 +115,14 @@ class Quote(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="authorized_quote_discounts",
+        verbose_name="Desconto Autorizado por",
     )
-    discount_authorized_at = models.DateTimeField(null=True, blank=True)
+    discount_authorized_at = models.DateTimeField(null=True, blank=True, verbose_name="Desconto Autorizado em")
 
     # arquiteto
     has_architect = models.BooleanField(
         default=False,
+        verbose_name="Possui Arquiteto",
         help_text="Cliente possui arquiteto?"
     )
 
@@ -110,25 +130,30 @@ class Quote(models.Model):
     payment_type = models.CharField(
         max_length=20,
         blank=True,
+        verbose_name="Tipo de Pagamento",
         help_text="Tipo de pagamento (dinheiro, pix, cartão, etc.)"
     )
     payment_installments = models.PositiveIntegerField(
         default=1,
+        verbose_name="Parcelas",
         help_text="Número de parcelas (1 = à vista)"
     )
     payment_fee_percent = models.DecimalField(
         max_digits=5,
         decimal_places=1,
         default=Decimal("0.0"),
+        verbose_name="Taxa de Pagamento (%)",
         help_text="Taxa aplicada conforme parcelas"
     )
 
-    # snapshots (opcional, útil para relatórios e evitar recomputar)
-    total_value_snapshot = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    # snapshots
+    total_value_snapshot = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="Total (R$)")
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
 
     class Meta:
+        verbose_name = "Orçamento"
+        verbose_name_plural = "Orçamentos"
         indexes = [
             models.Index(fields=["number"]),
             models.Index(fields=["quote_date"]),
@@ -192,14 +217,14 @@ class QuoteItem(models.Model):
         related_name="quote_items",
     )
 
-    product_name = models.CharField(max_length=160)
-    description = models.TextField(blank=True)
+    product_name = models.CharField(max_length=160, verbose_name="Produto")
+    description = models.TextField(blank=True, verbose_name="Descrição")
 
-    quantity = models.PositiveIntegerField(default=1)
-    unit_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    quantity = models.PositiveIntegerField(default=1, verbose_name="Qtd")
+    unit_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="Valor Unit.")
 
     # condição do item (se precisar)
-    condition_text = models.CharField(max_length=200, blank=True)
+    condition_text = models.CharField(max_length=200, blank=True, verbose_name="Condição")
 
     # % arquiteto: armazenar, mas NÃO exibir no orçamento/pedido final (regra sua)
     architect_percent = models.DecimalField(
@@ -207,12 +232,15 @@ class QuoteItem(models.Model):
         decimal_places=1, 
         null=True, 
         blank=True, 
-        default=Decimal("0.0")
+        default=Decimal("0.0"),
+        verbose_name="Comissão Arq. (%)"
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
 
     class Meta:
+        verbose_name = "Item do Orçamento"
+        verbose_name_plural = "Itens do Orçamento"
         indexes = [
             models.Index(fields=["quote"]),
             models.Index(fields=["supplier"]),
@@ -228,15 +256,39 @@ class QuoteItem(models.Model):
 
 class QuoteItemImage(models.Model):
     item = models.ForeignKey(QuoteItem, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to=quote_item_tmp_path)
+    image = models.ImageField(upload_to=quote_item_image_path)
     caption = models.CharField(max_length=120, blank=True)
-
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        verbose_name = "Imagem do Item"
+        verbose_name_plural = "Imagens do Item"
 
     def save(self, *args, **kwargs):
-        if not self.expires_at:
-            self.expires_at = timezone.now() + timedelta(days=7)  # TTL padrão
+        # Normalize image to fixed size on first save
+        if self.image and not self.pk:  # only on creation
+            try:
+                img = PILImage.open(self.image)
+                img = img.convert("RGB")
+                # Resize keeping aspect ratio then center-crop to square
+                img.thumbnail((QUOTE_ITEM_IMAGE_SIZE[0] * 2, QUOTE_ITEM_IMAGE_SIZE[1] * 2), PILImage.LANCZOS)
+                # Center crop to exact size
+                w, h = img.size
+                target_w, target_h = QUOTE_ITEM_IMAGE_SIZE
+                left = max(0, (w - target_w) // 2)
+                top = max(0, (h - target_h) // 2)
+                right = left + target_w
+                bottom = top + target_h
+                img = img.crop((left, top, min(right, w), min(bottom, h)))
+                # Save to buffer
+                buf = io.BytesIO()
+                img.save(buf, format="JPEG", quality=85)
+                buf.seek(0)
+                # Replace the file content
+                name = self.image.name.rsplit('.', 1)[0] + '.jpg'
+                self.image.save(name, ContentFile(buf.read()), save=False)
+            except Exception:
+                pass  # If processing fails, save original
         super().save(*args, **kwargs)
 
 
@@ -249,8 +301,8 @@ class OrderStatus(models.TextChoices):
 
 
 class Order(models.Model):
-    number = models.CharField(max_length=20)  # igual ao Quote.number (não unique por permitir vários pedidos)
-    quote = models.ForeignKey(Quote, on_delete=models.PROTECT, related_name="orders")
+    number = models.CharField(max_length=20, verbose_name="Número")  # igual ao Quote.number (não unique por permitir vários pedidos)
+    quote = models.ForeignKey(Quote, on_delete=models.PROTECT, related_name="orders", verbose_name="Orçamento")
 
     supplier = models.ForeignKey(
         "core.Supplier",
@@ -258,17 +310,20 @@ class Order(models.Model):
         blank=True,
         on_delete=models.PROTECT,
         related_name="orders",
+        verbose_name="Fornecedor",
     )
-    is_total_conference = models.BooleanField(default=False)
+    is_total_conference = models.BooleanField(default=False, verbose_name="Conferência Total")
 
-    status = models.CharField(max_length=10, choices=OrderStatus.choices, default=OrderStatus.OPEN)
+    status = models.CharField(max_length=10, choices=OrderStatus.choices, default=OrderStatus.OPEN, verbose_name="Status")
 
-    purchase_condition_text = models.CharField(max_length=200, blank=True)
-    notes = models.TextField(blank=True)
+    purchase_condition_text = models.CharField(max_length=200, blank=True, verbose_name="Condição de Compra")
+    notes = models.TextField(blank=True, verbose_name="Observações")
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
 
     class Meta:
+        verbose_name = "Pedido de Compra"
+        verbose_name_plural = "Pedidos de Compra"
         indexes = [
             models.Index(fields=["number"]),
             models.Index(fields=["quote"]),
@@ -300,17 +355,17 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items", verbose_name="Pedido")
 
-    product_name = models.CharField(max_length=160)
-    description = models.TextField(blank=True)
+    product_name = models.CharField(max_length=160, verbose_name="Produto")
+    description = models.TextField(blank=True, verbose_name="Descrição")
 
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.PositiveIntegerField(default=1, verbose_name="Qtd")
 
-    # custo de compra (interno). Se você não quer isso agora, pode remover.
-    purchase_unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    # custo de compra (interno).
+    purchase_unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="Custo de Compra")
 
-    # link opcional ao item do orçamento (útil para rastrear origem)
+    # link opcional ao item do orçamento (useful para rastrear origem)
     quote_item = models.ForeignKey(
         QuoteItem,
         null=True,
@@ -319,10 +374,14 @@ class OrderItem(models.Model):
         related_name="order_items",
     )
 
+    class Meta:
+        verbose_name = "Item do Pedido"
+        verbose_name_plural = "Itens do Pedido"
+
     def __str__(self) -> str:
         return f"{self.product_name} ({self.order.number})"
     
     @property
     def line_total(self) -> Decimal:
-        """Calculate the total for this line item."""
+        """Calcula o total da linha."""
         return (self.purchase_unit_cost or Decimal("0.00")) * Decimal(self.quantity or 0)

@@ -9,10 +9,10 @@ class Role(models.TextChoices):
 
 
 class User(AbstractUser):
-    role = models.CharField(max_length=10, choices=Role.choices, default=Role.SELLER)
+    role = models.CharField(max_length=10, choices=Role.choices, default=Role.SELLER, verbose_name="Perfil")
 
     # metas (pode ficar aqui ou em tabela separada; aqui é mais simples)
-    individual_target_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    individual_target_value = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Meta Individual (R$)")
 
     # telefone opcional (útil para envio/agenda)
-    phone = models.CharField(max_length=30, blank=True)
+    phone = models.CharField(max_length=30, blank=True, verbose_name="Telefone")

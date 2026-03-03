@@ -14,6 +14,7 @@ urlpatterns = [
     path("quotes/<int:quote_id>/convert/", views.quote_convert_to_orders, name="quote_convert"),
     path("quotes/<int:quote_id>/pdf/client/", views.quote_pdf_client, name="quote_pdf_client"),
     path("quotes/<int:quote_id>/pdf/supplier/", views.quote_pdf_supplier, name="quote_pdf_supplier"),
+    path("quotes/<int:quote_id>/duplicate/", views.quote_duplicate, name="quote_duplicate"),
     
     # API endpoints
     path("api/payment-method-fees/", views.payment_method_fees_api, name="payment_method_fees_api"),

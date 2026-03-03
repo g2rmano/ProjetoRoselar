@@ -42,6 +42,12 @@ class QuoteForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        # Pricing fields are optional in Step 1 (set in Step 2 – pricing page)
+        self.fields['discount_percent'].required = False
+        self.fields['has_architect'].required = False
+        self.fields['payment_installments'].required = False
+        self.fields['payment_fee_percent'].required = False
+        
         # Adicionar classes CSS
         for field_name, field in self.fields.items():
             if field_name not in ['number', 'payment_fee_percent']:
@@ -57,6 +63,13 @@ class QuoteItemForm(forms.ModelForm):
         label="% Arquiteto"
     )
     
+    # Image upload for the item (shown in buyer's PDF)
+    item_image = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+        label="Imagem do Produto"
+    )
+    
     class Meta:
         model = QuoteItem
         fields = [
@@ -65,7 +78,6 @@ class QuoteItemForm(forms.ModelForm):
             "description",
             "quantity",
             "unit_value",
-            "condition_text",
             "architect_percent",
         ]
         widgets = {

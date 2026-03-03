@@ -1,14 +1,17 @@
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 from .validador import validate_cpf, validate_cnpj
 
 
 class Customer(models.Model):
-    name = models.CharField(max_length=120)
+    name = models.CharField(max_length=120, verbose_name="Nome")
 
     cpf = models.CharField(
         max_length=14,
         blank=True,
+        verbose_name="CPF",
         validators=[validate_cpf],
         help_text="CPF válido (com ou sem máscara)",
     )
@@ -16,17 +19,20 @@ class Customer(models.Model):
     cnpj = models.CharField(
         max_length=18,
         blank=True,
+        verbose_name="CNPJ",
         validators=[validate_cnpj],
         help_text="CNPJ válido (com ou sem máscara)",
     )
 
-    phone = models.CharField(max_length=30, blank=True)
-    email = models.EmailField(blank=True)
-    notes = models.TextField(blank=True)
+    phone = models.CharField(max_length=30, blank=True, verbose_name="Telefone")
+    email = models.EmailField(blank=True, verbose_name="E-mail")
+    notes = models.TextField(blank=True, verbose_name="Observações")
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Cadastrado em")
 
     class Meta:
+        verbose_name = "Cliente"
+        verbose_name_plural = "Clientes"
         constraints = [
             models.UniqueConstraint(
                 fields=["cpf"],
@@ -53,22 +59,28 @@ class Customer(models.Model):
 
 
 class Supplier(models.Model):
-    name = models.CharField(max_length=120)
+    name = models.CharField(max_length=120, verbose_name="Nome")
     supplier_number = models.CharField(
         max_length=50,
         unique=True,
+        verbose_name="Código",
         help_text="Número/código do fornecedor"
     )
 
     email = models.EmailField(
         unique=True,
+        verbose_name="E-mail",
         help_text="E-mail único do fornecedor (identificador principal)"
     )
     
-    phone = models.CharField(max_length=30, blank=True)
-    notes = models.TextField(blank=True, help_text="Informações adicionais sobre o fornecedor")
+    phone = models.CharField(max_length=30, blank=True, verbose_name="Telefone")
+    notes = models.TextField(blank=True, verbose_name="Observações", help_text="Informações adicionais sobre o fornecedor")
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Cadastrado em")
+
+    class Meta:
+        verbose_name = "Fornecedor"
+        verbose_name_plural = "Fornecedores"
 
     def __str__(self) -> str:
         return f"{self.name} ({self.supplier_number})"
@@ -102,6 +114,8 @@ class SupplierPaymentOption(models.Model):
     
     class Meta:
         ordering = ["-is_default", "days_to_pay"]
+        verbose_name = "Forma de Pagamento do Fornecedor"
+        verbose_name_plural = "Formas de Pagamento do Fornecedor"
     
     def __str__(self) -> str:
         return f"{self.supplier.name} - {self.description}"
@@ -109,35 +123,38 @@ class SupplierPaymentOption(models.Model):
 
 class ShippingCompany(models.Model):
     """Cadastro de transportadoras."""
-    name = models.CharField(max_length=120, help_text="Nome da transportadora")
+    name = models.CharField(max_length=120, verbose_name="Nome", help_text="Nome da transportadora")
     
     cnpj = models.CharField(
         max_length=18,
         blank=True,
+        verbose_name="CNPJ",
         validators=[validate_cnpj],
         help_text="CNPJ da transportadora (opcional)"
     )
     
-    phone = models.CharField(max_length=30, blank=True)
-    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=30, blank=True, verbose_name="Telefone")
+    email = models.EmailField(blank=True, verbose_name="E-mail")
     contact_person = models.CharField(
         max_length=100,
         blank=True,
+        verbose_name="Contato",
         help_text="Pessoa de contato na transportadora"
     )
     
-    address = models.TextField(blank=True, help_text="Endereço completo")
-    notes = models.TextField(blank=True, help_text="Observações")
+    address = models.TextField(blank=True, verbose_name="Endereço", help_text="Endereço completo")
+    notes = models.TextField(blank=True, verbose_name="Observações", help_text="Observações")
     
     # Payment methods available for this shipping company
     payment_methods = models.TextField(
         blank=True,
+        verbose_name="Métodos de Pagamento",
         help_text="Métodos de pagamento disponíveis (um por linha)"
     )
     
-    is_active = models.BooleanField(default=True, help_text="Transportadora ativa")
+    is_active = models.BooleanField(default=True, verbose_name="Ativa", help_text="Transportadora ativa")
     
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Cadastrado em")
     
     class Meta:
         ordering = ["name"]
@@ -162,10 +179,12 @@ class PaymentTariff(models.Model):
     payment_type = models.CharField(
         max_length=20,
         choices=PaymentMethodType.choices,
+        verbose_name="Tipo de Pagamento",
         help_text="Tipo do método de pagamento"
     )
     
     installments = models.PositiveIntegerField(
+        verbose_name="Parcelas",
         help_text="Número de parcelas (1 = à vista)"
     )
     
@@ -173,6 +192,7 @@ class PaymentTariff(models.Model):
         max_digits=4,
         decimal_places=1,
         default=0,
+        verbose_name="Taxa (%)",
         help_text="Porcentagem de acréscimo (ex: 2.5 para 2.5%)"
     )
     
@@ -207,6 +227,7 @@ class ArchitectCommission(models.Model):
         max_digits=4,
         decimal_places=1,
         default=10.0,
+        verbose_name="Comissão (%)",
         help_text="Porcentagem de comissão do arquiteto (ex: 10.0 para 10%)"
     )
     
@@ -237,18 +258,21 @@ class SalesMarginConfig(models.Model):
         max_digits=5,
         decimal_places=1,
         default=16.0,
+        verbose_name="Margem Total (%)",
         help_text="Margem total (%) dividida entre desconto, taxa do cartão e comissão",
     )
     min_commission = models.DecimalField(
         max_digits=5,
         decimal_places=1,
         default=1.0,
+        verbose_name="Comissão Mínima (%)",
         help_text="Comissão mínima do vendedor (%)",
     )
     max_commission = models.DecimalField(
         max_digits=5,
         decimal_places=1,
         default=5.0,
+        verbose_name="Comissão Máxima (%)",
         help_text="Comissão máxima do vendedor (%) — quando desconto = 0",
     )
 
@@ -273,3 +297,366 @@ class SalesMarginConfig(models.Model):
         """Retorna (total_margin, min_commission, max_commission)."""
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj.total_margin, obj.min_commission, obj.max_commission
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Notification System
+# ──────────────────────────────────────────────────────────────────────
+
+class NotificationType(models.TextChoices):
+    DELIVERY_NEAR = "DELIVERY_NEAR", "Entrega próxima"
+    QUOTE_NO_RESPONSE = "QUOTE_NO_RESPONSE", "Orçamento sem resposta"
+    GOAL_NEAR = "GOAL_NEAR", "Meta próxima de ser atingida"
+    DISCOUNT_AUTH = "DISCOUNT_AUTH", "Desconto autorizado"
+    NEW_LEAD = "NEW_LEAD", "Novo lead atribuído"
+    ORDER_CONFIRMED = "ORDER_CONFIRMED", "Pedido confirmado"
+    GENERAL = "GENERAL", "Geral"
+
+
+class Notification(models.Model):
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    notification_type = models.CharField(
+        max_length=20,
+        choices=NotificationType.choices,
+        default=NotificationType.GENERAL,
+        verbose_name="Tipo",
+    )
+    title = models.CharField(max_length=200, verbose_name="Título")
+    message = models.TextField(blank=True, verbose_name="Mensagem")
+    url = models.CharField(max_length=500, blank=True, verbose_name="Link", help_text="Link para a ação relacionada")
+    read = models.BooleanField(default=False, verbose_name="Lida")
+    read_at = models.DateTimeField(null=True, blank=True, verbose_name="Lida em")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Notificação"
+        verbose_name_plural = "Notificações"
+        indexes = [
+            models.Index(fields=["recipient", "read", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"[{self.get_notification_type_display()}] {self.title}"
+
+    def mark_as_read(self):
+        if not self.read:
+            self.read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=["read", "read_at"])
+
+    @classmethod
+    def send(cls, recipient, title, notification_type=NotificationType.GENERAL, message="", url=""):
+        return cls.objects.create(
+            recipient=recipient,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            url=url,
+        )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Audit Log
+# ──────────────────────────────────────────────────────────────────────
+
+class AuditAction(models.TextChoices):
+    CREATE_QUOTE = "CREATE_QUOTE", "Criar orçamento"
+    EDIT_QUOTE = "EDIT_QUOTE", "Editar orçamento"
+    APPROVE_DISCOUNT = "APPROVE_DISCOUNT", "Aprovar desconto"
+    CONVERT_ORDER = "CONVERT_ORDER", "Converter em pedido"
+    EDIT_VALUES = "EDIT_VALUES", "Editar valores"
+    CREATE_LEAD = "CREATE_LEAD", "Criar lead"
+    CONVERT_LEAD = "CONVERT_LEAD", "Converter lead"
+    SAVE_CONDITIONS = "SAVE_CONDITIONS", "Salvar condições"
+    LOGIN = "LOGIN", "Login"
+    OTHER = "OTHER", "Outro"
+
+
+class AuditLog(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="audit_logs",
+    )
+    action = models.CharField(max_length=20, choices=AuditAction.choices, verbose_name="Ação")
+    description = models.TextField(blank=True, verbose_name="Descrição")
+    object_type = models.CharField(max_length=50, blank=True, verbose_name="Tipo de Objeto", help_text="Ex: Quote, Order, Lead")
+    object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name="ID do Objeto")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP")
+    extra_data = models.JSONField(default=dict, blank=True, verbose_name="Dados Extras")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Log de Auditoria"
+        verbose_name_plural = "Logs de Auditoria"
+        indexes = [
+            models.Index(fields=["-created_at"]),
+            models.Index(fields=["user", "-created_at"]),
+            models.Index(fields=["action"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_action_display()} por {self.user} em {self.created_at:%d/%m/%Y %H:%M}"
+
+    @classmethod
+    def log(cls, user, action, description="", obj=None, ip_address=None, extra_data=None):
+        return cls.objects.create(
+            user=user,
+            action=action,
+            description=description,
+            object_type=type(obj).__name__ if obj else "",
+            object_id=obj.pk if obj else None,
+            ip_address=ip_address,
+            extra_data=extra_data or {},
+        )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Sales Goals
+# ──────────────────────────────────────────────────────────────────────
+
+class GoalPeriod(models.TextChoices):
+    MONTHLY = "MONTHLY", "Mensal"
+    QUARTERLY = "QUARTERLY", "Trimestral"
+    YEARLY = "YEARLY", "Anual"
+
+
+class GoalType(models.TextChoices):
+    INDIVIDUAL = "INDIVIDUAL", "Individual"
+    COLLECTIVE = "COLLECTIVE", "Coletivo"
+
+
+class SalesGoal(models.Model):
+    goal_type = models.CharField(max_length=12, choices=GoalType.choices, default=GoalType.INDIVIDUAL, verbose_name="Tipo")
+    seller = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="sales_goals",
+        verbose_name="Vendedor",
+        help_text="Vendedor (para metas individuais)",
+    )
+    period = models.CharField(max_length=12, choices=GoalPeriod.choices, default=GoalPeriod.MONTHLY, verbose_name="Período")
+    period_start = models.DateField(verbose_name="Início", help_text="Início do período")
+    period_end = models.DateField(verbose_name="Fim", help_text="Fim do período")
+    target_value = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Meta (R$)", help_text="Meta em R$")
+    target_quantity = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Meta (Qtd)",
+        help_text="Meta em quantidade de vendas"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-period_start"]
+        verbose_name = "Meta de Vendas"
+        verbose_name_plural = "Metas de Vendas"
+
+    def __str__(self):
+        if self.seller:
+            return f"Meta {self.seller.username} {self.period_start:%m/%Y} – R${self.target_value}"
+        return f"Meta Coletiva {self.period_start:%m/%Y} – R${self.target_value}"
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Leads and Sales Funnel
+# ──────────────────────────────────────────────────────────────────────
+
+class LeadSource(models.TextChoices):
+    PHONE = "PHONE", "Telefone"
+    WHATSAPP = "WHATSAPP", "WhatsApp"
+    WEBSITE = "WEBSITE", "Site"
+    REFERRAL = "REFERRAL", "Indicação"
+    WALK_IN = "WALK_IN", "Visita à loja"
+    INSTAGRAM = "INSTAGRAM", "Instagram"
+    OTHER = "OTHER", "Outro"
+
+
+class LeadStage(models.TextChoices):
+    NEW = "NEW", "Novo"
+    CONTACTED = "CONTACTED", "Contato Feito"
+    QUOTE_SENT = "QUOTE_SENT", "Orçamento Enviado"
+    NEGOTIATION = "NEGOTIATION", "Em Negociação"
+    WON = "WON", "Ganho"
+    LOST = "LOST", "Perdido"
+
+
+class Lead(models.Model):
+    name = models.CharField(max_length=120, verbose_name="Nome")
+    phone = models.CharField(max_length=30, blank=True, verbose_name="Telefone")
+    email = models.EmailField(blank=True, verbose_name="E-mail")
+    source = models.CharField(max_length=12, choices=LeadSource.choices, default=LeadSource.OTHER, verbose_name="Origem")
+    stage = models.CharField(max_length=12, choices=LeadStage.choices, default=LeadStage.NEW, verbose_name="Estágio")
+
+    seller = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="leads",
+    )
+    customer = models.ForeignKey(
+        "core.Customer",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="leads",
+        help_text="Cliente vinculado (após conversão)",
+    )
+    quote = models.ForeignKey(
+        "sales.Quote",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="leads",
+        help_text="Orçamento vinculado (se houver)",
+    )
+
+    products_of_interest = models.TextField(blank=True, help_text="Produtos de interesse")
+    estimated_budget = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="Faixa de orçamento estimado",
+    )
+    notes = models.TextField(blank=True)
+
+    last_interaction = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        verbose_name = "Lead"
+        verbose_name_plural = "Leads"
+        indexes = [
+            models.Index(fields=["stage"]),
+            models.Index(fields=["seller"]),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_stage_display()})"
+
+
+class LeadInteraction(models.Model):
+    """Histórico de interações com um lead."""
+    CHANNEL_CHOICES = [
+        ("PHONE", "Telefone"),
+        ("WHATSAPP", "WhatsApp"),
+        ("EMAIL", "E-mail"),
+        ("IN_PERSON", "Presencial"),
+        ("OTHER", "Outro"),
+    ]
+
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name="interactions")
+    channel = models.CharField(max_length=12, choices=CHANNEL_CHOICES, default="OTHER")
+    summary = models.TextField(help_text="Resumo da interação")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Interação com Lead"
+        verbose_name_plural = "Interações com Leads"
+
+    def __str__(self):
+        return f"{self.lead.name} - {self.get_channel_display()} ({self.created_at:%d/%m})"
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Communication History (for Quotes/Customers)
+# ──────────────────────────────────────────────────────────────────────
+
+class CommunicationHistory(models.Model):
+    CHANNEL_CHOICES = [
+        ("PHONE", "Telefone"),
+        ("WHATSAPP", "WhatsApp"),
+        ("EMAIL", "E-mail"),
+        ("IN_PERSON", "Presencial"),
+        ("OTHER", "Outro"),
+    ]
+
+    customer = models.ForeignKey(
+        "core.Customer",
+        on_delete=models.CASCADE,
+        related_name="communications",
+        verbose_name="Cliente",
+    )
+    quote = models.ForeignKey(
+        "sales.Quote",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="communications",
+        verbose_name="Orçamento",
+    )
+    channel = models.CharField(max_length=12, choices=CHANNEL_CHOICES, default="OTHER", verbose_name="Canal")
+    summary = models.TextField(verbose_name="Resumo")
+    next_steps = models.TextField(blank=True, verbose_name="Próximos Passos", help_text="Próximos passos sugeridos")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.SET_NULL,
+        verbose_name="Criado por",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Histórico de Comunicação"
+        verbose_name_plural = "Histórico de Comunicações"
+
+    def __str__(self):
+        return f"{self.customer.name} - {self.get_channel_display()} ({self.created_at:%d/%m})"
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Quote Templates
+# ──────────────────────────────────────────────────────────────────────
+
+class QuoteTemplate(models.Model):
+    """Template reutilizável para orçamentos comuns (ex: Cozinha Completa)."""
+    name = models.CharField(max_length=120, unique=True)
+    description = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Modelo de Orçamento"
+        verbose_name_plural = "Modelos de Orçamento"
+
+    def __str__(self):
+        return self.name
+
+
+class QuoteTemplateItem(models.Model):
+    template = models.ForeignKey(QuoteTemplate, on_delete=models.CASCADE, related_name="items")
+    product_name = models.CharField(max_length=160)
+    description = models.TextField(blank=True)
+    quantity = models.PositiveIntegerField(default=1)
+    default_unit_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Item do Modelo"
+        verbose_name_plural = "Itens do Modelo"
+
+    def __str__(self):
+        return f"{self.product_name} (template: {self.template.name})"

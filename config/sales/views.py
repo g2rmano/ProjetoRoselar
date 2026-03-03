@@ -31,6 +31,10 @@ from .models import (
     OrderItem,
     FreightResponsible,
 )
+from calendar_app.models import (
+    create_quote_followup_events,
+    create_delivery_events_for_quote,
+)
 
 
 def generate_next_quote_number() -> str:
@@ -210,7 +214,7 @@ def quote_create(request: HttpRequest) -> HttpResponse:
     """
     if request.method == "POST":
         form = QuoteForm(request.POST)
-        formset = QuoteItemFormSet(request.POST)
+        formset = QuoteItemFormSet(request.POST, request.FILES)
 
         if form.is_valid() and formset.is_valid():
             with transaction.atomic():
@@ -219,6 +223,14 @@ def quote_create(request: HttpRequest) -> HttpResponse:
                 quote.status = QuoteStatus.DRAFT
                 # Auto-generate quote number
                 quote.number = generate_next_quote_number()
+                
+                # Defaults for pricing fields (set later in Step 2)
+                if quote.discount_percent is None:
+                    quote.discount_percent = Decimal("0.0")
+                if quote.payment_installments is None:
+                    quote.payment_installments = 1
+                if quote.payment_fee_percent is None:
+                    quote.payment_fee_percent = Decimal("0.0")
                 
                 # Auto-set freight value to 0 if customer is responsible
                 if quote.freight_responsible == FreightResponsible.CUSTOMER:
@@ -247,23 +259,37 @@ def quote_create(request: HttpRequest) -> HttpResponse:
                 formset.instance = quote
                 formset.save()
 
+            # Criar eventos de follow-up no calendário (fora da transação)
+            try:
+                create_quote_followup_events(quote)
+                create_delivery_events_for_quote(quote)
+            except Exception:
+                pass  # Não impede o fluxo principal
+
+            # Audit log
+            from core.models import AuditLog, AuditAction
+            AuditLog.log(request.user, AuditAction.CREATE_QUOTE,
+                         f"Orçamento {quote.number} criado", obj=quote,
+                         ip_address=request.META.get('REMOTE_ADDR'))
+
             messages.success(request, f"Orçamento {quote.number} criado.")
             
-            # Check if PDF or simulation was requested
-            pdf_action = request.POST.get('pdf_action')
-            if pdf_action == 'client':
-                return redirect("sales:quote_pdf_client", quote_id=quote.id)
-            elif pdf_action == 'supplier':
-                return redirect("sales:quote_pdf_supplier", quote_id=quote.id)
-            elif pdf_action == 'simulate':
+            # Check which button was pressed
+            action = request.POST.get('action', 'save')
+            if action == 'next_step':
                 return redirect("sales:quote_simulate", quote_id=quote.id)
             
             return redirect("sales:quote_detail", quote_id=quote.id)
         else:
             messages.error(request, "Corrija os campos inválidos.")
     else:
-        # Initialize form with next quote number
-        initial_data = {'number': generate_next_quote_number()}
+        # Initialize form with next quote number and pricing defaults
+        initial_data = {
+            'number': generate_next_quote_number(),
+            'discount_percent': Decimal('0.0'),
+            'payment_installments': 1,
+            'payment_fee_percent': Decimal('0.0'),
+        }
         form = QuoteForm(initial=initial_data)
         formset = QuoteItemFormSet()
 
@@ -318,15 +344,23 @@ def quote_edit(request: HttpRequest, quote_id: int) -> HttpResponse:
                 quote_obj.save()
                 formset.save()
 
+            # Atualizar evento de entrega no calendário se prazo foi definido/alterado
+            try:
+                create_delivery_events_for_quote(quote_obj)
+            except Exception:
+                pass  # Não impede o fluxo principal
+
+            # Audit log
+            from core.models import AuditLog, AuditAction
+            AuditLog.log(request.user, AuditAction.EDIT_QUOTE,
+                         f"Orçamento {quote.number} editado", obj=quote,
+                         ip_address=request.META.get('REMOTE_ADDR'))
+
             messages.success(request, f"Orçamento {quote.number} atualizado.")
             
-            # Check if PDF or simulation was requested
-            pdf_action = request.POST.get('pdf_action')
-            if pdf_action == 'client':
-                return redirect("sales:quote_pdf_client", quote_id=quote.id)
-            elif pdf_action == 'supplier':
-                return redirect("sales:quote_pdf_supplier", quote_id=quote.id)
-            elif pdf_action == 'simulate':
+            # Check which button was pressed
+            action = request.POST.get('action', 'save')
+            if action == 'next_step':
                 return redirect("sales:quote_simulate", quote_id=quote.id)
             
             return redirect("sales:quote_detail", quote_id=quote.id)
@@ -476,6 +510,19 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
         success_msg = f"Orçamento {quote.number} convertido em {len(created_orders)} pedidos."
         if pdf_count > 0:
             success_msg += f" {pdf_count} PDF(s) disponível(is) para download."
+
+        # Audit log + notification
+        from core.models import AuditLog, AuditAction, Notification, NotificationType
+        AuditLog.log(request.user, AuditAction.CONVERT_ORDER,
+                     f"Orçamento {quote.number} convertido em {len(created_orders)} pedidos", obj=quote,
+                     ip_address=request.META.get('REMOTE_ADDR'))
+        Notification.send(
+            quote.seller, f"Pedido confirmado: {quote.number}",
+            NotificationType.ORDER_CONFIRMED,
+            message=f"Orçamento {quote.number} convertido em pedidos.",
+            url=f"/sales/quotes/{quote.id}/",
+        )
+
         messages.success(request, success_msg)
         return redirect("sales:quote_detail", quote_id=quote.id)
 
@@ -1016,9 +1063,15 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
         for i in range(1, max_inst + 1):
             fee = existing.get(i, 0)
             if i == 1:
-                lbl = f"À vista ({fee}%)" if fee else "À vista"
+                if fee:
+                    lbl = f"À vista (taxa cartão {fee}%)" if pt_value == 'CREDIT_CARD' else f"À vista ({fee}%)"
+                else:
+                    lbl = "À vista"
             else:
-                lbl = f"{i}x ({fee}%)" if fee else f"{i}x"
+                if fee:
+                    lbl = f"{i}x (taxa cartão {fee}%)" if pt_value == 'CREDIT_CARD' else f"{i}x ({fee}%)"
+                else:
+                    lbl = f"{i}x"
             options.append({'installments': i, 'fee': fee, 'label': lbl})
         tariffs_by_type[pt_value] = options
 
@@ -1033,6 +1086,18 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
 
     # Clamp discount to allowed range
     simulated_discount = max(Decimal("0"), min(simulated_discount, max_discount))
+
+    # ── Save conditions to quote if requested ──────────────────────
+    if request.method == "POST" and request.POST.get('action') == 'save_conditions':
+        with transaction.atomic():
+            quote.discount_percent = simulated_discount
+            quote.payment_type = sim_payment_type
+            quote.payment_installments = sim_installments
+            quote.payment_fee_percent = payment_fee_percent
+            quote.has_architect = sim_has_architect
+            quote.save()
+        messages.success(request, f"Condições do orçamento {quote.number} salvas com sucesso.")
+        return redirect("sales:quote_detail", quote_id=quote.id)
 
     # Commission = what remains from the margin after discount and card fee
     seller_commission_percent = max(
@@ -1100,3 +1165,51 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
     }
 
     return render(request, 'sales/quote_simulation.html', context)
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Duplicate Quote
+# ──────────────────────────────────────────────────────────────────────
+@login_required
+@require_http_methods(["POST"])
+def quote_duplicate(request, quote_id):
+    """Duplicar um orçamento existente."""
+    original = get_object_or_404(Quote, id=quote_id)
+    from core.models import AuditLog, AuditAction
+
+    with transaction.atomic():
+        new_number = generate_next_quote_number()
+        new_quote = Quote.objects.create(
+            number=new_number,
+            customer=original.customer,
+            seller=request.user,
+            status=QuoteStatus.DRAFT,
+            quote_date=timezone.localdate(),
+            freight_value=original.freight_value,
+            freight_responsible=original.freight_responsible,
+            shipping_company=original.shipping_company,
+            shipping_payment_method=original.shipping_payment_method,
+            discount_percent=original.discount_percent,
+            has_architect=original.has_architect,
+            payment_type=original.payment_type,
+            payment_installments=original.payment_installments,
+            payment_fee_percent=original.payment_fee_percent,
+        )
+
+        for item in original.items.all():
+            QuoteItem.objects.create(
+                quote=new_quote,
+                supplier=item.supplier,
+                product_name=item.product_name,
+                description=item.description,
+                quantity=item.quantity,
+                unit_value=item.unit_value,
+                condition_text=item.condition_text,
+                architect_percent=item.architect_percent,
+            )
+
+    AuditLog.log(request.user, AuditAction.CREATE_QUOTE,
+                 f"Orçamento duplicado: {original.number} → {new_quote.number}", obj=new_quote)
+
+    messages.success(request, f"Orçamento duplicado: {new_quote.number}")
+    return redirect("sales:quote_edit", quote_id=new_quote.id)

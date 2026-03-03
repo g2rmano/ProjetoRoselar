@@ -24,46 +24,6 @@ from .models import (
 )
 
 
-# ---------------------------------------------------------------------------
-# Feriados brasileiros (fixos + móveis calculados via Páscoa)
-# ---------------------------------------------------------------------------
-
-def _easter(year: int) -> date:
-    """Calcula a data da Páscoa pelo algoritmo de Meeus/Jones/Butcher."""
-    a = year % 19
-    b, c = divmod(year, 100)
-    d, e = divmod(b, 4)
-    f = (b + 8) // 25
-    g = (b - f + 1) // 3
-    h = (19 * a + b - d - g + 15) % 30
-    i, k = divmod(c, 4)
-    l = (32 + 2 * e + 2 * i - h - k) % 7
-    m = (a + 11 * h + 22 * l) // 451
-    month = (h + l - 7 * m + 114) // 31
-    day = ((h + l - 7 * m + 114) % 31) + 1
-    return date(year, month, day)
-
-
-def get_holidays(year: int) -> dict[date, str]:
-    """Retorna dict {date: nome} dos feriados nacionais brasileiros."""
-    easter = _easter(year)
-    holidays = {
-        date(year, 1, 1): "Confraternização Universal",
-        easter - timedelta(days=47): "Carnaval",
-        easter - timedelta(days=46): "Carnaval",
-        easter - timedelta(days=2): "Sexta-feira Santa",
-        easter: "Páscoa",
-        date(year, 4, 21): "Tiradentes",
-        date(year, 5, 1): "Dia do Trabalho",
-        easter + timedelta(days=60): "Corpus Christi",
-        date(year, 9, 7): "Independência do Brasil",
-        date(year, 10, 12): "Nossa Sra. Aparecida",
-        date(year, 11, 2): "Finados",
-        date(year, 11, 15): "Proclamação da República",
-        date(year, 12, 25): "Natal",
-    }
-    return holidays
-
 
 def _is_admin(user: User) -> bool:
     """Verifica se o usuário é admin ou dono (pode ver todos os calendários)."""
@@ -133,19 +93,13 @@ def calendar_view(request: HttpRequest) -> HttpResponse:
         day = event.event_date.day
         events_by_day.setdefault(day, []).append(event)
 
-    # Feriados do mês
-    holidays = get_holidays(year)
-    holidays_this_month = {
-        d.day: name for d, name in holidays.items() if d.month == month
-    }
-
     # Construir semanas com dados
     weeks = []
     for week in month_days:
         week_data = []
         for day in week:
             if day == 0:
-                week_data.append({"day": 0, "events": [], "is_today": False, "holiday": ""})
+                week_data.append({"day": 0, "events": [], "is_today": False})
             else:
                 current = date(year, month, day)
                 day_events = events_by_day.get(day, [])
@@ -154,7 +108,6 @@ def calendar_view(request: HttpRequest) -> HttpResponse:
                     "events": day_events,
                     "is_today": current == today,
                     "is_past": current < today,
-                    "holiday": holidays_this_month.get(day, ""),
                 })
         weeks.append(week_data)
 
@@ -361,6 +314,7 @@ def create_event(request: HttpRequest) -> HttpResponse:
                 "error": "Título e data são obrigatórios.",
                 "event_types": EventType.choices,
                 "is_admin": _is_admin(request.user),
+                "selected_reminders": request.POST.getlist("reminders"),
             })
 
         try:
@@ -370,6 +324,7 @@ def create_event(request: HttpRequest) -> HttpResponse:
                 "error": "Data inválida.",
                 "event_types": EventType.choices,
                 "is_admin": _is_admin(request.user),
+                "selected_reminders": request.POST.getlist("reminders"),
             })
 
         event = CalendarEvent.objects.create(
@@ -380,10 +335,32 @@ def create_event(request: HttpRequest) -> HttpResponse:
             assigned_to=request.user,
         )
 
-        # Criar lembretes automáticos: 3 dias antes, 1 dia antes, no dia
-        for days_before, msg in [(3, "em 3 dias"), (1, "amanhã"), (0, "HOJE")]:
+        # Criar lembretes escolhidos pelo vendedor
+        reminder_days = request.POST.getlist("reminders")  # ['7','3','1','0', etc.]
+        # Lembrete personalizado
+        if request.POST.get("reminder_custom_check"):
+            custom_days = request.POST.get("reminder_custom_days", "")
+            if custom_days.isdigit() and int(custom_days) > 0:
+                reminder_days.append(custom_days)
+
+        # Se nenhum lembrete selecionado, usar padrão (3, 1, 0)
+        if not reminder_days:
+            reminder_days = ["3", "1", "0"]
+
+        # Mapping for human-readable messages
+        _msg_map = {
+            0: "HOJE", 1: "amanhã", 3: "em 3 dias", 7: "em 7 dias",
+            14: "em 14 dias", 30: "em 30 dias",
+        }
+
+        for d in reminder_days:
+            try:
+                days_before = int(d)
+            except (ValueError, TypeError):
+                continue
             remind_date = event_date - timedelta(days=days_before)
             if remind_date >= timezone.localdate():
+                msg = _msg_map.get(days_before, f"em {days_before} dias")
                 Reminder.objects.create(
                     event=event,
                     remind_date=remind_date,
@@ -395,6 +372,7 @@ def create_event(request: HttpRequest) -> HttpResponse:
     context = {
         "event_types": EventType.choices,
         "is_admin": _is_admin(request.user),
+        "selected_reminders": [],
     }
     return render(request, "calendar_app/create_event.html", context)
 
@@ -567,10 +545,20 @@ def api_event_create(request: HttpRequest) -> JsonResponse:
         assigned_to=request.user,
     )
 
-    # Lembretes automáticos
-    for days_before, msg in [(3, "em 3 dias"), (1, "amanhã"), (0, "HOJE")]:
+    # Lembretes: usa escolha do usuário ou padrão (3, 1, 0)
+    reminder_days = body.get("reminders", [3, 1, 0])
+    _msg_map = {
+        0: "HOJE", 1: "amanhã", 3: "em 3 dias", 7: "em 7 dias",
+        14: "em 14 dias", 30: "em 30 dias",
+    }
+    for d in reminder_days:
+        try:
+            days_before = int(d)
+        except (ValueError, TypeError):
+            continue
         remind_date = event_date - timedelta(days=days_before)
         if remind_date >= timezone.localdate():
+            msg = _msg_map.get(days_before, f"em {days_before} dias")
             Reminder.objects.create(
                 event=event,
                 remind_date=remind_date,
