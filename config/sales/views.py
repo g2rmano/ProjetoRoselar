@@ -26,10 +26,12 @@ from .forms import QuoteForm, QuoteItemFormSet
 from .models import (
     Quote,
     QuoteStatus,
+    QuoteItem,
     QuoteItemImage,
     Order,
     OrderItem,
     FreightResponsible,
+    ProposalConfig,
 )
 from calendar_app.models import (
     create_quote_followup_events,
@@ -533,139 +535,419 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
 
 @login_required
 def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
-    """Generate client-facing PDF for quote."""
+    """
+    Client proposal PDF – 3-page Roselar commercial proposal format:
+
+    Page 1 – Cover   (full-bleed background image + "Proposta COMERCIAL")
+    Page 2 – Sobre Nós (full-bleed background image + company manifesto)
+    Page 3+ – Items  (cream background, header, items with product photos,
+                      Proposta Especial footer on last items page)
+
+    Background images are uploaded via Admin → Configuração da Proposta.
+    Product images per item come from QuoteItemImage records.
+    """
+    from reportlab.pdfgen import canvas as pdf_canvas
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
     quote = get_object_or_404(
-        Quote.objects.select_related("customer", "seller").prefetch_related("items"),
-        id=quote_id
+        Quote.objects.select_related("customer", "seller")
+                     .prefetch_related("items", "items__images"),
+        id=quote_id,
     )
-    
-    # Create PDF in memory
+
+    config = ProposalConfig.get_config()
+
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm,
-                           topMargin=2*cm, bottomMargin=2*cm)
-    
-    # Container for PDF elements
-    elements = []
-    
-    # Styles
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=18,
-        textColor=colors.HexColor('#0A2640'),
-        spaceAfter=12,
-        alignment=TA_CENTER
-    )
-    
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=14,
-        textColor=colors.HexColor('#0A2640'),
-        spaceAfter=10,
-        spaceBefore=10
-    )
-    
-    normal_style = ParagraphStyle(
-        'CustomNormal',
-        parent=styles['Normal'],
-        fontSize=10,
-        leading=14,
-        alignment=TA_LEFT
-    )
-    
-    # Title
-    elements.append(Paragraph("ROSELAR MÓVEIS", title_style))
-    elements.append(Paragraph(f"Orçamento #{quote.number}", heading_style))
-    elements.append(Spacer(1, 0.5*cm))
-    
-    # Introduction
-    intro_text = f"""
-    Prezado(a) <b>{quote.customer.name}</b>,<br/><br/>
-    A Roselar Móveis busca desde 1998 um comprometimento com qualidade e confiança. 
-    Somos especializados em oferecer móveis sob medida que atendem tanto às necessidades 
-    de empresas quanto aos desejos de nossos clientes finais, sempre prezando pela 
-    durabilidade, funcionalidade e design.<br/><br/>
-    Sabemos o quanto é importante encontrar o equilíbrio perfeito entre estilo e praticidade, 
-    e estamos aqui para proporcionar isso a você.<br/><br/>
-    Com base no seu pedido, seguem os detalhes dos produtos selecionados:
-    """
-    elements.append(Paragraph(intro_text, normal_style))
-    elements.append(Spacer(1, 0.5*cm))
-    
-    # Items heading
-    elements.append(Paragraph("<b>Itens Orçados:</b>", heading_style))
-    elements.append(Spacer(1, 0.3*cm))
-    
-    # Items list
-    for idx, item in enumerate(quote.items.all(), 1):
-        item_text = f"""
-        <b>Produto {idx}: {item.product_name}</b><br/>
-        {item.description if item.description else ''}<br/>
-        <b>Preço:</b> R$ {item.unit_value:,.2f} x {item.quantity} unidade(s) = 
-        R$ {(item.unit_value * item.quantity):,.2f}
-        """
-        elements.append(Paragraph(item_text, normal_style))
-        elements.append(Spacer(1, 0.3*cm))
-    
-    elements.append(Spacer(1, 0.3*cm))
-    
-    # Calculate totals
-    subtotal = sum(item.unit_value * item.quantity for item in quote.items.all())
-    discount_amount = subtotal * (quote.discount_percent / 100) if quote.discount_percent else Decimal('0.00')
-    total_after_discount = subtotal - discount_amount
-    total_with_freight = total_after_discount + quote.freight_value
-    
-    # Payment conditions
-    elements.append(Paragraph("<b>Condições de Pagamento:</b>", heading_style))
-    payment_text = quote.get_payment_description()
-    if not payment_text or payment_text == "Não definido":
-        payment_text = "A combinar"
-    elements.append(Paragraph(payment_text, normal_style))
-    elements.append(Spacer(1, 0.3*cm))
-    
-    # Freight info
-    elements.append(Paragraph("<b>Tipo do Frete:</b>", heading_style))
-    freight_type = quote.get_freight_responsible_display()
-    elements.append(Paragraph(freight_type, normal_style))
-    elements.append(Spacer(1, 0.3*cm))
-    
-    elements.append(Paragraph("<b>Valor do Frete:</b>", heading_style))
-    elements.append(Paragraph(f"R$ {quote.freight_value:,.2f}", normal_style))
-    elements.append(Spacer(1, 0.3*cm))
-    
-    # Totals
-    if discount_amount > 0:
-        elements.append(Paragraph(f"<b>Subtotal:</b> R$ {subtotal:,.2f}", normal_style))
-        elements.append(Paragraph(f"<b>Desconto ({quote.discount_percent}%):</b> -R$ {discount_amount:,.2f}", normal_style))
-        elements.append(Spacer(1, 0.2*cm))
-    
-    elements.append(Paragraph(f"<b>Total:</b> R$ {total_with_freight:,.2f}", heading_style))
-    elements.append(Spacer(1, 0.5*cm))
-    
-    # Closing text
-    closing_text = """
-    Na Roselar Móveis, trabalhamos com valores a prazo, oferecendo condições flexíveis 
-    para que você possa realizar a compra da maneira mais conveniente. Para garantir que 
-    você tenha uma experiência completa, sugerimos que nos faça uma visita. Estamos sempre 
-    dispostos a negociar e oferecer a melhor forma de atendimento, para que sua compra seja 
-    satisfatória do início ao fim.
-    """
-    elements.append(Paragraph(closing_text, normal_style))
-    
-    # Build PDF
-    doc.build(elements)
-    
-    # Get PDF from buffer
+    page_w, page_h = A4   # 595.28 × 841.89 pt
+    c = pdf_canvas.Canvas(buffer, pagesize=A4)
+
+    # ── colour palette ───────────────────────────────────────────
+    WHITE = colors.white
+    GOLD  = colors.HexColor('#C9A84C')
+    NAVY  = colors.HexColor('#0A2640')
+    LINEN = colors.HexColor('#FAF7F2')
+    GRAY  = colors.HexColor('#888888')
+    LGRAY = colors.HexColor('#DDDDDD')
+
+    # ── helper utilities ─────────────────────────────────────────
+    def _sw(text, font, size):
+        return stringWidth(text, font, size)
+
+    def _spaced_w(text, font, size, cs):
+        return _sw(text, font, size) + cs * max(0, len(text) - 1)
+
+    def _draw_spaced(text, x, y, font, size, cs=2.0):
+        """Draw text with manual letter-spacing (ReportLab Canvas has no setCharSpace)."""
+        c.setFont(font, size)
+        cur_x = x
+        for ch in text:
+            c.drawString(cur_x, y, ch)
+            cur_x += _sw(ch, font, size) + cs
+
+    def _draw_spaced_centered(text, cx, y, font, size, cs=2.0):
+        tw = _spaced_w(text, font, size, cs)
+        _draw_spaced(text, cx - tw / 2, y, font, size, cs)
+
+    def _draw_bg(field, fallback='#1a0f07'):
+        drawn = False
+        if field:
+            try:
+                c.drawImage(ImageReader(field.path), 0, 0,
+                            width=page_w, height=page_h,
+                            preserveAspectRatio=False, mask='auto')
+                drawn = True
+            except Exception:
+                pass
+        if not drawn:
+            c.setFillColor(colors.HexColor(fallback))
+            c.rect(0, 0, page_w, page_h, fill=1, stroke=0)
+
+    def _wrap(text, font, size, max_w):
+        """Break text into lines that fit max_w."""
+        words = text.split()
+        lines, cur, cw_acc = [], [], 0
+        for word in words:
+            ww = _sw(word + ' ', font, size)
+            if cur and cw_acc + ww > max_w:
+                lines.append(' '.join(cur))
+                cur, cw_acc = [word], _sw(word + ' ', font, size)
+            else:
+                cur.append(word)
+                cw_acc += ww
+        if cur:
+            lines.append(' '.join(cur))
+        return lines
+
+    def _fmt_brl(value):
+        """Format Decimal/float as Brazilian currency: R$ 1.384,00"""
+        s = f"{float(value):,.2f}"
+        s = s.replace(',', '\x00').replace('.', ',').replace('\x00', '.')
+        return f"R$ {s}"
+
+    _months_pt = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+    ]
+    qd = quote.quote_date
+    date_str = f"{qd.day} de {_months_pt[qd.month - 1]} de {qd.year}"
+
+    # ════════════════════════════════════════════════════════════
+    # PAGE 1 – COVER
+    # ════════════════════════════════════════════════════════════
+    _draw_bg(config.cover_image)
+
+    c.setFillColor(WHITE)
+
+    # "Proposta" — italic, letter-spaced
+    p1_font, p1_size, p1_cs = "Helvetica-Oblique", 24, 6
+    p1_y = page_h * 0.53
+    _draw_spaced_centered("Proposta", page_w / 2, p1_y, p1_font, p1_size, p1_cs)
+
+    # "COMERCIAL" — bold, larger
+    p2_font, p2_size, p2_cs = "Helvetica-Bold", 58, 10
+    p2_y = p1_y - p2_size - 10
+    _draw_spaced_centered("COMERCIAL", page_w / 2, p2_y, p2_font, p2_size, p2_cs)
+
+    c.showPage()
+
+    # ════════════════════════════════════════════════════════════
+    # PAGE 2 – SOBRE NÓS
+    # ════════════════════════════════════════════════════════════
+    _draw_bg(config.about_image)
+
+    manifesto = [
+        "A MADEIRA SEMPRE FOI MAIS DO QUE",
+        "MATÉRIA-PRIMA.",
+        "ELA CARREGA TEMPO, ORIGEM E",
+        "TRANSFORMAÇÃO.",
+        "NA ROSELAR, CADA PEÇA É ESCOLHIDA",
+        "COM ESSE ENTENDIMENTO.",
+        "",
+        "TRABALHAMOS COM MARCAS QUE UNEM",
+        "TECNOLOGIA, MADEIRAS DE LEI DE ALTA",
+        "QUALIDADE E MATÉRIAS-PRIMAS",
+        "PROVENIENTES DE MANEJO",
+        "RESPONSÁVEL E REFLORESTAMENTO.",
+        "",
+        "SELECIONAMOS MÓVEIS QUE",
+        "EQUILIBRAM DESIGN CONTEMPORÂNEO,",
+        "ESTRUTURA E ACABAMENTO — PEÇAS",
+        "PENSADAS PARA INTEGRAR O AMBIENTE",
+        "COM NATURALIDADE.",
+        "",
+        "ACREDITAMOS QUE BONS ESPAÇOS",
+        "NASCEM DE ESCOLHAS BEM FEITAS.",
+        "E QUANDO A ESCOLHA É CERTA, ELA",
+        "PERMANECE.",
+        "",
+        "MÓVEIS FEITOS PARA ACOMPANHAR",
+        "DÉCADAS, ATRAVESSANDO HISTÓRIAS E",
+        "GERAÇÕES.",
+        "",
+        "DESIGN QUE ATRAVESSA GERAÇÕES.",
+    ]
+
+    c.setFillColor(WHITE)
+    y_m = page_h - 5.5 * cm
+    for line in manifesto:
+        if line:
+            _draw_spaced(line, 2.5 * cm, y_m, "Helvetica", 9.5, cs=2.0)
+        y_m -= 15.5
+
+    # "SOBRE NÓS" label — bottom-right
+    sn_text, sn_font, sn_size, sn_cs = "SOBRE NÓS", "Helvetica-Bold", 12, 4
+    sn_w = _spaced_w(sn_text, sn_font, sn_size, sn_cs)
+    draw_x = page_w - sn_w - 2.5 * cm
+    _draw_spaced(sn_text, draw_x, 3.5 * cm, sn_font, sn_size, sn_cs)
+
+    c.showPage()
+
+    # ════════════════════════════════════════════════════════════
+    # PAGE 3+ – ITEMS
+    # ════════════════════════════════════════════════════════════
+    MX       = 2.2 * cm   # horizontal margin
+    MY       = 2.2 * cm   # vertical margin
+    CW       = page_w - 2 * MX
+    HEADER_H = 72          # header block height (client / seller / date)
+    ITEM_H   = 178         # each item block height
+    IMG_SZ   = 128         # product image bounding square (pt)
+    FOOTER_H = 185         # Proposta Especial section height
+
+    items = list(quote.items.prefetch_related('images').all())
+
+    def _items_page_bg():
+        c.setFillColor(LINEN)
+        c.rect(0, 0, page_w, page_h, fill=1, stroke=0)
+
+    def _draw_header():
+        """Draw client / seller / date block and gold separator."""
+        top = page_h - MY
+
+        # "Cliente" label
+        c.setFillColor(GRAY)
+        _draw_spaced("Cliente", MX, top - 14, "Helvetica", 7.5, cs=1.0)
+        # Client name
+        c.setFillColor(NAVY)
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(MX, top - 30, quote.customer.name)
+
+        # "Consultora" label (centred)
+        c.setFillColor(GRAY)
+        _draw_spaced_centered("Consultora", page_w / 2, top - 14, "Helvetica", 7.5, cs=1.0)
+        # Seller name (centred)
+        seller_label = quote.seller.get_full_name() or quote.seller.username
+        c.setFillColor(NAVY)
+        c.setFont("Helvetica-Bold", 12)
+        c.drawCentredString(page_w / 2, top - 30, seller_label)
+
+        # "Data" label (right-aligned, letter-spaced)
+        c.setFillColor(GRAY)
+        data_w = _spaced_w("Data", "Helvetica", 7.5, 1.0)
+        _draw_spaced("Data", MX + CW - data_w, top - 14, "Helvetica", 7.5, cs=1.0)
+        # Date (right-aligned)
+        c.setFillColor(NAVY)
+        c.setFont("Helvetica-Bold", 12)
+        c.drawRightString(MX + CW, top - 30, date_str)
+
+        # Gold separator line
+        sep_y = page_h - MY - HEADER_H + 10
+        c.setStrokeColor(GOLD)
+        c.setLineWidth(1.2)
+        c.line(MX, sep_y, MX + CW, sep_y)
+        return sep_y - 15   # Y where first item should start
+
+    def _img_placeholder(x, y, sz):
+        c.setFillColor(LGRAY)
+        c.rect(x, y, sz, sz, fill=1, stroke=0)
+        c.setFillColor(GRAY)
+        c.setFont("Helvetica", 7)
+        c.drawCentredString(x + sz / 2, y + sz / 2 - 4, "sem imagem")
+
+    def _draw_item(item, y_top, idx):
+        """Draw one item block starting at y_top. Returns Y after block."""
+        img_right = (idx % 2 == 0)
+
+        if img_right:
+            txt_x = MX
+            txt_w = CW - IMG_SZ - 14
+            img_x = MX + CW - IMG_SZ
+        else:
+            img_x = MX
+            txt_x = MX + IMG_SZ + 14
+            txt_w = CW - IMG_SZ - 14
+
+        # Image — vertically centred in block
+        img_y = y_top - (ITEM_H + IMG_SZ) / 2
+        first_img = item.images.first()
+        if first_img:
+            try:
+                c.drawImage(ImageReader(first_img.image.path),
+                            img_x, img_y, width=IMG_SZ, height=IMG_SZ,
+                            preserveAspectRatio=True, mask='auto')
+            except Exception:
+                _img_placeholder(img_x, img_y, IMG_SZ)
+        else:
+            _img_placeholder(img_x, img_y, IMG_SZ)
+
+        # ── text area ──────────────────────────────────────────
+        ty = y_top - 6
+
+        # Quantity (large gold number)
+        qty_str  = f"{item.quantity:02d}"
+        qty_font, qty_size = "Helvetica-Bold", 32
+        c.setFillColor(GOLD)
+        c.setFont(qty_font, qty_size)
+        c.drawString(txt_x, ty - qty_size, qty_str)
+
+        # Product name (right of quantity)
+        name_x = txt_x + _sw(qty_str, qty_font, qty_size) + 8
+        c.setFillColor(NAVY)
+        _draw_spaced(item.product_name.upper(), name_x, ty - 20,
+                     "Helvetica-Bold", 11, cs=1.5)
+
+        ty -= qty_size + 10   # move below quantity
+
+        # Description lines
+        if item.description:
+            for raw_line in item.description.split('\n'):
+                raw_line = raw_line.strip()
+                if not raw_line:
+                    continue
+                for wline in _wrap(raw_line, "Helvetica", 8.5, txt_w):
+                    c.setFillColor(GRAY)
+                    _draw_spaced(wline, txt_x, ty, "Helvetica", 8.5, cs=0.5)
+                    ty -= 12
+
+        # Condition text
+        if item.condition_text:
+            for wline in _wrap(item.condition_text.strip(), "Helvetica", 8.5, txt_w):
+                c.setFillColor(GRAY)
+                _draw_spaced(wline, txt_x, ty, "Helvetica", 8.5, cs=0.5)
+                ty -= 12
+
+        # Price label + value (near bottom of text area)
+        price_y = y_top - ITEM_H + 26
+        if item.quantity == 1:
+            price_label = "valor total"
+            price_amt   = item.unit_value * item.quantity
+        else:
+            price_label = "valor unitário"
+            price_amt   = item.unit_value
+
+        c.setFillColor(GRAY)
+        _draw_spaced(price_label, txt_x, price_y + 13, "Helvetica", 7.5, cs=1.5)
+        c.setFillColor(NAVY)
+        c.setFont("Helvetica-Bold", 13)
+        c.drawString(txt_x, price_y - 1, _fmt_brl(price_amt))
+
+        # Thin grey separator at bottom of block
+        bot_y = y_top - ITEM_H
+        c.setStrokeColor(LGRAY)
+        c.setLineWidth(0.5)
+        c.line(MX, bot_y + 3, MX + CW, bot_y + 3)
+
+        return bot_y - 5
+
+    def _draw_proposta_especial(y_top):
+        """Draw the Proposta Especial footer block."""
+        # Gold top rule
+        c.setStrokeColor(GOLD)
+        c.setLineWidth(1.5)
+        c.line(MX, y_top, MX + CW, y_top)
+
+        ty = y_top - 22
+
+        # Title
+        c.setFillColor(NAVY)
+        _draw_spaced("PROPOSTA ESPECIAL", MX, ty, "Helvetica-Bold", 13, cs=3)
+        ty -= 20
+
+        # Validity
+        c.setFillColor(GRAY)
+        c.setFont("Helvetica", 8.5)
+        c.drawString(MX, ty, "Orçamento válido por 03 dias.")
+        ty -= 13
+
+        # Freight note
+        if quote.freight_responsible == FreightResponsible.STORE:
+            c.drawString(MX, ty, "Entrega e montagem grátis pela equipe Roselar Móveis.")
+            ty -= 13
+        elif quote.freight_responsible == FreightResponsible.CUSTOMER:
+            c.drawString(MX, ty, "Frete por conta do cliente.")
+            ty -= 13
+
+        ty -= 8
+
+        # Financials
+        subtotal = quote.calculate_subtotal()
+        disc_pct = quote.discount_percent or Decimal('0')
+        disc_val = subtotal * disc_pct / Decimal('100')
+        avista   = subtotal - disc_val
+
+        # À vista line (shown when there is a discount)
+        if disc_pct > 0:
+            c.setFillColor(NAVY)
+            c.setFont("Helvetica", 9.5)
+            c.drawString(MX, ty, "Valor do investimento à vista")
+            c.setFont("Helvetica-Bold", 11)
+            c.drawRightString(MX + CW, ty, _fmt_brl(avista))
+            ty -= 18
+
+        # Installment line
+        n = quote.payment_installments or 1
+        if n > 1:
+            inst_val = subtotal / Decimal(n)
+            c.setFillColor(GRAY)
+            c.setFont("Helvetica", 8.5)
+            c.drawString(MX, ty, f"OU em {n}x sem juros de {_fmt_brl(inst_val)}")
+            ty -= 18
+
+        # Gold divider before grand total
+        ty -= 4
+        c.setStrokeColor(GOLD)
+        c.setLineWidth(0.8)
+        c.line(MX, ty, MX + CW, ty)
+        ty -= 16
+
+        # Grand total (= sum of all item lines, no discount)
+        c.setFillColor(NAVY)
+        c.setFont("Helvetica", 10)
+        c.drawString(MX, ty, "Valor do investimento:")
+        c.setFont("Helvetica-Bold", 14)
+        c.drawRightString(MX + CW, ty, _fmt_brl(subtotal))
+
+    # ── render items ─────────────────────────────────────────────
+    _items_page_bg()
+    cur_y = _draw_header()
+
+    for i, item in enumerate(items):
+        is_last = (i == len(items) - 1)
+        space_needed = ITEM_H + (FOOTER_H if is_last else 0)
+
+        if cur_y - space_needed < MY:
+            c.showPage()
+            _items_page_bg()
+            cur_y = page_h - MY - 15
+
+        cur_y = _draw_item(item, cur_y, i)
+
+    # ── Proposta Especial ─────────────────────────────────────────
+    if cur_y - FOOTER_H < MY:
+        c.showPage()
+        _items_page_bg()
+        cur_y = page_h - MY
+
+    _draw_proposta_especial(cur_y - 10)
+
+    # ── finalise ──────────────────────────────────────────────────
+    c.save()
     pdf = buffer.getvalue()
     buffer.close()
-    
-    # Create response
+
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="orcamento_{quote.number}_cliente.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="proposta_{quote.number}.pdf"'
     response.write(pdf)
-    
     return response
 
 
@@ -1005,163 +1287,202 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
 
 @login_required
 @require_http_methods(["GET", "POST"])
-def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpResponse:
-    """
-    Simulation page: discount vs seller commission tradeoff.
-
-    Business rules
-    ──────────────
-    TOTAL_MARGIN = 16 %  (shared between discount + card fee + commission)
-    commission   = clamp(1 %, 5 %, TOTAL_MARGIN − discount − card_fee)
-    max_discount = TOTAL_MARGIN − card_fee − MIN_COMMISSION
-
-    Examples (card fee = 0 %):
-        discount  0 % → commission 5 %
-        discount 15 % → commission 1 %
-
-    Examples (card fee = 5 %):
-        max_discount = 10 %
-        discount  0 % → commission 5 %
-        discount 10 % → commission 1 %
-    """
-    from core.models import SalesMarginConfig, PaymentTariff, PaymentMethodType
-    TOTAL_MARGIN, MIN_COMMISSION, MAX_COMMISSION = SalesMarginConfig.get_config()
+def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpResponse: 
+    from core.models import PaymentTariff, PaymentMethodType, ArchitectCommission
 
     quote = get_object_or_404(
         Quote.objects.select_related('customer', 'seller'), id=quote_id
     )
 
-    # Base numbers from the saved quote
     subtotal = quote.calculate_subtotal()
     freight_value = quote.freight_value or Decimal("0.00")
 
-    # ── Overrides from simulation form ─────────────────────────────
+    # ── Constants ─────────────────────────────────────────────────────────────
+    MAX_DISCOUNT_NORMAL   = Decimal("10")   # above this → penalty zone
+    MAX_DISCOUNT_ABSOLUTE = Decimal("15")   # hard ceiling
+
+    # ── Parse inputs ──────────────────────────────────────────────────────────
     if request.method == "POST":
-        sim_payment_type = request.POST.get('sim_payment_type', '') or quote.payment_type
-        sim_installments = int(request.POST.get('sim_installments', '0') or quote.payment_installments or 1)
-        sim_has_architect = request.POST.get('sim_has_architect') == '1'
+        sim_payment_type    = request.POST.get('sim_payment_type', '') or ''
+        sim_has_architect   = request.POST.get('sim_has_architect') == '1'
+        sim_discount        = Decimal(request.POST.get('discount_percent', '0') or '0')
+        try:
+            price_increase_pct = Decimal(request.POST.get('price_increase_percent', '0') or '0')
+        except Exception:
+            price_increase_pct = Decimal('0')
+        sim_installments    = max(1, int(request.POST.get('sim_installments', '1') or 1))
     else:
-        sim_payment_type = quote.payment_type or ''
-        sim_installments = quote.payment_installments or 1
-        sim_has_architect = quote.has_architect
+        sim_payment_type    = quote.payment_type or ''
+        sim_has_architect   = quote.has_architect
+        sim_discount        = quote.discount_percent or Decimal("0")
+        price_increase_pct  = Decimal('0')
+        sim_installments    = quote.payment_installments or 1
 
-    # Look up the fee for the (possibly overridden) payment method
-    payment_fee_percent = Decimal(str(PaymentTariff.get_fee(sim_payment_type, sim_installments))) if sim_payment_type else Decimal("0")
-
-    # Build options for payment type dropdown
-    payment_type_choices = list(PaymentMethodType.choices)  # [(value, label), ...]
-
-    # Build installments map for every payment type so the JS can populate a select
-    max_installments_map = {
-        'CASH': 1, 'PIX': 1, 'CREDIT_CARD': 12, 'CHEQUE': 1, 'BOLETO': 6,
-    }
-    tariffs_by_type = {}
-    for pt_value, pt_label in payment_type_choices:
-        max_inst = max_installments_map.get(pt_value, 1)
-        existing = {t.installments: float(t.fee_percent) for t in PaymentTariff.objects.filter(payment_type=pt_value)}
-        options = []
-        for i in range(1, max_inst + 1):
-            fee = existing.get(i, 0)
-            if i == 1:
-                if fee:
-                    lbl = f"À vista (taxa cartão {fee}%)" if pt_value == 'CREDIT_CARD' else f"À vista ({fee}%)"
-                else:
-                    lbl = "À vista"
-            else:
-                if fee:
-                    lbl = f"{i}x (taxa cartão {fee}%)" if pt_value == 'CREDIT_CARD' else f"{i}x ({fee}%)"
-                else:
-                    lbl = f"{i}x"
-            options.append({'installments': i, 'fee': fee, 'label': lbl})
-        tariffs_by_type[pt_value] = options
-
-    # Max discount the seller can give (card fee eats into the margin)
-    max_discount = max(Decimal("0"), TOTAL_MARGIN - payment_fee_percent - MIN_COMMISSION)
-
-    # Get simulated discount from POST or fall back to quote value
-    if request.method == "POST":
-        simulated_discount = Decimal(request.POST.get('discount_percent', '0'))
+    # Continuous threshold — accepts any float, no whitelist
+    price_increase_pct = max(Decimal('0'), min(price_increase_pct, Decimal('10')))
+    if price_increase_pct >= 10:
+        max_installments_unlocked = 18
+    elif price_increase_pct >= 5:
+        max_installments_unlocked = 14
+    elif price_increase_pct >= 3:
+        max_installments_unlocked = 10
     else:
-        simulated_discount = quote.discount_percent or Decimal("0")
+        max_installments_unlocked = 7
 
-    # Clamp discount to allowed range
-    simulated_discount = max(Decimal("0"), min(simulated_discount, max_discount))
+    # Clamp discount and installments to their allowed ranges
+    sim_discount     = max(Decimal("0"), min(sim_discount, MAX_DISCOUNT_ABSOLUTE))
+    sim_installments = min(sim_installments, max_installments_unlocked)
+    sim_installments = max(1, sim_installments)
 
-    # ── Save conditions to quote if requested ──────────────────────
+    # ── Commission from discount ──────────────────────────────────────────────
+    if sim_discount <= MAX_DISCOUNT_NORMAL:
+        # Linear: 5 % at 0 %, 3 % at 10 % → step = −0.2 % per 1 %
+        comm_discount    = max(Decimal("3"), Decimal("5") - sim_discount / Decimal("5"))
+        discount_penalty = False
+    else:
+        # Dinheiro/PIX: metade da penalidade
+        comm_discount    = Decimal("2.5") if sim_payment_type in ("CASH", "PIX") else Decimal("2")
+        discount_penalty = True
+
+    # ── Commission from installments ──────────────────────────────────────────
+    # 1x=5%, 2x=4%, 3-7x linear to 3%, 8x+=2% (penalty, unlocked by price increase)
+    if sim_installments <= 1:
+        comm_installments   = Decimal("5")
+        installment_penalty = False
+    elif sim_installments == 2:
+        comm_installments   = Decimal("4")
+        installment_penalty = False
+    elif sim_installments <= 7:
+        comm_installments   = max(
+            Decimal("3"),
+            Decimal("4") - Decimal("0.2") * (sim_installments - 2),
+        )
+        installment_penalty = False
+    else:
+        # 8x+: only reachable with price increase; dinheiro/PIX = metade da penalidade
+        comm_installments   = Decimal("2.5") if sim_payment_type in ("CASH", "PIX") else Decimal("2")
+        installment_penalty = True
+
+    # ── Final commission = lower of the two ──────────────────────────────────
+    seller_commission_percent = min(comm_discount, comm_installments)
+    is_penalty                = discount_penalty or installment_penalty
+
+    # ── Payment fee ───────────────────────────────────────────────────────────
+    payment_fee_percent = (
+        Decimal(str(PaymentTariff.get_fee(sim_payment_type, sim_installments)))
+        if sim_payment_type else Decimal("0")
+    )
+
+    # ── Price-adjusted subtotal ───────────────────────────────────────────────
+    price_multiplier  = (Decimal("100") + price_increase_pct) / Decimal("100")
+    adj_subtotal      = subtotal * price_multiplier
+    total_before_disc = adj_subtotal + freight_value
+    discount_value    = total_before_disc * sim_discount / Decimal("100")
+    total_after_disc  = total_before_disc - discount_value
+    payment_fee_value = total_after_disc * payment_fee_percent / Decimal("100")
+    final_total       = total_after_disc + payment_fee_value
+
+    # ── Architect commission ──────────────────────────────────────────────────
+    architect_percent          = Decimal("0")
+    architect_commission_value = Decimal("0")
+    if sim_has_architect:
+        architect_percent          = ArchitectCommission.get_commission()
+        architect_commission_value = adj_subtotal * architect_percent / Decimal("100")
+
+    # ── Seller commission ─────────────────────────────────────────────────────
+    seller_commission_base  = total_after_disc - architect_commission_value
+    seller_commission_value = seller_commission_base * seller_commission_percent / Decimal("100")
+
+    # ── Save action ───────────────────────────────────────────────────────────
     if request.method == "POST" and request.POST.get('action') == 'save_conditions':
         with transaction.atomic():
-            quote.discount_percent = simulated_discount
-            quote.payment_type = sim_payment_type
+            quote.discount_percent     = sim_discount
+            quote.payment_type         = sim_payment_type
             quote.payment_installments = sim_installments
-            quote.payment_fee_percent = payment_fee_percent
-            quote.has_architect = sim_has_architect
+            quote.payment_fee_percent  = payment_fee_percent
+            quote.has_architect        = sim_has_architect
             quote.save()
         messages.success(request, f"Condições do orçamento {quote.number} salvas com sucesso.")
         return redirect("sales:quote_detail", quote_id=quote.id)
 
-    # Commission = what remains from the margin after discount and card fee
-    seller_commission_percent = max(
-        MIN_COMMISSION,
-        min(MAX_COMMISSION, TOTAL_MARGIN - simulated_discount - payment_fee_percent),
-    )
+    # Non-AJAX POST — redirect to GET to prevent browser resubmission dialog
+    if request.method == "POST" and not request.POST.get('_ajax'):
+        return redirect(request.path)
 
-    # Money calculations
-    total_before_discount = subtotal + freight_value
-    discount_value = total_before_discount * simulated_discount / Decimal("100")
-    total_after_discount = total_before_discount - discount_value
+    # ── Build payment selects (tariffs up to 18 x) ────────────────────────────
+    payment_type_choices = list(PaymentMethodType.choices)
+    max_inst_map = {
+        'CASH': 1, 'PIX': 1, 'CREDIT_CARD': 18, 'CHEQUE': 1, 'BOLETO': 18,
+    }
+    tariffs_by_type: dict[str, list] = {}
+    for pt_val, _pt_lbl in payment_type_choices:
+        max_inst = max_inst_map.get(pt_val, 1)
+        existing = {
+            t.installments: float(t.fee_percent)
+            for t in PaymentTariff.objects.filter(payment_type=pt_val)
+        }
+        options = []
+        for i in range(1, max_inst + 1):
+            fee = existing.get(i, 0)
+            lbl = ("À vista" if i == 1 else f"{i}x") + (f" (+{fee}%)" if fee else "")
+            options.append({'installments': i, 'fee': fee, 'label': lbl})
+        tariffs_by_type[pt_val] = options
 
-    payment_fee_value = total_after_discount * payment_fee_percent / Decimal("100")
-    final_total = total_after_discount + payment_fee_value
-
-    # Architect commission (on subtotal — no freight, no taxes)
-    architect_commission_value = Decimal("0")
-    architect_percent = Decimal("0")
-    if sim_has_architect:
-        from core.models import ArchitectCommission
-        architect_percent = ArchitectCommission.get_commission()
-        architect_commission_value = subtotal * architect_percent / Decimal("100")
-
-    # Seller commission base = total after discount MINUS architect commission
-    seller_commission_base = total_after_discount - architect_commission_value
-    seller_commission_value = seller_commission_base * seller_commission_percent / Decimal("100")
-
-    # Build simulated payment description
+    # Payment description
     if sim_payment_type:
-        sim_payment_label = dict(PaymentMethodType.choices).get(sim_payment_type, sim_payment_type)
-        if sim_installments == 1:
-            sim_payment_description = f"{sim_payment_label} - À vista"
-        else:
-            sim_payment_description = f"{sim_payment_label} - {sim_installments}x"
+        pt_label = dict(PaymentMethodType.choices).get(sim_payment_type, sim_payment_type)
+        sim_payment_description = (
+            f"{pt_label} - À vista" if sim_installments == 1
+            else f"{pt_label} - {sim_installments}x"
+        )
     else:
         sim_payment_description = "Não definido"
 
     context = {
-        'quote': quote,
-        'subtotal': subtotal,
-        'freight_value': freight_value,
-        'total_before_discount': total_before_discount,
-        'discount_percent': simulated_discount,
-        'discount_value': discount_value,
-        'total_after_discount': total_after_discount,
-        'payment_fee_percent': payment_fee_percent,
-        'payment_fee_value': payment_fee_value,
-        'final_total': final_total,
-        'max_discount': max_discount,
+        'quote':                    quote,
+        # Subtotals
+        'subtotal':                 subtotal,
+        'adj_subtotal':             adj_subtotal,
+        'freight_value':            freight_value,
+        'price_increase_pct':       price_increase_pct,
+        'total_before_discount':    total_before_disc,
+        'discount_percent':         sim_discount,
+        'discount_value':           discount_value,
+        'total_after_discount':     total_after_disc,
+        'payment_fee_percent':      payment_fee_percent,
+        'payment_fee_value':        payment_fee_value,
+        'final_total':              final_total,
+        # Commission
         'seller_commission_percent': seller_commission_percent,
-        'seller_commission_value': seller_commission_value,
-        'seller_commission_base': seller_commission_base,
-        'architect_percent': architect_percent,
+        'seller_commission_value':   seller_commission_value,
+        'seller_commission_base':    seller_commission_base,
+        'comm_discount':             comm_discount,
+        'comm_installments':         comm_installments,
+        'is_penalty':                is_penalty,
+        'discount_penalty':          discount_penalty,
+        'installment_penalty':       installment_penalty,
+        # Architect
+        'architect_percent':          architect_percent,
         'architect_commission_value': architect_commission_value,
-        'total_margin': TOTAL_MARGIN,
-        'min_commission': MIN_COMMISSION,
-        'max_commission': MAX_COMMISSION,
-        # Payment selector
-        'payment_type_choices': payment_type_choices,
-        'sim_payment_type': sim_payment_type,
-        'sim_installments': sim_installments,
-        'tariffs_by_type_json': json.dumps(tariffs_by_type),
+        # Limits
+        'max_discount_normal':       MAX_DISCOUNT_NORMAL,
+        'max_discount_absolute':     MAX_DISCOUNT_ABSOLUTE,
+        'max_installments_unlocked': max_installments_unlocked,
+        # Payment
+        'payment_type_choices':    payment_type_choices,
+        'sim_payment_type':        sim_payment_type,
+        'sim_installments':        sim_installments,
+        'tariffs_by_type_json':    json.dumps(tariffs_by_type),
         'sim_payment_description': sim_payment_description,
-        'sim_has_architect': sim_has_architect,
+        'sim_has_architect':       sim_has_architect,
+        'is_cash_pix':             sim_payment_type in ('CASH', 'PIX'),
+        # Price increase options
+        'price_increase_options': [
+            {'value': '0',  'max_inst': 7,  'label': 'Sem aumento',   'desc': 'até 7x'},
+            {'value': '3',  'max_inst': 10, 'label': '+3% no valor',  'desc': 'até 10x'},
+            {'value': '5',  'max_inst': 14, 'label': '+5% no valor',  'desc': 'até 14x'},
+            {'value': '10', 'max_inst': 18, 'label': '+10% no valor', 'desc': 'até 18x'},
+        ],
     }
 
     return render(request, 'sales/quote_simulation.html', context)

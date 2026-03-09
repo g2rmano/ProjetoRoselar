@@ -385,3 +385,74 @@ class OrderItem(models.Model):
     def line_total(self) -> Decimal:
         """Calcula o total da linha."""
         return (self.purchase_unit_cost or Decimal("0.00")) * Decimal(self.quantity or 0)
+
+
+# ── Proposal PDF configuration (singleton) ────────────────────────────────────
+class ProposalConfig(models.Model):
+    """
+    Singleton – upload the decorative background images used in client proposal PDFs.
+    Page 1 = cover, Page 2 = Sobre Nós.
+    Only one record exists (pk=1); use ProposalConfig.get_config() to access it.
+    """
+    cover_image = models.ImageField(
+        upload_to="proposal/cover/",
+        null=True,
+        blank=True,
+        verbose_name="Imagem de Capa (página 1)",
+        help_text="Fundo da capa. Tamanho recomendado: A4 portrait (2480×3508 px).",
+    )
+    about_image = models.ImageField(
+        upload_to="proposal/about/",
+        null=True,
+        blank=True,
+        verbose_name="Imagem 'Sobre Nós' (página 2)",
+        help_text="Fundo da página Sobre Nós. Tamanho recomendado: A4 portrait.",
+    )
+
+    class Meta:
+        verbose_name = "Configuração da Proposta"
+        verbose_name_plural = "Configuração da Proposta"
+
+    def __str__(self) -> str:
+        return "Configuração da Proposta"
+
+    @classmethod
+    def get_config(cls) -> "ProposalConfig":
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+# ── Signals to keep Quote.total_value_snapshot up to date ─────────────────────
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+
+
+def _refresh_quote_snapshot(quote_id: int) -> None:
+    """Recalculates and persists total_value_snapshot for a quote without triggering signals."""
+    try:
+        quote = Quote.objects.prefetch_related('items').get(pk=quote_id)
+        Quote.objects.filter(pk=quote_id).update(
+            total_value_snapshot=quote.calculate_final_total()
+        )
+    except Quote.DoesNotExist:
+        pass
+
+
+@receiver(post_save, sender=QuoteItem)
+def _on_quote_item_save(sender, instance, **kwargs):
+    _refresh_quote_snapshot(instance.quote_id)
+
+
+@receiver(post_delete, sender=QuoteItem)
+def _on_quote_item_delete(sender, instance, **kwargs):
+    _refresh_quote_snapshot(instance.quote_id)
+
+
+@receiver(post_save, sender=Quote)
+def _on_quote_save(sender, instance, update_fields=None, **kwargs):
+    # Skip if this save was triggered by _refresh_quote_snapshot itself
+    if update_fields is not None and set(update_fields) == {'total_value_snapshot'}:
+        return
+    # Only recalculate when financially relevant fields may have changed
+    # (runs on every save except snapshot-only saves to stay safe)
+    _refresh_quote_snapshot(instance.pk)

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Quote, QuoteItem, Order, OrderItem
+from .models import Quote, QuoteItem, Order, OrderItem, ProposalConfig
 
 
 # ── Permission helpers ────────────────────────────────────────────────
@@ -87,3 +87,19 @@ class OrderItemAdmin(AdminOnly, admin.ModelAdmin):
     list_display = ("id", "order", "product_name", "quantity", "purchase_unit_cost")
     search_fields = ("product_name", "order__number")
     readonly_fields = ("quote_item",)
+
+
+@admin.register(ProposalConfig)
+class ProposalConfigAdmin(AdminOnly, admin.ModelAdmin):
+    """Singleton admin: one record holds the cover and about-page background images."""
+    def has_add_permission(self, request):
+        # Allow creation only if no record exists yet
+        return not ProposalConfig.objects.exists()
+
+    fieldsets = (
+        ("Imagens de Fundo da Proposta", {
+            "description": "Faça upload das imagens decorativas usadas no PDF da proposta ao cliente. "
+                           "Tamanho recomendado: A4 portrait (2480 × 3508 px).",
+            "fields": ("cover_image", "about_image"),
+        }),
+    )
