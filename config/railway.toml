@@ -1,8 +1,5 @@
-[build]
-builder = "nixpacks"
-
 [deploy]
-startCommand = "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
+startCommand = "bash start.sh"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
