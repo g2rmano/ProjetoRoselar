@@ -1,26 +1,6 @@
 from django.contrib import admin
 from .models import CalendarEvent, EventAttachment, EventTag, Reminder
-
-
-def _is_admin(user):
-    """True para ADMIN, OWNER ou superusuário Django."""
-    return user.is_superuser or getattr(user, "role", None) in ("ADMIN", "OWNER")
-
-
-class AdminOnly:
-    """Somente admins/donos podem visualizar ou modificar este modelo."""
-    def has_view_permission(self, request, obj=None):   return _is_admin(request.user)
-    def has_add_permission(self, request):              return _is_admin(request.user)
-    def has_change_permission(self, request, obj=None): return _is_admin(request.user)
-    def has_delete_permission(self, request, obj=None): return _is_admin(request.user)
-
-
-class SellerAccess:
-    """Vendedores podem visualizar/adicionar/editar; somente admins podem excluir."""
-    def has_view_permission(self, request, obj=None):   return True
-    def has_add_permission(self, request):              return True
-    def has_change_permission(self, request, obj=None): return True
-    def has_delete_permission(self, request, obj=None): return _is_admin(request.user)
+from core.admin_helpers import AdminOnly, SellerAccess
 
 
 class ReminderInline(admin.TabularInline):

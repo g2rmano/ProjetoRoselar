@@ -1,25 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from .models import User
+from core.admin_helpers import AdminOnly
 
 # ── Título do painel admin ───────────────────────────────────────────────
 admin.site.site_header = "Roselar — Administração"
 admin.site.site_title = "Roselar Admin"
 admin.site.index_title = "Painel de Controle"
-
-
-# ── Permission helpers ────────────────────────────────────────────────
-def _is_admin(user):
-    """True for ADMIN, OWNER or Django superuser."""
-    return user.is_superuser or getattr(user, "role", None) in ("ADMIN", "OWNER")
-
-
-class AdminOnly:
-    """Restrict this model to admins/owners only."""
-    def has_view_permission(self, request, obj=None):   return _is_admin(request.user)
-    def has_add_permission(self, request):              return _is_admin(request.user)
-    def has_change_permission(self, request, obj=None): return _is_admin(request.user)
-    def has_delete_permission(self, request, obj=None): return _is_admin(request.user)
 
 
 @admin.register(User)

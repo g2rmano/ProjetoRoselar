@@ -8,26 +8,7 @@ from .models import (
 )
 
 
-# ── Permission helpers ────────────────────────────────────────────────
-def _is_admin(user):
-    """True for ADMIN, OWNER or Django superuser."""
-    return user.is_superuser or getattr(user, "role", None) in ("ADMIN", "OWNER")
-
-
-class AdminOnly:
-    """Somente admins/donos podem visualizar ou modificar este modelo."""
-    def has_view_permission(self, request, obj=None):   return _is_admin(request.user)
-    def has_add_permission(self, request):              return _is_admin(request.user)
-    def has_change_permission(self, request, obj=None): return _is_admin(request.user)
-    def has_delete_permission(self, request, obj=None): return _is_admin(request.user)
-
-
-class SellerAccess:
-    """Vendedores podem visualizar/adicionar/editar; somente admins podem excluir."""
-    def has_view_permission(self, request, obj=None):   return True
-    def has_add_permission(self, request):              return True
-    def has_change_permission(self, request, obj=None): return True
-    def has_delete_permission(self, request, obj=None): return _is_admin(request.user)
+from .admin_helpers import _is_admin, AdminOnly, SellerAccess
 
 
 @admin.register(Customer)
@@ -35,11 +16,6 @@ class CustomerAdmin(SellerAccess, admin.ModelAdmin):
     list_display = ("id", "name", "phone", "email", "created_at")
     search_fields = ("name", "phone", "email", "cpf", "cnpj")
     list_filter = ("created_at",)
-    verbose_name = "Cliente"
-
-    class Meta:
-        verbose_name = "Cliente"
-        verbose_name_plural = "Clientes"
 
 
 class SupplierPaymentOptionInline(admin.TabularInline):
@@ -155,9 +131,6 @@ class NotificationAdmin(AdminOnly, admin.ModelAdmin):
     search_fields = ("title", "message", "recipient__username")
     readonly_fields = ("created_at",)
     raw_id_fields = ("recipient",)
-
-    def get_fields_for_display(self, obj):
-        return "Notificação"
 
 
 # ── Log de Auditoria ─────────────────────────────────────────────────
