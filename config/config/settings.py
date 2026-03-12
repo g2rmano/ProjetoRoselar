@@ -27,7 +27,12 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-264w=5r8x$95c2*7^ha!a
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+_allowed = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Railway automatically sets RAILWAY_PUBLIC_DOMAIN; include it so health checks pass
+_railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')
+if _railway_domain and _railway_domain not in _allowed:
+    _allowed.append(_railway_domain)
+ALLOWED_HOSTS = _allowed
 
 
 # Application definition
@@ -148,6 +153,7 @@ LOGIN_REDIRECT_URL = 'core:dashboard'
 LOGOUT_REDIRECT_URL = 'core:index'
 
 # CSRF trusted origins (required for Railway deployment)
-CSRF_TRUSTED_ORIGINS = os.environ.get(
-    'CSRF_TRUSTED_ORIGINS', 'http://localhost'
-).split(',')
+_csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost').split(',')
+if _railway_domain and f'https://{_railway_domain}' not in _csrf_origins:
+    _csrf_origins.append(f'https://{_railway_domain}')
+CSRF_TRUSTED_ORIGINS = _csrf_origins
