@@ -54,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.LoginRequiredMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -144,8 +145,8 @@ MEDIA_ROOT = BASE_DIR.parent / 'media'
 
 # Authentication settings
 LOGIN_URL = 'accounts:login'
-LOGIN_REDIRECT_URL = 'core:dashboard'
-LOGOUT_REDIRECT_URL = 'core:index'
+LOGIN_REDIRECT_URL = 'core:index'
+LOGOUT_REDIRECT_URL = 'accounts:login'
 
 # CSRF trusted origins (required for Railway deployment)
 CSRF_TRUSTED_ORIGINS = os.environ.get(
