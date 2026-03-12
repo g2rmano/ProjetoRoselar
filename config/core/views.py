@@ -7,6 +7,10 @@ from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Q, F, Avg
+
+
+def health_check(request):
+    return HttpResponse("ok", content_type="text/plain")
 from django.db.models.functions import TruncMonth
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
