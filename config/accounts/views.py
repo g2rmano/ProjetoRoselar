@@ -16,7 +16,7 @@ def login(request):
             auth_login(request, user)
             messages.success(request, f'Bem-vindo de volta, {user.username}!')
             # Redirect to next page if specified, otherwise to home
-            next_url = request.GET.get('next', 'core:index')
+            next_url = request.GET.get('next', 'core:dashboard')
             return redirect(next_url)
         else:
             messages.error(request, 'Nome de usuário ou senha inválidos.')
