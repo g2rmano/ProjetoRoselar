@@ -2,6 +2,9 @@
 set -e
 
 cd config
-python manage.py migrate --no-input
+echo "==> Running migrations"
+python manage.py migrate --no-input --verbosity 2
+echo "==> Collecting static files"
 python manage.py collectstatic --no-input
-gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+echo "==> Starting gunicorn"
+exec gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
