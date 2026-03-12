@@ -14,11 +14,6 @@ db.sqlite3-journal
 media/
 staticfiles/
 
-# Migrations
-**/migrations/
-**/migrations/*.py
-**/migrations/*.pyc
-
 # Virtual Environment
 venv/
 env/
