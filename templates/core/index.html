@@ -18,8 +18,8 @@
 
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
-    <link href="{% static 'vendors/prism/prism.css' %}" rel="stylesheet">
-    <link href="{% static 'vendors/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" rel="stylesheet">
     <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
     <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
     {% if user.is_authenticated %}
@@ -57,7 +57,7 @@
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ms-auto">
               <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
-              <li class="nav-item"><a class="nav-link" aria-current="page" href="#">Sobre</a></li>
+              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'calendar_app:calendar' %}">Calendário</a></li>
               <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
               {% if user.is_authenticated %}
 				<li class="nav-item dropdown">
@@ -110,36 +110,429 @@
 
       <div class="bg-dark"><img class="img-fluid position-absolute end-0" src="{% static 'assets/img/hero/hero-bg.png' %}" alt="" />
 
-
-        <!-- ============================================-->
-        <!-- <section> begin ============================-->
         <section>
-
           <div class="container">
             <div class="row align-items-center py-lg-8 py-6">
-              <div class="col-lg-6 text-center text-lg-start">
-                <h1 class="text-white fs-5 fs-xl-6">Lorem ipsum dolor sit amet</h1>
-                <p class="text-white py-lg-3 py-2">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                <a href="{% url 'sales:quote_create' %}" class="btn btn-success text-black me-3 mb-3">Criar Orçamento</a>
-                <button class="btn btn-outline-light mb-3">Explorar</button>
+              <div class="col-lg-5 text-center text-lg-start">
+                {% if user.is_authenticated %}
+                  <h1 class="text-white fs-5 fs-xl-6">Olá, {{ user.username }}!</h1>
+                  <p class="text-white py-lg-3 py-2">Acompanhe seus resultados e gerencie seus orçamentos em tempo real.</p>
+                  <a href="{% url 'sales:quote_create' %}" class="btn btn-success text-black me-3 mb-3"><i class="fa-solid fa-plus me-1"></i>Novo Orçamento</a>
+                  <a href="{% url 'calendar_app:calendar' %}" class="btn btn-outline-light mb-3"><i class="fa-solid fa-calendar me-1"></i>Calendário</a>
+                {% else %}
+                  <h1 class="text-white fs-5 fs-xl-6">Lorem ipsum dolor sit amet</h1>
+                  <p class="text-white py-lg-3 py-2">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                  <a href="{% url 'accounts:login' %}" class="btn btn-success text-black me-3 mb-3">Entrar</a>
+                  <button class="btn btn-outline-light mb-3">Explorar</button>
+                {% endif %}
               </div>
-              <div class="col-lg-6 text-center text-lg-end mt-3 mt-lg-0"><img class="img-fluid" src="{% static 'assets/img/hero/hero-graphics.png' %}" alt="" /></div>
+
+              <div class="col-lg-7 mt-3 mt-lg-0">
+                {% if user.is_authenticated %}
+                <style>
+                  .hero-card { background: rgba(255,255,255,0.07); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 1rem 1.25rem; }
+                  .hero-metric { text-align: center; }
+                  .hero-metric .hm-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; color: rgba(255,255,255,0.6); font-weight: 600; margin-bottom: 2px; }
+                  .hero-metric .hm-value { font-size: 1.3rem; font-weight: 700; color: #fff; }
+                  .hero-metric .hm-value.green { color: #4ade80; }
+                  .hero-metric .hm-sub { font-size: .7rem; color: rgba(255,255,255,0.5); }
+                  .hero-goal-bar { height: 16px; background: rgba(255,255,255,0.12); border-radius: 4px; overflow: hidden; }
+                  .hero-goal-bar .hg-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #22c55e); transition: width .5s; }
+                  .hero-mini-table { width: 100%; font-size: .78rem; border-collapse: collapse; }
+                  .hero-mini-table th { color: rgba(255,255,255,0.5); font-size: .65rem; text-transform: uppercase; font-weight: 600; padding: .25rem .4rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+                  .hero-mini-table td { color: rgba(255,255,255,0.85); padding: .25rem .4rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
+                  .hero-section-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: rgba(255,255,255,0.5); font-weight: 600; margin-bottom: .4rem; }
+                </style>
+
+                <div class="hero-card">
+                  <!-- Metrics Row -->
+                  <div class="row g-2 mb-3">
+                    <div class="col-6 col-md-3">
+                      <div class="hero-metric">
+                        <div class="hm-label">Vendas</div>
+                        <div class="hm-value green">R$ {{ my_total_sold_month|floatformat:0 }}</div>
+                        <div class="hm-sub">Ant: R$ {{ prev_total|floatformat:0 }}</div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div class="hero-metric">
+                        <div class="hm-label">Orçamentos</div>
+                        <div class="hm-value">{{ my_quotes_count_month }}</div>
+                        <div class="hm-sub">Conv: {{ my_converted_count_month }}</div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div class="hero-metric">
+                        <div class="hm-label">Conversão</div>
+                        <div class="hm-value {% if my_conversion_rate >= 50 %}green{% endif %}">{{ my_conversion_rate }}%</div>
+                        <div class="hm-sub">Desc: {{ avg_discount }}%</div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div class="hero-metric">
+                        <div class="hm-label">Ticket Médio</div>
+                        <div class="hm-value">R$ {{ my_avg_ticket|floatformat:0 }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Pie/Doughnut Charts Row -->
+                  <div class="row g-2">
+                    <div class="col-4 text-center">
+                      <div class="hero-section-label"><i class="fa-solid fa-bullseye me-1"></i>Meta</div>
+                      <div style="height:110px; position:relative;">
+                        <canvas id="heroGoalPie"></canvas>
+                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-weight:700;font-size:.85rem;">{{ goal_pct_raw }}%</div>
+                      </div>
+                    </div>
+                    <div class="col-4 text-center">
+                      <div class="hero-section-label"><i class="fa-solid fa-chart-pie me-1"></i>Conversão</div>
+                      <div style="height:110px; position:relative;">
+                        <canvas id="heroConvPie"></canvas>
+                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-weight:700;font-size:.85rem;">{{ my_conversion_rate }}%</div>
+                      </div>
+                    </div>
+                    <div class="col-4 text-center">
+                      <div class="hero-section-label"><i class="fa-solid fa-file-circle-check me-1"></i>Status</div>
+                      <div style="height:110px;">
+                        <canvas id="heroStatusPie"></canvas>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Pending + Overdue compact row -->
+                  {% if pending_quotes or overdue_events %}
+                  <div class="row g-2 mt-2">
+                    {% if pending_quotes %}
+                    <div class="{% if overdue_events %}col-6{% else %}col-12{% endif %}">
+                      <div class="hero-section-label"><i class="fa-solid fa-file-invoice me-1"></i>Pendentes</div>
+                      <table class="hero-mini-table">
+                        {% for q in pending_quotes %}
+                        <tr><td>{{ q.number }}</td><td>{{ q.customer.name|truncatechars:18 }}</td></tr>
+                        {% endfor %}
+                      </table>
+                    </div>
+                    {% endif %}
+                    {% if overdue_events %}
+                    <div class="{% if pending_quotes %}col-6{% else %}col-12{% endif %}">
+                      <div class="hero-section-label" style="color:#f87171;"><i class="fa-solid fa-exclamation-triangle me-1"></i>Atrasados</div>
+                      <table class="hero-mini-table">
+                        {% for ev in overdue_events %}
+                        <tr><td style="color:#f87171;">{{ ev.event_date|date:"d/m" }}</td><td>{{ ev.title|truncatechars:18 }}</td></tr>
+                        {% endfor %}
+                      </table>
+                    </div>
+                    {% endif %}
+                  </div>
+                  {% endif %}
+
+                  {% if is_admin %}
+                  <!-- Admin: Team row -->
+                  <div class="row g-2 mt-2 pt-2" style="border-top:1px solid rgba(255,255,255,0.1);">
+                    <div class="col-4">
+                      <div class="hero-metric">
+                        <div class="hm-label">Equipe Vendas</div>
+                        <div class="hm-value green" style="font-size:1.1rem;">R$ {{ team_total_sold_month|floatformat:0 }}</div>
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="hero-metric">
+                        <div class="hm-label">Orçamentos</div>
+                        <div class="hm-value" style="font-size:1.1rem;">{{ team_quotes_month }}</div>
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="hero-metric">
+                        <div class="hm-label">Conv. Equipe</div>
+                        <div class="hm-value" style="font-size:1.1rem;">{{ team_conversion_rate }}%</div>
+                      </div>
+                    </div>
+                  </div>
+                  {% if seller_ranking %}
+                  <div class="hero-section-label mt-2"><i class="fa-solid fa-trophy me-1"></i>Ranking</div>
+                  <table class="hero-mini-table">
+                    <thead><tr><th>#</th><th>Vendedor</th><th>Total</th></tr></thead>
+                    <tbody>{% for s in seller_ranking %}<tr><td>{{ forloop.counter }}</td><td>{{ s.seller__username }}</td><td class="fw-bold">R$ {{ s.total|floatformat:0 }}</td></tr>{% endfor %}</tbody>
+                  </table>
+                  {% endif %}
+                  {% endif %}
+                </div>
+                {% else %}
+                  <img class="img-fluid" src="{% static 'assets/img/hero/hero-graphics.png' %}" alt="" />
+                {% endif %}
+              </div>
             </div>
           </div>
-          <!-- end of .container-->
-
         </section>
-        <!-- <section> close ============================-->
-        <!-- ============================================-->
-
 
       </div>
 
 
       <!-- ============================================-->
-      <!-- <section> begin ============================-->
-      <section>
+      <!-- Analytics BI Section (admin only) =========-->
+      {% if user.is_authenticated and is_admin %}
+      <section style="padding-top:3rem;padding-bottom:3rem;">
+        <style>
+          .bi-section { font-family: 'Manrope', sans-serif; }
+          .bi-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; transition: box-shadow .2s; height: 100%; }
+          .bi-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+          .bi-card-header { background: #0A2640; color: #fff; padding: .6rem 1rem; font-weight: 600; font-size: .8rem; display: flex; align-items: center; justify-content: space-between; }
+          .bi-card-header i { opacity: .7; }
+          .bi-card-body { padding: 1rem; }
+          .bi-kpi { text-align: center; padding: .8rem .5rem; }
+          .bi-kpi .bk-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; font-weight: 600; margin-bottom: 4px; }
+          .bi-kpi .bk-value { font-size: 1.5rem; font-weight: 700; color: #0A2640; }
+          .bi-kpi .bk-value.green { color: #16a34a; }
+          .bi-kpi .bk-value.red { color: #dc2626; }
+          .bi-kpi .bk-delta { font-size: .7rem; color: #9ca3af; }
+          .bi-product-row { display: flex; justify-content: space-between; align-items: center; padding: .35rem 0; border-bottom: 1px solid #f3f4f6; font-size: .82rem; }
+          .bi-product-row:last-child { border-bottom: none; }
+          .bi-product-row .rank { width: 24px; height: 24px; border-radius: 50%; background: #f3f4f6; display: inline-flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; color: #0A2640; margin-right: .5rem; }
+          .bi-product-row .rank.top3 { background: #0A2640; color: #fff; }
+          .bi-badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: .65rem; font-weight: 600; }
+          .bi-goal-bar { height: 10px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+          .bi-goal-bar .fill { height: 100%; background: linear-gradient(90deg, #16a34a, #22c55e); border-radius: 99px; }
+        </style>
 
+        <div class="container bi-section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h3 class="fw-bold mb-0" style="color:#0A2640;"><i class="fa-solid fa-chart-pie me-2"></i>Central de Análises</h3>
+              <span class="text-muted" style="font-size:.85rem;">Visão gerencial completa — dados do mês atual</span>
+            </div>
+            <div class="d-flex gap-2">
+              <a href="{% url 'core:reports_hub' %}" class="btn btn-outline-dark btn-sm"><i class="fa-solid fa-file-export me-1"></i>Relatórios</a>
+              <a href="{% url 'core:leads_pipeline' %}" class="btn btn-outline-dark btn-sm"><i class="fa-solid fa-filter me-1"></i>Leads</a>
+            </div>
+          </div>
+
+          <!-- KPI Row -->
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+              <div class="bi-card">
+                <div class="bi-kpi">
+                  <div class="bk-label"><i class="fa-solid fa-dollar-sign me-1"></i>Receita Total</div>
+                  <div class="bk-value green">R$ {{ team_total_sold_month|floatformat:0 }}</div>
+                  <div class="bk-delta">{{ team_quotes_month }} orçamentos no mês</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="bi-card">
+                <div class="bi-kpi">
+                  <div class="bk-label"><i class="fa-solid fa-percent me-1"></i>Conversão Geral</div>
+                  <div class="bk-value {% if team_conversion_rate >= 50 %}green{% elif team_conversion_rate < 20 %}red{% endif %}">{{ team_conversion_rate }}%</div>
+                  <div class="bk-delta">Equipe completa</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="bi-card">
+                <div class="bi-kpi">
+                  <div class="bk-label"><i class="fa-solid fa-users me-1"></i>Vendedores Ativos</div>
+                  <div class="bk-value">{{ seller_ranking|length }}</div>
+                  <div class="bk-delta">Com vendas este mês</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="bi-card">
+                {% if collective_goal %}
+                <div class="bi-kpi">
+                  <div class="bk-label"><i class="fa-solid fa-bullseye me-1"></i>Meta Coletiva</div>
+                  <div class="bk-value {% if collective_goal_pct >= 100 %}green{% endif %}">{{ collective_goal_pct }}%</div>
+                  <div class="bi-goal-bar mt-1"><div class="fill" style="width:{{ collective_goal_pct }}%;"></div></div>
+                  <div class="bk-delta mt-1">R$ {{ team_total_sold_month|floatformat:0 }} / R$ {{ collective_goal.target_value|floatformat:0 }}</div>
+                </div>
+                {% else %}
+                <div class="bi-kpi">
+                  <div class="bk-label"><i class="fa-solid fa-bullseye me-1"></i>Meta Coletiva</div>
+                  <div class="bk-value" style="font-size:1rem;color:#9ca3af;">Não definida</div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row 1: Team Evolution + Status Breakdown -->
+          <div class="row g-3 mb-4">
+            <div class="col-lg-8">
+              <div class="bi-card">
+                <div class="bi-card-header">
+                  <span><i class="fa-solid fa-chart-line me-2"></i>Evolução de Vendas da Equipe</span>
+                  <span style="font-weight:400;font-size:.7rem;opacity:.7;">Últimos 6 meses</span>
+                </div>
+                <div class="bi-card-body" style="height:280px;">
+                  <canvas id="biTeamEvolution"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="bi-card">
+                <div class="bi-card-header">
+                  <span><i class="fa-solid fa-circle-half-stroke me-2"></i>Status dos Orçamentos</span>
+                </div>
+                <div class="bi-card-body d-flex align-items-center justify-content-center" style="height:280px;">
+                  <canvas id="biStatusPie"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row 2: Seller Comparison + Leads Funnel -->
+          <div class="row g-3 mb-4">
+            <div class="col-lg-6">
+              <div class="bi-card">
+                <div class="bi-card-header">
+                  <span><i class="fa-solid fa-ranking-star me-2"></i>Vendas por Vendedor</span>
+                  <span style="font-weight:400;font-size:.7rem;opacity:.7;">Mês atual</span>
+                </div>
+                <div class="bi-card-body" style="height:260px;">
+                  <canvas id="biSellerBar"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="bi-card">
+                <div class="bi-card-header">
+                  <span><i class="fa-solid fa-filter me-2"></i>Funil de Leads</span>
+                </div>
+                <div class="bi-card-body" style="height:260px;">
+                  <canvas id="biLeadsFunnel"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row 3: Top Products + Discount Analysis -->
+          <div class="row g-3 mb-4">
+            <div class="col-lg-5">
+              <div class="bi-card">
+                <div class="bi-card-header">
+                  <span><i class="fa-solid fa-box-open me-2"></i>Top Produtos por Receita</span>
+                </div>
+                <div class="bi-card-body" style="max-height:340px;overflow-y:auto;">
+                  {% if bi_top_products %}
+                    {% for p in bi_top_products %}
+                    <div class="bi-product-row">
+                      <div class="d-flex align-items-center">
+                        <span class="rank {% if forloop.counter <= 3 %}top3{% endif %}">{{ forloop.counter }}</span>
+                        <span class="fw-semibold" style="color:#374151;">{{ p.product_name|truncatechars:30 }}</span>
+                      </div>
+                      <div class="text-end">
+                        <span class="fw-bold" style="color:#0A2640;">R$ {{ p.total_revenue|floatformat:0 }}</span>
+                        <span class="bi-badge" style="background:#ecfdf5;color:#16a34a;margin-left:6px;">{{ p.total_qty }}un</span>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  {% else %}
+                    <p class="text-muted text-center mb-0 py-4">Nenhum produto vendido este mês</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-7">
+              <div class="bi-card">
+                <div class="bi-card-header">
+                  <span><i class="fa-solid fa-tags me-2"></i>Desconto Médio por Vendedor</span>
+                </div>
+                <div class="bi-card-body" style="height:280px;">
+                  <canvas id="biDiscountBar"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seller Ranking Table -->
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="bi-card">
+                <div class="bi-card-header">
+                  <span><i class="fa-solid fa-trophy me-2"></i>Ranking Detalhado — Mês Atual</span>
+                </div>
+                <div class="bi-card-body">
+                  {% if seller_ranking %}
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0" style="font-size:.85rem;">
+                      <thead>
+                        <tr style="color:#6b7280;font-size:.7rem;text-transform:uppercase;letter-spacing:.03em;">
+                          <th>#</th>
+                          <th>Vendedor</th>
+                          <th class="text-end">Vendas</th>
+                          <th class="text-end">Total Faturado</th>
+                          <th class="text-end">Ticket Médio</th>
+                          <th class="text-center">Participação</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for s in seller_ranking %}
+                        <tr>
+                          <td>
+                            {% if forloop.counter == 1 %}<span style="color:#eab308;"><i class="fa-solid fa-trophy"></i></span>
+                            {% elif forloop.counter == 2 %}<span style="color:#9ca3af;"><i class="fa-solid fa-medal"></i></span>
+                            {% elif forloop.counter == 3 %}<span style="color:#b45309;"><i class="fa-solid fa-award"></i></span>
+                            {% else %}{{ forloop.counter }}
+                            {% endif %}
+                          </td>
+                          <td class="fw-semibold">{{ s.seller__username }}</td>
+                          <td class="text-end">{{ s.count }}</td>
+                          <td class="text-end fw-bold" style="color:#16a34a;">R$ {{ s.total|floatformat:0 }}</td>
+                          <td class="text-end">R$ {% widthratio s.total s.count 1 %}</td>
+                          <td class="text-center">
+                            {% if team_total_sold_month %}
+                              {% widthratio s.total team_total_sold_month 100 %}%
+                            {% else %}0%{% endif %}
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                  {% else %}
+                    <p class="text-muted text-center mb-0 py-3">Nenhuma venda registrada este mês</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      {% elif user.is_authenticated %}
+      <!-- Regular seller: quick links -->
+      <section style="padding-top:2.5rem;padding-bottom:2.5rem;">
+        <div class="container">
+          <h3 class="fw-bold text-center mb-4" style="color:#0A2640;">Acesso Rápido</h3>
+          <div class="row g-4">
+            <div class="col-md-4 text-center">
+              <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:2rem 1.5rem;height:100%;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,.06)'" onmouseout="this.style.boxShadow='none'">
+                <i class="fa-solid fa-file-invoice fa-2x mb-3" style="color:#0A2640;"></i>
+                <h5 class="fw-bold">Orçamentos</h5>
+                <p class="text-muted" style="font-size:.9rem;">Crie, edite e acompanhe seus orçamentos.</p>
+                <a href="{% url 'sales:quotes_hub' %}" class="fw-bold text-decoration-none" style="color:#0A2640;">Acessar <i class="fa-solid fa-arrow-right ms-1"></i></a>
+              </div>
+            </div>
+            <div class="col-md-4 text-center">
+              <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:2rem 1.5rem;height:100%;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,.06)'" onmouseout="this.style.boxShadow='none'">
+                <i class="fa-solid fa-calendar fa-2x mb-3" style="color:#0A2640;"></i>
+                <h5 class="fw-bold">Calendário</h5>
+                <p class="text-muted" style="font-size:.9rem;">Gerencie entregas, follow-ups e eventos.</p>
+                <a href="{% url 'calendar_app:calendar' %}" class="fw-bold text-decoration-none" style="color:#0A2640;">Acessar <i class="fa-solid fa-arrow-right ms-1"></i></a>
+              </div>
+            </div>
+            <div class="col-md-4 text-center">
+              <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:2rem 1.5rem;height:100%;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,.06)'" onmouseout="this.style.boxShadow='none'">
+                <i class="fa-solid fa-user-plus fa-2x mb-3" style="color:#0A2640;"></i>
+                <h5 class="fw-bold">Leads</h5>
+                <p class="text-muted" style="font-size:.9rem;">Pipeline de prospecção e acompanhamento.</p>
+                <a href="{% url 'core:leads_pipeline' %}" class="fw-bold text-decoration-none" style="color:#0A2640;">Acessar <i class="fa-solid fa-arrow-right ms-1"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      {% else %}
+      <!-- Not authenticated: original services -->
+      <section>
         <div class="container">
           <p class="text-center fs-1">Our Services</p>
           <h2 class="mx-auto text-center fs-lg-6 fs-md-5 w-lg-75">Lorem ipsum dolor sit amet consectetur adipiscing elit.</h2>
@@ -158,272 +551,11 @@
             </div>
           </div>
         </div>
-        <!-- end of .container-->
-
       </section>
-      <!-- <section> close ============================-->
-      <!-- ============================================-->
+      {% endif %}
 
 
 
-
-      <!-- ============================================-->
-      <!-- <section> begin ============================-->
-      <section>
-
-        <div class="container">
-          <div class="row align-items-center">
-            <div class="col-lg-6 text-center text-lg-start"><img class="img-fluid" src="{% static 'assets/img/offer/1.png' %}" alt="" /></div>
-            <div class="col-lg-6">
-              <h1 class="fs-xl-5 fs-lg-4 fs-3">Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor.</h1>
-              <ul class="list-unstyled my-xl-5 my-3">
-                <li class="fs-2 my-4 d-flex align-items-center gap-3 text-black"><i class="fa-solid fa-circle-check fs-4 text-dark"></i><span>Lorem ipsum dolor sit amet consectetur.</span></li>
-                <li class="fs-2 my-4 d-flex align-items-center gap-3 text-black"><i class="fa-solid fa-circle-check fs-4 text-dark"></i><span>Sed do eiusmod tempor incididunt.</span></li>
-                <li class="fs-2 my-4 d-flex align-items-center gap-3 text-black"><i class="fa-solid fa-circle-check fs-4 text-dark"></i><span>Ut labore et dolore magna aliqua.</span></li>
-              </ul>
-              <button class="btn btn-dark">Start now</button>
-            </div>
-          </div>
-        </div>
-        <!-- end of .container-->
-
-      </section>
-      <!-- <section> close ============================-->
-      <!-- ============================================-->
-
-
-
-
-      <!-- ============================================-->
-      <!-- <section> begin ============================-->
-      <section class="pt-8 pt-lg-0">
-
-        <div class="container">
-          <div class="d-flex flex-column-reverse flex-lg-row">
-            <div class="col-lg-6">
-              <h1 class="fs-lg-4 fs-md-3 fs-xl-5 mb-5">Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor.</h1>
-              <ul class="list-unstyled">
-                <li class="fs-2 shadow-sm offer-list-item"><i class="fa-solid fa-leaf fs-lg-4 fs-3"></i><span>Lorem ipsum dolor sit amet consectetur.</span></li>
-                <li class="fs-2 shadow-sm offer-list-item"><i class="fa-solid fa-eye fs-lg-4 fs-3"></i><span>Sed do eiusmod tempor incididunt.</span></li>
-                <li class="fs-2 shadow-sm offer-list-item"><i class="fa-solid fa-sun fs-lg-4 fs-3"></i><span>Ut labore et dolore magna aliqua.</span></li>
-              </ul>
-            </div>
-            <div class="col-lg-6 text-center text-lg-end"><img class="img-fluid" src="{% static 'assets/img/offer/2.png' %}" alt="" /></div>
-          </div>
-        </div>
-        <!-- end of .container-->
-
-      </section>
-      <!-- <section> close ============================-->
-      <!-- ============================================-->
-
-
-
-
-      <!-- ============================================-->
-      <!-- <section> begin ============================-->
-      <section class="bg-dark">
-
-        <div class="container">
-          <div class="col-md-6">
-            <h1 class="text-white fs-lg-5 fs-md-3 fs-2">Lorem ipsum dolor sit amet consectetur adipiscing elit</h1>
-          </div>
-          <div class="swiper mt-7">
-            <div class="swiper-container swiper-theme" data-swiper='{"slidesPerView":1,"breakpoints":{"640":{"slidesPerView":1,"spaceBetween":10},"768":{"slidesPerView":2,"spaceBetween":20},"1025":{"slidesPerView":3,"spaceBetween":40}},"spaceBetween":10,"grabCursor":true,"pagination":{"el":".swiper-pagination","clickable":true},"navigation":{"nextEl":".swiper-button-next","prevEl":".swiper-button-prev"},"loop":true,"freeMode":true,"loopedSlides":3}'>
-              <div class="swiper-wrapper">
-                <div class="swiper-slide bg-white p-5 rounded-3 h-auto">
-                  <div class="d-flex flex-column justify-content-between h-100">
-                    <h4 class="text-black">"Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor"</h4>
-                    <div class="d-flex align-items-center gap-3 mt-5"><img src="{% static 'assets/img/review/1.png' %}" alt="" />
-                      <div class="text-black">
-                        <p class="mb-0 fw-bold text-dark">John Doe</p><small>Manager @ Company</small>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="swiper-slide bg-white p-5 rounded-3 h-auto">
-                  <div class="d-flex flex-column justify-content-between h-100">
-                    <h4 class="text-black">"Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt."</h4>
-                    <div class="d-flex align-items-center gap-3 mt-5"><img src="{% static 'assets/img/review/2.png' %}" alt="" />
-                      <div class="text-black">
-                        <p class="mb-0 fw-bold text-dark">Jane Smith</p><small>Manager @ Company</small>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="swiper-slide bg-white p-5 rounded-3 h-auto">
-                  <div class="d-flex flex-column justify-content-between h-100">
-                    <h4 class="text-black">"Lançamento facebook design responsivo modelo de negócio canvas capital semente monetização."</h4>
-                    <div class="d-flex align-items-center gap-3 mt-5"><img src="{% static 'assets/img/review/3.png' %}" alt="" />
-                      <div class="text-black">
-                        <p class="mb-0 fw-bold text-dark">Harry Potter</p><small>Líder de Equipe @ Gryffindor</small>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="swiper-slide bg-white p-5 rounded-3 h-auto">
-                  <div class="d-flex flex-column justify-content-between h-100">
-                    <h4 class="text-black">“Buyer buzz partner network disruptive non-disclosure agreement business”</h4>
-                    <div class="d-flex align-items-center gap-3 mt-5"><img src="{% static 'assets/img/review/1.png' %}" alt="" />
-                      <div class="text-black">
-                        <p class="mb-0 fw-bold text-dark">Albus Dumbledore</p><small>Manager @ Howarts</small>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="swiper-button-next"><span class="fas fa-arrow-right fs-lg-3 fs-2"></span></div>
-            <div class="swiper-button-prev"><span class="fas fa-arrow-left fs-lg-3 fs-2"></span></div>
-          </div>
-        </div>
-        <!-- end of .container-->
-
-      </section>
-      <!-- <section> close ============================-->
-      <!-- ============================================-->
-
-
-
-
-      <!-- ============================================-->
-      <!-- <section> begin ============================-->
-      <section>
-
-        <div class="container"><img class="img-fluid" src="{% static 'assets/img/offer/3.png' %}" alt="" />
-          <div class="row mt-5">
-            <div class="col-md-6">
-              <h2 class="fs-md-4 fs-3">Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor.</h2>
-            </div>
-            <div class="col-md-6">
-              <div class="accordion accordion-flush" id="accordionFlushExample">
-                <div class="accordion-item"></div>
-                <h2 class="accordion-header border-bottom" id="srgdgfdgdgg45">
-                  <button class="accordion-button collapsed text-black" type="button" data-bs-toggle="collapse" data-bs-target="#srgdgfdgdgg45tyuu" aria-expanded="false" aria-controls="srgdgfdgdgg45"><span class="fs-1 pe-3">Lorem ipsum dolor sit amet consectetur?</span></button>
-                </h2>
-                <div class="accordion-collapse collapse" aria-labelledby="srgdgfdgdgg45" data-bs-parent="#accordionFlushExample" id="srgdgfdgdgg45tyuu">
-                  <div class="accordion-body">
-                    <p class="mb-0">Conteúdo de espaço reservado para este acordeão, que se destina a demonstrar a classe accordion-flush. Este é o corpo do acordeão do primeiro item.</p>
-                  </div>
-                </div>
-                <div class="accordion-item"></div>
-                <h2 class="accordion-header border-bottom" id="sxvdgrfhfh276">
-                  <button class="accordion-button collapsed text-black" type="button" data-bs-toggle="collapse" data-bs-target="#srgdgfdgdgg45tyuu5ghj" aria-expanded="false" aria-controls="sxvdgrfhfh276"><span class="fs-1 pe-3">Lorem ipsum dolor sit amet? </span></button>
-                </h2>
-                <div class="accordion-collapse collapse" aria-labelledby="sxvdgrfhfh276" data-bs-parent="#accordionFlushExample" id="srgdgfdgdgg45tyuu5ghj">
-                  <div class="accordion-body">
-                    <p class="mb-0">Conteúdo de espaço reservado para este acordeão, que se destina a demonstrar a classe accordion-flush. Este é o corpo do acordeão do primeiro item.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- end of .container-->
-
-      </section>
-      <!-- <section> close ============================-->
-      <!-- ============================================-->
-
-
-
-
-      <!-- ============================================-->
-      <!-- <section> begin ============================-->
-      <section class="pb-0">
-
-        <div class="container">
-          <p class="text-center text-gray fs-1">Our Blog</p>
-          <h2 class="mx-auto text-center fs-lg-6 fs-md-5 w-lg-75">Lorem ipsum dolor sit amet consectetur adipiscing elit tempor</h2>
-          <div class="row mt-7 gx-xl-7">
-            <div class="col-md-4 mb-5 mb-md-0 text-center text-md-start"><a href="#"><img class="w-75 w-md-100" src="{% static 'assets/img/blog/1.png' %}" alt="" /></a>
-              <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 mt-3"><a href="#">
-                  <p class="fw-bold mb-0 text-black">Categoria</p>
-                </a>
-                <p class="mb-0">22 de novembro, 2021</p>
-              </div><a href="#">
-                <h5 class="mt-1 mb-3 fs-0 fs-md-1">Lorem ipsum dolor sit amet consectetur adipiscing.</h5>
-              </a>
-              <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-3"><img class="img-fluid" src="{% static 'assets/img/blog/profile1.png' %}" alt="" /><a href="#">
-                  <p class="mb-0 text-gray">John Doe</p>
-                </a></div>
-            </div>
-            <div class="col-md-4 mb-5 mb-md-0 text-center text-md-start"><a href="#"><img class="w-75 w-md-100" src="{% static 'assets/img/blog/2.png' %}" alt="" /></a>
-              <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 mt-3"><a href="#">
-                  <p class="fw-bold mb-0 text-black">Categoria</p>
-                </a>
-                <p class="mb-0">22 de novembro, 2021</p>
-              </div><a href="#">
-                <h5 class="mt-1 mb-3 fs-0 fs-md-1">Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.</h5>
-              </a>
-              <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-3"><img class="img-fluid" src="{% static 'assets/img/blog/profile2.png' %}" alt="" /><a href="#">
-                  <p class="mb-0 text-gray">Jane Smith</p>
-                </a></div>
-            </div>
-            <div class="col-md-4 mb-5 mb-md-0 text-center text-md-start"><a href="#"><img class="w-75 w-md-100" src="{% static 'assets/img/blog/3.png' %}" alt="" /></a>
-              <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 mt-3"><a href="#">
-                  <p class="fw-bold mb-0 text-black">Categoria</p>
-                </a>
-                <p class="mb-0">22 de novembro, 2021</p>
-              </div><a href="#">
-                <h5 class="mt-1 mb-3 fs-0 fs-md-1">Lorem ipsum dolor sit amet consectetur elit sed do eiusmod tempor.</h5>
-              </a>
-              <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-3"><img class="img-fluid" src="{% static 'assets/img/blog/profile3.png' %}" alt="" /><a href="#">
-                  <p class="mb-0 text-gray">Monica Smith</p>
-                </a></div>
-            </div>
-          </div>
-          <div class="text-center mt-5">
-            <button class="btn btn-outline-dark">Load More</button>
-          </div>
-        </div>
-        <!-- end of .container-->
-
-      </section>
-      <!-- <section> close ============================-->
-      <!-- ============================================-->
-
-
-    </main>
-    <!-- ===============================================-->
-    <!--    End of Main Content-->
-    <!-- ===============================================-->
-
-
-
-
-    <!-- ============================================-->
-    <!-- <section> begin ============================-->
-    <section>
-
-      <div class="container bg-dark overflow-hidden rounded-1">
-        <div class="bg-holder" style="background-image:url(assets/img/promo/promo-bg.png);">
-        </div>
-        <!--/.bg-holder-->
-
-        <div class="px-5 py-7 position-relative">
-          <h1 class="text-center w-lg-75 mx-auto fs-lg-6 fs-md-4 fs-3 text-white">Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod</h1>
-          <div class="row justify-content-center mt-5">
-            <div class="col-auto w-100 w-lg-50">
-              <input class="form-control mb-2 border-light" type="email" placeholder="Your email address" />
-            </div>
-            <div class="col-auto">
-              <button class="btn btn-success text-dark fs-1">Start now</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- end of .container-->
-
-    </section>
-    <!-- <section> close ============================-->
-    <!-- ============================================-->
-
-
-
-
-    <!-- ============================================-->
-    <!-- <section> begin ============================-->
     <section class="pt-0">
 
       <div class="container">
@@ -470,16 +602,230 @@
     <!-- ===============================================-->
     <!--    JavaScripts-->
     <!-- ===============================================-->
-    <script src="{% static 'vendors/popper/popper.min.js' %}"></script>
-    <script src="{% static 'vendors/bootstrap/bootstrap.min.js' %}"></script>
-    <script src="{% static 'vendors/anchorjs/anchor.min.js' %}"></script>
-    <script src="{% static 'vendors/is/is.min.js' %}"></script>
-    <script src="{% static 'vendors/fontawesome/all.min.js' %}"></script>
-    <script src="{% static 'vendors/lodash/lodash.min.js' %}"></script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=window.scroll"></script>
-    <script src="{% static 'vendors/prism/prism.js' %}"></script>
-    <script src="{% static 'vendors/swiper/swiper-bundle.min.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/anchor-js@5.0.0/anchor.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/is_js@0.9.0/is.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="{% static 'assets/js/theme.js' %}"></script>
+    {% if user.is_authenticated %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      // ── Hero Doughnut: Goal Progress ──
+      var goalEl = document.getElementById('heroGoalPie');
+      if (goalEl) {
+        var goalPct = {{ goal_pct_raw }};
+        var remaining = Math.max(100 - goalPct, 0);
+        new Chart(goalEl.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Atingido', 'Restante'],
+            datasets: [{ data: [Math.min(goalPct, 100), remaining], backgroundColor: ['#4ade80', 'rgba(255,255,255,0.12)'], borderWidth: 0 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return c.label + ': ' + c.raw + '%'; } } } } }
+        });
+      }
+
+      // ── Hero Doughnut: Conversion Rate ──
+      var convEl = document.getElementById('heroConvPie');
+      if (convEl) {
+        var convRate = {{ my_conversion_rate }};
+        var convRem = Math.max(100 - convRate, 0);
+        new Chart(convEl.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Convertidos', 'Não convertidos'],
+            datasets: [{ data: [convRate, convRem], backgroundColor: ['#60a5fa', 'rgba(255,255,255,0.12)'], borderWidth: 0 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return c.label + ': ' + c.raw + '%'; } } } } }
+        });
+      }
+
+      // ── Hero Pie: Quote Status Breakdown ──
+      var statusEl = document.getElementById('heroStatusPie');
+      if (statusEl) {
+        var statusLabels = {{ my_status_labels_json|safe }};
+        var statusValues = {{ my_status_values_json|safe }};
+        var statusColors = ['#4ade80', '#60a5fa', '#fbbf24', '#f87171', '#a78bfa', '#94a3b8'];
+        new Chart(statusEl.getContext('2d'), {
+          type: 'pie',
+          data: {
+            labels: statusLabels,
+            datasets: [{ data: statusValues, backgroundColor: statusColors.slice(0, statusLabels.length), borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.7)', font: { size: 9 }, usePointStyle: true, pointStyle: 'circle', padding: 6 } },
+              tooltip: { callbacks: { label: function(c) { return c.label + ': ' + c.raw; } } }
+            }
+          }
+        });
+      }
+
+      {% if is_admin %}
+      // BI: Team Evolution (line + bar combo)
+      var biTeamEl = document.getElementById('biTeamEvolution');
+      if (biTeamEl) {
+        new Chart(biTeamEl.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: {{ bi_team_chart_labels_json|safe }},
+            datasets: [
+              {
+                type: 'line',
+                label: 'Faturamento (R$)',
+                data: {{ bi_team_chart_values_json|safe }},
+                borderColor: '#16a34a',
+                backgroundColor: 'rgba(22,163,74,0.08)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                borderWidth: 2,
+                yAxisID: 'y'
+              },
+              {
+                type: 'bar',
+                label: 'Nº Vendas',
+                data: {{ bi_team_chart_counts_json|safe }},
+                backgroundColor: 'rgba(10,38,64,0.15)',
+                borderColor: '#0A2640',
+                borderWidth: 1,
+                borderRadius: 4,
+                yAxisID: 'y1'
+              }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', font: { size: 10 } } } },
+            scales: {
+              y: { beginAtZero: true, position: 'left', ticks: { font: { size: 10 }, callback: function(v) { return 'R$ ' + (v/1000).toFixed(0) + 'k'; } }, grid: { color: '#f3f4f6' } },
+              y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { font: { size: 10 }, stepSize: 1 } },
+              x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+            }
+          }
+        });
+      }
+
+      // BI: Status Pie
+      var biPieEl = document.getElementById('biStatusPie');
+      if (biPieEl) {
+        new Chart(biPieEl.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: {{ bi_status_labels_json|safe }},
+            datasets: [{
+              data: {{ bi_status_values_json|safe }},
+              backgroundColor: ['#94a3b8','#3b82f6','#22c55e','#16a34a','#ef4444'],
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            cutout: '55%',
+            plugins: {
+              legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', font: { size: 10 }, padding: 12 } }
+            }
+          }
+        });
+      }
+
+      // BI: Seller Bar
+      var biSellerEl = document.getElementById('biSellerBar');
+      if (biSellerEl) {
+        new Chart(biSellerEl.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: {{ bi_seller_labels_json|safe }},
+            datasets: [{
+              label: 'Faturamento (R$)',
+              data: {{ bi_seller_values_json|safe }},
+              backgroundColor: function(ctx) {
+                var colors = ['#0A2640','#1e40af','#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#dbeafe','#eff6ff','#f8fafc'];
+                return colors[ctx.dataIndex % colors.length];
+              },
+              borderRadius: 6,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { beginAtZero: true, ticks: { font: { size: 10 }, callback: function(v) { return 'R$ ' + (v/1000).toFixed(0) + 'k'; } }, grid: { color: '#f3f4f6' } },
+              y: { ticks: { font: { size: 10, weight: 600 } }, grid: { display: false } }
+            }
+          }
+        });
+      }
+
+      // BI: Leads Funnel
+      var biFunnelEl = document.getElementById('biLeadsFunnel');
+      if (biFunnelEl) {
+        var funnelLabels = {{ bi_funnel_labels_json|safe }};
+        var funnelValues = {{ bi_funnel_values_json|safe }};
+        var funnelColors = ['#0A2640','#1e40af','#2563eb','#f59e0b','#16a34a','#ef4444'];
+        new Chart(biFunnelEl.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: funnelLabels,
+            datasets: [{
+              data: funnelValues,
+              backgroundColor: funnelColors,
+              borderRadius: 6,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { font: { size: 10 }, stepSize: 1 }, grid: { color: '#f3f4f6' } },
+              x: { ticks: { font: { size: 9 } }, grid: { display: false } }
+            }
+          }
+        });
+      }
+
+      // BI: Discount per Seller
+      var biDiscEl = document.getElementById('biDiscountBar');
+      if (biDiscEl) {
+        new Chart(biDiscEl.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: {{ bi_disc_labels_json|safe }},
+            datasets: [{
+              label: 'Desconto Médio (%)',
+              data: {{ bi_disc_values_json|safe }},
+              backgroundColor: function(ctx) {
+                var v = ctx.raw;
+                if (v > 15) return '#ef4444';
+                if (v > 10) return '#f59e0b';
+                return '#16a34a';
+              },
+              borderRadius: 6,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, max: 30, ticks: { font: { size: 10 }, callback: function(v) { return v + '%'; } }, grid: { color: '#f3f4f6' } },
+              x: { ticks: { font: { size: 10, weight: 600 } }, grid: { display: false } }
+            }
+          }
+        });
+      }
+      {% endif %}
+    </script>
+    {% endif %}
 
   </body>
 

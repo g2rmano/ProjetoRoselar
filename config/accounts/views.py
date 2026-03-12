@@ -6,7 +6,7 @@ from django.urls import reverse
 def login(request):
     # Redirect if already logged in
     if request.user.is_authenticated:
-        return redirect(reverse('core:dashboard'))
+        return redirect(reverse('core:index'))
     
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -16,7 +16,7 @@ def login(request):
         if user is not None:
             auth_login(request, user)
             messages.success(request, f'Bem-vindo de volta, {user.username}!')
-            next_url = request.GET.get('next') or reverse('core:dashboard')
+            next_url = request.GET.get('next') or reverse('core:index')
             return redirect(next_url)
         else:
             messages.error(request, 'Nome de usuário ou senha inválidos.')
