@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib import messages
+from django.urls import reverse
 
 def login(request):
     # Redirect if already logged in
     if request.user.is_authenticated:
-        return redirect('core:index')
+        return redirect(reverse('core:dashboard'))
     
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -15,8 +16,7 @@ def login(request):
         if user is not None:
             auth_login(request, user)
             messages.success(request, f'Bem-vindo de volta, {user.username}!')
-            # Redirect to next page if specified, otherwise to home
-            next_url = request.GET.get('next', 'core:dashboard')
+            next_url = request.GET.get('next') or reverse('core:dashboard')
             return redirect(next_url)
         else:
             messages.error(request, 'Nome de usuário ou senha inválidos.')
