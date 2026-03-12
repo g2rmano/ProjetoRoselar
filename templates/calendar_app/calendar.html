@@ -1,0 +1,940 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" dir="ltr">
+
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Calendário | Roselar</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+    <meta name="theme-color" content="#ffffff">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <style>
+      /* ── Calendar Grid ── */
+      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; border: 1px solid #dfe1e6; }
+      .cal-header { background: #0A2640; color: #fff; text-align: center; padding: 10px 0; font-weight: 600; font-size: 0.85rem; }
+      .cal-cell {
+        min-height: 110px; border: 1px solid #dfe1e6; padding: 4px 6px;
+        background: #fff; position: relative; transition: background 0.15s; cursor: default;
+      }
+      .cal-cell.empty { background: #f4f5f7; }
+      .cal-cell.today { background: #e4f0ff; }
+      .cal-cell.past { background: #fafafa; }
+      .day-num { font-weight: 700; font-size: 0.85rem; color: #333; display: inline-block; margin-bottom: 2px; }
+      .day-num.today-num { background: #0d6efd; color: #fff; border-radius: 50%; width: 26px; height: 26px; text-align: center; line-height: 26px; }
+
+      /* ── Event card on grid ── */
+      .evt-card {
+        background: #fff; border-radius: 4px; padding: 3px 6px;
+        margin-bottom: 2px; cursor: pointer; font-size: 0.72rem;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        border-left: 3px solid #bbb;
+        transition: box-shadow 0.15s, transform 0.1s;
+      }
+      .evt-card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.18); transform: translateY(-1px); }
+      .evt-card .evt-title { font-weight: 600; color: #172b4d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .evt-card.overdue { border-left-color: #dc3545; background: #fff5f5; }
+      .evt-tag-dots { display: flex; gap: 2px; margin-bottom: 1px; flex-wrap: wrap; }
+      .evt-tag-dot { width: 28px; height: 5px; border-radius: 2px; }
+
+      .more-badge { font-size: 0.7rem; color: #0d6efd; cursor: pointer; font-weight: 600; text-align: center; padding: 2px 0; }
+      .more-badge:hover { text-decoration: underline; }
+
+      /* ── Reminder toast ── */
+      .reminder-toast {
+        background: #fffbeb; border: 1px solid #fbbf24; border-left: 4px solid #f59e0b;
+        padding: 10px 14px; margin-bottom: 6px; border-radius: 4px;
+        display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;
+      }
+      .reminder-toast .dismiss-x { cursor: pointer; color: #aaa; font-size: 1.1rem; }
+      .reminder-toast .dismiss-x:hover { color: #333; }
+
+      .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+      .filter-bar select { border-radius: 0 !important; }
+      #dropdownUserButton { border-radius: 0.375rem !important; }
+
+      /* ═══════════════════════════════════════════════════
+         TRELLO-STYLE POPUP / MODAL
+         ═══════════════════════════════════════════════════ */
+      .popup-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+        z-index: 1000; justify-content: center; align-items: flex-start;
+        padding-top: 60px; overflow-y: auto;
+      }
+      .popup-overlay.active { display: flex; }
+      .popup-card {
+        background: #f4f5f7; border-radius: 8px; width: 720px; max-width: 95vw;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.25); position: relative;
+        margin-bottom: 40px;
+      }
+      .popup-close { position: absolute; top: 10px; right: 14px; cursor: pointer; font-size: 1.4rem; color: #888; z-index: 5; }
+      .popup-close:hover { color: #333; }
+
+      /* Header */
+      .popup-header { padding: 20px 24px 0; }
+      .popup-header .popup-title-input {
+        font-size: 1.2rem; font-weight: 700; color: #172b4d; border: none;
+        background: transparent; width: 100%; padding: 4px 0;
+        border-bottom: 2px solid transparent;
+      }
+      .popup-header .popup-title-input:focus { outline: none; border-bottom-color: #0d6efd; background: #fff; padding: 4px 8px; border-radius: 4px; }
+      .popup-meta { font-size: 0.82rem; color: #5e6c84; padding: 4px 0 8px; }
+
+      /* Tags bar */
+      .popup-tags { padding: 8px 24px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+      .tag-chip {
+        display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 3px;
+        font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+      }
+      .tag-chip:hover { opacity: 0.85; }
+      .tag-chip .tag-x { margin-left: 6px; font-size: 0.7rem; opacity: 0.6; }
+      .tag-chip .tag-x:hover { opacity: 1; }
+      .add-tag-btn {
+        display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 3px;
+        font-size: 0.78rem; background: #dfe1e6; color: #5e6c84; cursor: pointer; border: none;
+      }
+      .add-tag-btn:hover { background: #ccc; }
+
+      /* Tag popover */
+      .tag-popover {
+        display: none; position: fixed; z-index: 1100; background: #fff; border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2); width: 280px; padding: 12px;
+      }
+      .tag-popover.show { display: block; }
+      .tag-popover h6 { font-size: 0.82rem; font-weight: 700; margin-bottom: 8px; text-align: center; }
+      .tag-popover .tag-option {
+        display: flex; align-items: center; padding: 4px 6px; border-radius: 3px;
+        cursor: pointer; margin-bottom: 3px; transition: background 0.1s;
+      }
+      .tag-popover .tag-option:hover { background: #f0f0f0; }
+      .tag-option-color { width: 100%; height: 28px; border-radius: 3px; display: flex; align-items: center; padding: 0 10px; font-weight: 600; font-size: 0.8rem; }
+      .tag-option-check { margin-right: 6px; width: 18px; font-size: 0.8rem; flex-shrink: 0; }
+      .tag-popover .tag-option-edit { cursor: pointer; padding: 4px; margin-left: 4px; color: #888; flex-shrink: 0; }
+      .tag-popover .tag-option-edit:hover { color: #333; }
+      .tag-popover hr { margin: 6px 0; }
+      .tag-create-row { display: flex; gap: 4px; }
+      .tag-create-row input { flex: 1; font-size: 0.82rem; padding: 5px 8px; border: 1px solid #ddd; border-radius: 3px; }
+      .tag-create-row input:focus { outline: none; border-color: #0d6efd; }
+      .color-dot-pick { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; display: inline-block; }
+      .color-dot-pick.active { border-color: #333; }
+      .color-palette { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+
+      /* Body */
+      .popup-body { display: flex; gap: 0; }
+      .popup-main { flex: 1; padding: 12px 24px 20px; min-width: 0; }
+      .popup-sidebar { width: 180px; padding: 12px 16px 20px 0; flex-shrink: 0; }
+
+      .section-label { font-size: 0.78rem; font-weight: 700; color: #5e6c84; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+      /* Description */
+      .desc-area {
+        width: 100%; min-height: 80px; border: 1px solid #dfe1e6; border-radius: 4px;
+        padding: 8px 10px; font-size: 0.88rem; font-family: inherit; resize: vertical;
+        background: #fff;
+      }
+      .desc-area:focus { outline: none; border-color: #0d6efd; }
+
+      /* Attachments */
+      .att-list { list-style: none; padding: 0; margin: 0; }
+      .att-item {
+        display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+        background: #fff; border-radius: 4px; margin-bottom: 4px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      }
+      .att-icon { font-size: 1.1rem; color: #5e6c84; width: 20px; text-align: center; }
+      .att-info { flex: 1; overflow: hidden; }
+      .att-name { font-size: 0.82rem; font-weight: 600; color: #172b4d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .att-meta { font-size: 0.72rem; color: #888; }
+
+      /* Sidebar buttons */
+      .side-btn {
+        display: block; width: 100%; padding: 6px 10px; margin-bottom: 4px;
+        font-size: 0.8rem; border-radius: 4px; border: none; cursor: pointer;
+        text-align: left; background: #dfe1e6; color: #172b4d; font-weight: 500;
+        transition: background 0.15s;
+      }
+      .side-btn:hover { background: #ccc; }
+      .side-btn i { width: 18px; margin-right: 4px; text-align: center; }
+      .side-btn.btn-green { background: #198754; color: #fff; }
+      .side-btn.btn-green:hover { background: #157347; }
+      .side-btn.btn-red { background: #dc3545; color: #fff; }
+      .side-btn.btn-red:hover { background: #bb2d3b; }
+
+      /* Status badge */
+      .status-pill { display: inline-block; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 600; }
+      .status-PENDING { background: #ffc107; color: #333; }
+      .status-DONE { background: #198754; color: #fff; }
+      .status-OVERDUE { background: #dc3545; color: #fff; }
+      .status-CANCELED { background: #6c757d; color: #fff; }
+
+      @media (max-width: 640px) {
+        .popup-body { flex-direction: column; }
+        .popup-sidebar { width: 100%; padding: 0 24px 20px; display: flex; gap: 6px; flex-wrap: wrap; }
+        .popup-sidebar .section-label { width: 100%; }
+        .side-btn { width: auto; flex: 1; min-width: 100px; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="main" id="top">
+      <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+        <div class="container">
+          <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;" /></a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"><i class="fa-solid fa-bars text-white fs-3"></i></button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto">
+              <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Início</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
+              <li class="nav-item"><a class="nav-link active" href="{% url 'calendar_app:calendar' %}">Calendário</a></li>
+              <li class="nav-item">
+                <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
+                  <span class="me-2">{{ user.username }}</span>
+                  <svg style="width:14px;height:14px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/></svg>
+                </button>
+                <div id="dropdownUser" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-72">
+                  <div class="px-4 py-3 text-sm text-gray-900"><div class="font-medium">{{ user.username }}</div><div class="truncate">{{ user.email }}</div></div>
+                  <ul class="py-2 text-sm text-gray-700"><li><a href="{% url 'core:dashboard' %}" class="block px-4 py-2 hover:bg-gray-100"><i class="fa-solid fa-user me-2"></i>Minha Conta</a></li></ul>
+                  <div class="py-2"><a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100"><i class="fa-solid fa-right-from-bracket me-2"></i>Sair</a></div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <section style="min-height: 100vh; padding-top: 150px; padding-bottom: 3rem;">
+        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 30vh; z-index: -1;"></div>
+
+        <div class="container-fluid px-4">
+          <div class="bg-white p-4 shadow-lg" style="border-radius: 6px;">
+
+            <!-- Top bar -->
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+              <h2 class="fw-bold mb-0" style="color:#0A2640;">
+                <i class="fa-solid fa-calendar-days me-2"></i>Calendário
+              </h2>
+              <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'calendar_app:upcoming' %}" class="btn btn-sm btn-outline-dark" style="border-radius:4px;">
+                  <i class="fa-solid fa-clock me-1"></i>Próximos
+                </a>
+                <a href="{% url 'calendar_app:overdue' %}" class="btn btn-sm btn-outline-danger" style="border-radius:4px;">
+                  <i class="fa-solid fa-triangle-exclamation me-1"></i>Atrasados
+                </a>
+                <button class="btn btn-sm btn-dark" style="border-radius:4px;" onclick="openCreatePopup()">
+                  <i class="fa-solid fa-plus me-1"></i>Novo Evento
+                </button>
+              </div>
+            </div>
+
+            <!-- Reminders -->
+            {% if today_reminders %}
+            <div class="mb-3">
+              {% for reminder in today_reminders %}
+              <div class="reminder-toast" id="reminder-{{ reminder.id }}">
+                <div>
+                  <i class="fa-solid fa-bell text-warning me-1"></i>
+                  <strong>{{ reminder.message|default:reminder.event.title }}</strong>
+                  <small class="text-muted ms-2">{{ reminder.event.get_event_type_display }}</small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <button class="btn btn-sm btn-outline-dark" style="border-radius:4px; font-size:0.75rem;" onclick="openEventPopup({{ reminder.event_id }})">Ver</button>
+                  <span class="dismiss-x" onclick="dismissReminder({{ reminder.id }})">&times;</span>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Month nav + filter -->
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <a href="?year={{ prev_year }}&month={{ prev_month }}{% if seller_filter %}&seller={{ seller_filter }}{% endif %}" style="color:#0A2640; font-size:1.3rem; padding:2px 6px; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#0d6efd'" onmouseout="this.style.color='#0A2640'">
+                  <i class="fa-solid fa-circle-chevron-left"></i>
+                </a>
+                <h4 class="fw-bold mb-0" style="min-width: 180px; text-align:center;">{{ month_name }} {{ year }}</h4>
+                <a href="?year={{ next_year }}&month={{ next_month }}{% if seller_filter %}&seller={{ seller_filter }}{% endif %}" style="color:#0A2640; font-size:1.3rem; padding:2px 6px; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#0d6efd'" onmouseout="this.style.color='#0A2640'">
+                  <i class="fa-solid fa-circle-chevron-right"></i>
+                </a>
+              </div>
+
+              <div class="d-flex align-items-center gap-3 flex-wrap">
+                <div class="d-flex gap-2 align-items-center" style="font-size:0.78rem;">
+                  <span><span class="legend-dot" style="background:#dc3545;"></span> Atrasado</span>
+                </div>
+                {% if is_admin %}
+                <form method="get" class="d-flex align-items-center gap-2 mb-0">
+                  <input type="hidden" name="year" value="{{ year }}">
+                  <input type="hidden" name="month" value="{{ month }}">
+                  <select name="seller" class="form-select form-select-sm" style="width:auto; min-width:170px; border-radius:4px !important; font-size:0.82rem;" onchange="this.form.submit()">
+                    <option value="">Todos vendedores</option>
+                    {% for s in sellers %}
+                    <option value="{{ s.id }}" {% if seller_filter == s.id|stringformat:"d" %}selected{% endif %}>{{ s.get_full_name|default:s.username }}</option>
+                    {% endfor %}
+                  </select>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Calendar grid -->
+            <div class="cal-grid">
+              {% for wd in weekday_names %}
+              <div class="cal-header">{{ wd }}</div>
+              {% endfor %}
+
+              {% for week in weeks %}
+                {% for cell in week %}
+                <div class="cal-cell{% if cell.day == 0 %} empty{% endif %}{% if cell.is_today %} today{% endif %}{% if cell.is_past and not cell.is_today %} past{% endif %}"
+                     data-day="{{ cell.day }}" data-date="{{ year }}-{{ month|stringformat:'02d' }}-{{ cell.day|stringformat:'02d' }}"
+                     data-event-ids="{% for e in cell.events %}{{ e.pk }}{% if not forloop.last %},{% endif %}{% endfor %}">
+
+                  {% if cell.day != 0 %}
+                    <div class="d-flex justify-content-between align-items-start">
+                      <span class="day-num{% if cell.is_today %} today-num{% endif %}">{{ cell.day }}</span>
+                    </div>
+
+                    {% for evt in cell.events %}
+                      {% if forloop.counter <= 3 %}
+                      <div class="evt-card{% if evt.is_overdue %} overdue{% endif %}"
+                           style="border-left-color: {% if evt.tags.all %}{{ evt.tags.all.0.color }}{% elif evt.is_overdue %}#dc3545{% else %}#bbb{% endif %};"
+                           onclick="openEventPopup({{ evt.pk }})">
+                        {% if evt.tags.all %}
+                        <div class="evt-tag-dots">
+                          {% for tag in evt.tags.all %}
+                          <span class="evt-tag-dot" style="background:{{ tag.color }};"></span>
+                          {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="evt-title">{{ evt.title|truncatechars:20 }}</div>
+                      </div>
+                      {% endif %}
+                    {% endfor %}
+
+                    {% if cell.events|length > 3 %}
+                      <div class="more-badge" onclick="openDayModal(this.closest('.cal-cell'))">
+                        +{{ cell.events|length|add:"-3" }} mais
+                      </div>
+                    {% endif %}
+                  {% endif %}
+                </div>
+                {% endfor %}
+              {% endfor %}
+            </div>
+
+            <div class="text-center mt-4">
+              <a href="{% url 'core:index' %}" class="btn btn-outline-secondary btn-sm" style="border-radius:4px;">
+                <i class="fa-solid fa-arrow-left me-1"></i>Voltar ao Início
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════
+           TRELLO EVENT POPUP
+           ═══════════════════════════════════════════════════ -->
+      <div class="popup-overlay" id="eventPopup" onclick="if(event.target===this)closePopup()">
+        <div class="popup-card" onclick="event.stopPropagation()">
+          <span class="popup-close" onclick="closePopup()">&times;</span>
+
+          <!-- Header -->
+          <div class="popup-header">
+            <input type="text" class="popup-title-input" id="popupTitle" placeholder="Título do evento"
+                   onblur="saveField('title', this.value)">
+            <div class="popup-meta">
+              <span class="status-pill" id="popupStatus"></span>
+              <span id="popupMeta" class="ms-2"></span>
+            </div>
+          </div>
+
+          <!-- Tags -->
+          <div class="popup-tags" id="popupTags"></div>
+
+          <!-- Body -->
+          <div class="popup-body">
+            <div class="popup-main">
+              <!-- Description -->
+              <div class="mb-3">
+                <div class="section-label"><i class="fa-solid fa-align-left me-1"></i> Descrição</div>
+                <textarea class="desc-area" id="popupDesc" placeholder="Adicione uma descrição..."
+                          onblur="saveField('description', this.value)"></textarea>
+              </div>
+
+              <!-- Date / Time -->
+              <div class="d-flex gap-3 mb-3 flex-wrap">
+                <div>
+                  <div class="section-label"><i class="fa-solid fa-calendar me-1"></i> Data</div>
+                  <input type="date" class="form-control form-control-sm" id="popupDate" style="border-radius:4px; width:160px;"
+                         onchange="saveField('event_date', this.value)">
+                </div>
+                <div>
+                  <div class="section-label"><i class="fa-solid fa-clock me-1"></i> Horário</div>
+                  <input type="time" class="form-control form-control-sm" id="popupTime" style="border-radius:4px; width:130px;"
+                         onchange="saveField('event_time', this.value)">
+                </div>
+              </div>
+
+              <!-- Attachments -->
+              <div class="mb-3">
+                <div class="section-label"><i class="fa-solid fa-paperclip me-1"></i> Anexos</div>
+                <ul class="att-list" id="popupAttachments"></ul>
+                <div class="mt-2">
+                  <label class="side-btn" style="display:inline-block; width:auto; cursor:pointer;">
+                    <i class="fa-solid fa-upload"></i> Enviar arquivo
+                    <input type="file" id="popupFileInput" style="display:none;" onchange="uploadAttachment(this)">
+                  </label>
+                  <span class="text-muted" style="font-size:0.72rem;">Máx. 10 MB</span>
+                </div>
+              </div>
+
+              <!-- Lembretes (só no modo criação) -->
+              <div class="mb-3" id="popupRemindersSection" style="display:none;">
+                <div class="section-label"><i class="fa-solid fa-bell me-1"></i> Lembretes</div>
+                <div class="d-flex flex-wrap gap-2 mt-1" style="font-size:0.82rem;">
+                  <label class="d-flex align-items-center gap-1"><input type="checkbox" class="popup-reminder-cb" value="7"> 7 dias</label>
+                  <label class="d-flex align-items-center gap-1"><input type="checkbox" class="popup-reminder-cb" value="3" checked> 3 dias</label>
+                  <label class="d-flex align-items-center gap-1"><input type="checkbox" class="popup-reminder-cb" value="1" checked> 1 dia</label>
+                  <label class="d-flex align-items-center gap-1"><input type="checkbox" class="popup-reminder-cb" value="0" checked> No dia</label>
+                  <label class="d-flex align-items-center gap-1"><input type="checkbox" class="popup-reminder-cb" value="14"> 14 dias</label>
+                  <label class="d-flex align-items-center gap-1"><input type="checkbox" class="popup-reminder-cb" value="30"> 30 dias</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="popup-sidebar">
+              <div class="section-label">Ações</div>
+              <button class="side-btn" id="popupBtnTags" onclick="toggleTagPopover(event)"><i class="fa-solid fa-tag"></i> Etiquetas</button>
+              <button class="side-btn btn-green" id="popupBtnDone" onclick="markDone()"><i class="fa-solid fa-check"></i> Concluir</button>
+              <button class="side-btn" id="popupBtnCancel" onclick="markCancel()" style="background:#ffc107; color:#333;"><i class="fa-solid fa-ban"></i> Cancelar</button>
+              <button class="side-btn btn-red" id="popupBtnDelete" onclick="deleteEvent()"><i class="fa-solid fa-trash"></i> Excluir</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           TAG POPOVER
+           ═══════════════════════════════════════════════════ -->
+      <div class="tag-popover" id="tagPopover">
+        <h6>Etiquetas</h6>
+        <div id="tagOptionsList"></div>
+        <hr>
+        <div class="section-label" style="font-size:0.72rem;">Criar etiqueta</div>
+        <div class="color-palette" id="tagColorPalette"></div>
+        <div class="tag-create-row">
+          <input type="text" id="newTagName" placeholder="Nome..." maxlength="60">
+          <button class="side-btn" style="width:auto; padding:5px 12px;" onclick="createTag()">+</button>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           DAY MODAL (>3 events)
+           ═══════════════════════════════════════════════════ -->
+      <div class="popup-overlay" id="dayModal" onclick="if(event.target===this)closeDayModal()" style="z-index:1050;">
+        <div class="popup-card" style="width:420px; padding: 24px;" onclick="event.stopPropagation()">
+          <span class="popup-close" onclick="closeDayModal()">&times;</span>
+          <h4 class="fw-bold mb-2" id="dayModalTitle"></h4>
+          <div id="dayModalEvents"></div>
+        </div>
+      </div>
+
+      <section class="py-0 bg-dark">
+        <div class="container">
+          <div class="row justify-content-md-between justify-content-evenly py-4">
+            <div class="col-12 col-sm-8 col-md-6 col-lg-auto text-center text-md-start">
+              <p class="fs--1 my-2 fw-light text-200">Todos os direitos reservados &copy; Roselar 2026</p>
+            </div>
+            <div class="col-12 col-sm-8 col-md-6">
+              <p class="fs--1 my-2 text-center text-md-end text-200">Feito com &hearts; pela Roselar</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/is_js@0.9.0/is.min.js"></script>
+    <script src="{% static 'assets/js/theme.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+
+    <script>
+    /* ═══════════════════════════════════════════════
+       GLOBALS
+       ═══════════════════════════════════════════════ */
+    const CSRF = '{{ csrf_token }}';
+    const IS_ADMIN = {{ is_admin|yesno:"true,false" }};
+    const TAG_COLORS = [
+      {% for val, label in tag_colors %}
+      { value: "{{ val }}", label: "{{ label }}" }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+    const DARK_TEXT = ["#0079bf","#eb5a46","#c377e0","#344563"];
+
+    let currentEvent = null;
+    let allTags = [];
+    let selectedTagColor = TAG_COLORS.length ? TAG_COLORS[0].value : "#61bd4f";
+    let isCreateMode = false;
+
+    function hdr(extra) { return Object.assign({ 'X-CSRFToken': CSRF }, extra || {}); }
+    function textColor(bg) { return DARK_TEXT.includes(bg) ? '#fff' : '#333'; }
+
+    /* ═══════════════════════════════════════════════
+       OPEN / POPULATE EVENT POPUP
+       ═══════════════════════════════════════════════ */
+    function openEventPopup(eventId) {
+      isCreateMode = false;
+      closeDayModal();
+      fetch('/calendario/api/evento/' + eventId + '/')
+        .then(r => r.json())
+        .then(ev => {
+          currentEvent = ev;
+          populatePopup(ev);
+          document.getElementById('eventPopup').classList.add('active');
+          hideSaveBtn();
+        });
+      refreshTags();
+    }
+
+    function populatePopup(ev) {
+      document.getElementById('popupTitle').value = ev.title;
+      document.getElementById('popupDesc').value = ev.description;
+      document.getElementById('popupDate').value = ev.event_date;
+      document.getElementById('popupTime').value = ev.event_time;
+
+      // Status
+      const sp = document.getElementById('popupStatus');
+      const isOver = ev.is_overdue && ev.status === 'PENDING';
+      sp.className = 'status-pill status-' + (isOver ? 'OVERDUE' : ev.status);
+      sp.textContent = isOver ? 'Atrasado' : ev.status_display;
+
+      // Meta
+      let meta = ev.event_type_display;
+      if (ev.customer) meta += ' · ' + ev.customer;
+      if (IS_ADMIN && ev.seller) meta += ' · ' + ev.seller;
+      if (ev.quote_number) meta += ' · Orç. ' + ev.quote_number;
+      document.getElementById('popupMeta').textContent = meta;
+
+      renderPopupTags(ev.tags || []);
+      renderAttachments(ev.attachments || []);
+
+      const done = (ev.status === 'DONE' || ev.status === 'CANCELED');
+      document.getElementById('popupBtnDone').style.display = done ? 'none' : '';
+      document.getElementById('popupBtnCancel').style.display = done ? 'none' : '';
+      document.getElementById('popupBtnTags').style.display = '';
+      document.getElementById('popupBtnDelete').style.display = '';
+      document.getElementById('popupFileInput').parentElement.style.display = '';
+
+      // Esconder lembretes no modo edição
+      document.getElementById('popupRemindersSection').style.display = 'none';
+    }
+
+    function renderPopupTags(tags) {
+      const c = document.getElementById('popupTags');
+      c.innerHTML = '';
+      tags.forEach(t => {
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.style.background = t.color;
+        chip.style.color = t.text_color;
+        chip.innerHTML = t.name + ' <span class="tag-x" onclick="event.stopPropagation(); toggleTag(' + t.id + ')">&times;</span>';
+        c.appendChild(chip);
+      });
+      const btn = document.createElement('button');
+      btn.className = 'add-tag-btn';
+      btn.innerHTML = '<i class="fa-solid fa-plus" style="font-size:0.7rem;"></i>';
+      btn.onclick = function(e) { toggleTagPopover(e); };
+      c.appendChild(btn);
+    }
+
+    function renderAttachments(atts) {
+      const ul = document.getElementById('popupAttachments');
+      ul.innerHTML = '';
+      if (!atts.length) {
+        ul.innerHTML = '<li style="font-size:0.82rem; color:#888; padding:4px;">Nenhum anexo.</li>';
+        return;
+      }
+      atts.forEach(a => {
+        const icon = a.content_type.startsWith('image/') ? 'fa-image' :
+                     a.content_type.includes('pdf') ? 'fa-file-pdf' : 'fa-file';
+        const li = document.createElement('li');
+        li.className = 'att-item';
+        li.innerHTML =
+          '<span class="att-icon"><i class="fa-solid ' + icon + '"></i></span>' +
+          '<div class="att-info"><div class="att-name">' + a.filename + '</div>' +
+          '<div class="att-meta">' + a.file_size_display + ' · ' + a.uploaded_at + '</div></div>' +
+          '<div class="d-flex gap-1">' +
+          '<a href="/calendario/api/anexo/' + a.id + '/download/" class="btn btn-sm btn-outline-dark" style="font-size:0.68rem; padding:2px 6px; border-radius:3px;"><i class="fa-solid fa-download"></i></a>' +
+          '<button class="btn btn-sm btn-outline-danger" style="font-size:0.68rem; padding:2px 6px; border-radius:3px;" onclick="deleteAttachment(' + a.id + ')"><i class="fa-solid fa-trash"></i></button>' +
+          '</div>';
+        ul.appendChild(li);
+      });
+    }
+
+    /* ═══════════════════════════════════════════════
+       SAVE FIELD (inline edit)
+       ═══════════════════════════════════════════════ */
+    function saveField(field, value) {
+      if (!currentEvent || isCreateMode) return;
+      const body = {};
+      body[field] = value;
+      fetch('/calendario/api/evento/' + currentEvent.id + '/salvar/', {
+        method: 'POST',
+        headers: hdr({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
+      }).then(r => r.json()).then(data => {
+        if (data.event) { currentEvent = data.event; populatePopup(data.event); }
+      });
+    }
+
+    /* ═══════════════════════════════════════════════
+       ACTIONS (done, cancel, delete)
+       ═══════════════════════════════════════════════ */
+    function markDone() {
+      if (!currentEvent) return;
+      fetch('/calendario/api/evento/' + currentEvent.id + '/concluir/', {
+        method: 'POST', headers: hdr(),
+      }).then(r => r.json()).then(data => {
+        if (data.event) { currentEvent = data.event; populatePopup(data.event); }
+      });
+    }
+    function markCancel() {
+      if (!currentEvent) return;
+      if (!confirm('Cancelar este evento?')) return;
+      fetch('/calendario/api/evento/' + currentEvent.id + '/cancelar/', {
+        method: 'POST', headers: hdr(),
+      }).then(r => r.json()).then(data => {
+        if (data.event) { currentEvent = data.event; populatePopup(data.event); }
+      });
+    }
+    function deleteEvent() {
+      if (!currentEvent) return;
+      if (!confirm('Excluir permanentemente este evento?')) return;
+      fetch('/calendario/api/evento/' + currentEvent.id + '/excluir/', {
+        method: 'POST', headers: hdr(),
+      }).then(r => r.json()).then(data => {
+        if (data.success) { closePopup(); location.reload(); }
+      });
+    }
+
+    /* ═══════════════════════════════════════════════
+       ATTACHMENTS
+       ═══════════════════════════════════════════════ */
+    function uploadAttachment(input) {
+      if (!currentEvent || !input.files.length) return;
+      const fd = new FormData();
+      fd.append('file', input.files[0]);
+      fetch('/calendario/api/evento/' + currentEvent.id + '/anexo/', {
+        method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: fd,
+      }).then(r => r.json()).then(data => {
+        if (data.attachment) {
+          currentEvent.attachments.push(data.attachment);
+          renderAttachments(currentEvent.attachments);
+        } else if (data.error) { alert(data.error); }
+        input.value = '';
+      });
+    }
+    function deleteAttachment(id) {
+      fetch('/calendario/api/anexo/' + id + '/excluir/', {
+        method: 'POST', headers: hdr(),
+      }).then(r => r.json()).then(data => {
+        if (data.success) {
+          currentEvent.attachments = currentEvent.attachments.filter(a => a.id !== id);
+          renderAttachments(currentEvent.attachments);
+        }
+      });
+    }
+
+    /* ═══════════════════════════════════════════════
+       TAGS POPOVER
+       ═══════════════════════════════════════════════ */
+    function refreshTags() {
+      fetch('/calendario/api/tags/').then(r => r.json()).then(data => {
+        allTags = data.tags || [];
+        renderTagOptions();
+      });
+    }
+
+    function toggleTagPopover(e) {
+      e.stopPropagation();
+      const pop = document.getElementById('tagPopover');
+      if (pop.classList.contains('show')) { pop.classList.remove('show'); return; }
+      const btn = e.currentTarget || e.target;
+      const rect = btn.getBoundingClientRect();
+      pop.style.left = Math.min(rect.left, window.innerWidth - 300) + 'px';
+      pop.style.top = (rect.bottom + 4) + 'px';
+      pop.classList.add('show');
+      renderTagOptions();
+      renderColorPalette();
+    }
+
+    function renderTagOptions() {
+      const c = document.getElementById('tagOptionsList');
+      c.innerHTML = '';
+      const evtTagIds = currentEvent ? (currentEvent.tags || []).map(t => t.id) : [];
+
+      allTags.forEach(tag => {
+        const active = evtTagIds.includes(tag.id);
+        const div = document.createElement('div');
+        div.className = 'tag-option';
+        div.innerHTML =
+          '<span class="tag-option-check">' + (active ? '<i class="fa-solid fa-check"></i>' : '') + '</span>' +
+          '<span class="tag-option-color" style="background:' + tag.color + '; color:' + textColor(tag.color) + ';">' + tag.name + '</span>' +
+          '<span class="tag-option-edit" title="Editar" onclick="event.stopPropagation(); editTag(' + tag.id + ')"><i class="fa-solid fa-pen" style="font-size:0.7rem;"></i></span>';
+        div.onclick = function() { toggleTag(tag.id); };
+        c.appendChild(div);
+      });
+      if (!allTags.length) {
+        c.innerHTML = '<p style="font-size:0.82rem; color:#888; text-align:center;">Nenhuma etiqueta. Crie abaixo!</p>';
+      }
+    }
+
+    function renderColorPalette() {
+      const c = document.getElementById('tagColorPalette');
+      c.innerHTML = '';
+      TAG_COLORS.forEach(col => {
+        const dot = document.createElement('span');
+        dot.className = 'color-dot-pick' + (col.value === selectedTagColor ? ' active' : '');
+        dot.style.background = col.value;
+        dot.title = col.label;
+        dot.onclick = function() { selectedTagColor = col.value; renderColorPalette(); };
+        c.appendChild(dot);
+      });
+    }
+
+    function toggleTag(tagId) {
+      if (!currentEvent) return;
+      fetch('/calendario/api/evento/' + currentEvent.id + '/tag/' + tagId + '/', {
+        method: 'POST', headers: hdr(),
+      }).then(r => r.json()).then(data => {
+        if (data.event) {
+          currentEvent = data.event;
+          renderPopupTags(data.event.tags);
+          renderTagOptions();
+        }
+      });
+    }
+
+    function createTag() {
+      const nameEl = document.getElementById('newTagName');
+      const name = nameEl.value.trim();
+      if (!name) return;
+      fetch('/calendario/api/tags/criar/', {
+        method: 'POST',
+        headers: hdr({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ name: name, color: selectedTagColor }),
+      }).then(r => r.json()).then(data => {
+        if (data.tag) {
+          allTags.push(data.tag);
+          nameEl.value = '';
+          renderTagOptions();
+          // Auto-assign to current event
+          if (currentEvent) toggleTag(data.tag.id);
+        }
+      });
+    }
+
+    function editTag(tagId) {
+      const tag = allTags.find(t => t.id === tagId);
+      if (!tag) return;
+      const newName = prompt('Novo nome para "' + tag.name + '":', tag.name);
+      if (newName === null || !newName.trim()) return;
+      fetch('/calendario/api/tags/' + tagId + '/salvar/', {
+        method: 'POST',
+        headers: hdr({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ name: newName.trim() }),
+      }).then(r => r.json()).then(data => {
+        if (data.tag) {
+          const idx = allTags.findIndex(t => t.id === tagId);
+          if (idx >= 0) allTags[idx] = data.tag;
+          renderTagOptions();
+          if (currentEvent) {
+            const ei = currentEvent.tags.findIndex(t => t.id === tagId);
+            if (ei >= 0) currentEvent.tags[ei] = data.tag;
+            renderPopupTags(currentEvent.tags);
+          }
+        }
+      });
+    }
+
+    /* ═══════════════════════════════════════════════
+       CREATE EVENT (reuses same popup)
+       ═══════════════════════════════════════════════ */
+    function openCreatePopup(prefillDate) {
+      isCreateMode = true;
+      currentEvent = null;
+
+      document.getElementById('popupTitle').value = '';
+      document.getElementById('popupDesc').value = '';
+      document.getElementById('popupDate').value = prefillDate || new Date().toISOString().slice(0, 10);
+      document.getElementById('popupTime').value = '';
+
+      const sp = document.getElementById('popupStatus');
+      sp.className = 'status-pill status-PENDING';
+      sp.textContent = 'Novo';
+      document.getElementById('popupMeta').textContent = '';
+
+      document.getElementById('popupTags').innerHTML = '<span style="font-size:0.82rem; color:#888;">Salve primeiro para adicionar etiquetas.</span>';
+      document.getElementById('popupAttachments').innerHTML = '<li style="font-size:0.82rem; color:#888; padding:4px;">Salve primeiro para anexar arquivos.</li>';
+
+      document.getElementById('popupBtnDone').style.display = 'none';
+      document.getElementById('popupBtnCancel').style.display = 'none';
+      document.getElementById('popupBtnTags').style.display = 'none';
+      document.getElementById('popupBtnDelete').style.display = 'none';
+      document.getElementById('popupFileInput').parentElement.style.display = 'none';
+
+      // Mostrar seção de lembretes no modo criação
+      document.getElementById('popupRemindersSection').style.display = '';
+      // Resetar checkboxes para padrão (3, 1, 0 marcados)
+      document.querySelectorAll('.popup-reminder-cb').forEach(cb => {
+        cb.checked = ['3', '1', '0'].includes(cb.value);
+      });
+
+      showSaveBtn();
+      document.getElementById('eventPopup').classList.add('active');
+      setTimeout(() => document.getElementById('popupTitle').focus(), 100);
+    }
+
+    function showSaveBtn() {
+      let btn = document.getElementById('popupBtnSave');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'popupBtnSave';
+        btn.className = 'side-btn btn-green';
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar';
+        btn.onclick = createEventFromPopup;
+        const sidebar = document.querySelector('.popup-sidebar');
+        sidebar.insertBefore(btn, sidebar.querySelector('.section-label').nextSibling);
+      }
+      btn.style.display = '';
+    }
+    function hideSaveBtn() {
+      const btn = document.getElementById('popupBtnSave');
+      if (btn) btn.style.display = 'none';
+    }
+
+    function createEventFromPopup() {
+      const title = document.getElementById('popupTitle').value.trim();
+      const eventDate = document.getElementById('popupDate').value;
+      if (!title || !eventDate) { alert('Título e data são obrigatórios.'); return; }
+
+      // Coletar lembretes selecionados
+      const reminders = [];
+      document.querySelectorAll('.popup-reminder-cb:checked').forEach(cb => {
+        reminders.push(parseInt(cb.value));
+      });
+
+      fetch('/calendario/api/evento/criar/', {
+        method: 'POST',
+        headers: hdr({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          title: title,
+          description: document.getElementById('popupDesc').value,
+          event_date: eventDate,
+          reminders: reminders,
+        }),
+      }).then(r => r.json()).then(data => {
+        if (data.event) {
+          isCreateMode = false;
+          currentEvent = data.event;
+          populatePopup(data.event);
+          hideSaveBtn();
+          refreshTags();
+        } else if (data.error) { alert(data.error); }
+      });
+    }
+
+    /* ═══════════════════════════════════════════════
+       CLOSE POPUP
+       ═══════════════════════════════════════════════ */
+    function closePopup() {
+      document.getElementById('eventPopup').classList.remove('active');
+      document.getElementById('tagPopover').classList.remove('show');
+      const hadEvent = !!currentEvent;
+      currentEvent = null;
+      isCreateMode = false;
+      hideSaveBtn();
+      if (hadEvent) location.reload(); // refresh calendar cards
+    }
+
+    /* ═══════════════════════════════════════════════
+       DAY MODAL (>3 events)
+       ═══════════════════════════════════════════════ */
+    function openDayModal(cell) {
+      const day = cell.dataset.day;
+      document.getElementById('dayModalTitle').textContent = 'Dia ' + day + ' — {{ month_name }}';
+
+      const ids = (cell.dataset.eventIds || '').split(',').filter(Boolean).map(Number);
+      const container = document.getElementById('dayModalEvents');
+      container.innerHTML = '';
+
+      if (!ids.length) {
+        container.innerHTML = '<p class="text-muted">Nenhum evento neste dia.</p>';
+      } else {
+        ids.forEach(id => {
+          const btn = document.createElement('button');
+          btn.className = 'side-btn mb-2';
+          btn.style.textAlign = 'left';
+          btn.innerHTML = '<i class="fa-solid fa-calendar-check me-2"></i>Carregando...';
+          btn.onclick = function() { openEventPopup(id); };
+          container.appendChild(btn);
+          fetch('/calendario/api/evento/' + id + '/').then(r => r.json()).then(ev => {
+            let tagDots = '';
+            if (ev.tags && ev.tags.length) {
+              tagDots = ev.tags.map(t => '<span style="display:inline-block;width:20px;height:5px;border-radius:2px;background:' + t.color + ';margin-right:2px;"></span>').join('');
+              tagDots = '<span style="margin-right:6px;">' + tagDots + '</span>';
+            }
+            btn.innerHTML = tagDots + '<i class="fa-solid fa-calendar-check me-2"></i>' + ev.title +
+              '<span style="float:right; font-size:0.72rem; color:#888;">' + ev.status_display + '</span>';
+          });
+        });
+      }
+      document.getElementById('dayModal').classList.add('active');
+    }
+    function closeDayModal() {
+      document.getElementById('dayModal').classList.remove('active');
+    }
+
+    /* ── Dismiss reminder ── */
+    function dismissReminder(id) {
+      fetch('/calendario/lembrete/' + id + '/dispensar/', {
+        method: 'POST', headers: hdr({ 'Content-Type': 'application/json' }),
+      }).then(r => r.json()).then(data => {
+        if (data.success) document.getElementById('reminder-' + id).style.display = 'none';
+      });
+    }
+
+    /* ── Keyboard ── */
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const tp = document.getElementById('tagPopover');
+        if (tp.classList.contains('show')) { tp.classList.remove('show'); return; }
+        if (document.getElementById('dayModal').classList.contains('active')) { closeDayModal(); return; }
+        closePopup();
+      }
+    });
+
+    /* Close tag popover on outside click */
+    document.addEventListener('click', function(e) {
+      const pop = document.getElementById('tagPopover');
+      if (pop.classList.contains('show') && !pop.contains(e.target) && !e.target.closest('.add-tag-btn') && !e.target.closest('#popupBtnTags')) {
+        pop.classList.remove('show');
+      }
+    });
+    </script>
+  </body>
+</html>

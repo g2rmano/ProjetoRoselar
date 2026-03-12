@@ -1,0 +1,92 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relatórios | Roselar</title>
+  <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>:root{--brand:#0A2640;}body{font-family:'Manrope',sans-serif;}.report-card{background:#fff;border:1px solid #dee2e6;border-radius:8px;padding:1.5rem;transition:box-shadow .2s,transform .15s;text-decoration:none;color:inherit;display:block;}.report-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.1);transform:translateY(-2px);color:inherit;}.report-card .icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:#fff;margin-bottom:.75rem;}</style>
+</head>
+<body>
+  <main class="main" id="top">
+    <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+      <div class="container">
+        <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;"></a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"><i class="fa-solid fa-bars text-white fs-3"></i></button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav ms-auto align-items-center">
+            <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Início</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'core:dashboard' %}">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
+            <li class="nav-item"><a class="nav-link active" href="{% url 'core:reports_hub' %}">Relatórios</a></li>
+            <li class="nav-item ms-2">
+              <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button"><span class="me-2">{{ user.username }}</span></button>
+              <div id="dropdownUser" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-72">
+                <div class="px-4 py-3 text-sm text-gray-900"><div class="font-medium">{{ user.username }}</div></div>
+                <ul class="py-2 text-sm text-gray-700"><li><a href="{% url 'core:dashboard' %}" class="block px-4 py-2 hover:bg-gray-100"><i class="fa-solid fa-user me-2"></i>Minha Conta</a></li></ul>
+                <div class="py-2"><a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">Sair</a></div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <section class="py-5" style="min-height:100vh;">
+      <div style="position:absolute;top:0;left:0;right:0;height:30vh;background:var(--brand);z-index:-1;"></div>
+      <div class="container" style="margin-top:80px;">
+        <div class="bg-white shadow-sm p-4 mb-4" style="border-radius:8px;">
+          <h4 class="fw-bold mb-0" style="color:var(--brand);"><i class="fa-solid fa-chart-bar me-2"></i>Central de Relatórios</h4>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-md-6 col-lg-3">
+            <a href="{% url 'core:report_sales' %}" class="report-card">
+              <div class="icon" style="background:#198754;"><i class="fa-solid fa-dollar-sign"></i></div>
+              <h5 class="fw-bold">Vendas</h5>
+              <p class="text-muted small mb-0">Relatório de vendas por período e vendedor com totais.</p>
+            </a>
+          </div>
+          <div class="col-md-6 col-lg-3">
+            <a href="{% url 'core:report_commissions' %}" class="report-card">
+              <div class="icon" style="background:#0d6efd;"><i class="fa-solid fa-percent"></i></div>
+              <h5 class="fw-bold">Comissões</h5>
+              <p class="text-muted small mb-0">Comissão estimada por vendedor baseada em margem.</p>
+            </a>
+          </div>
+          <div class="col-md-6 col-lg-3">
+            <a href="{% url 'core:report_discounts' %}" class="report-card">
+              <div class="icon" style="background:#ffc107;"><i class="fa-solid fa-tags"></i></div>
+              <h5 class="fw-bold">Descontos</h5>
+              <p class="text-muted small mb-0">Análise de descontos concedidos e autorizações.</p>
+            </a>
+          </div>
+          <div class="col-md-6 col-lg-3">
+            <a href="{% url 'core:report_products' %}" class="report-card">
+              <div class="icon" style="background:#6f42c1;"><i class="fa-solid fa-box"></i></div>
+              <h5 class="fw-bold">Produtos</h5>
+              <p class="text-muted small mb-0">Ranking de produtos mais vendidos por valor.</p>
+            </a>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <a href="{% url 'core:report_csv_export' %}" class="btn btn-outline-dark"><i class="fa-solid fa-file-csv me-1"></i>Exportar Vendas (CSV)</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="pt-4 pb-3" style="background:var(--brand);color:#fff;"><div class="container text-center"><p class="mb-0">&copy; 2026 Roselar.</p></div></section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+  <script src="{% static 'assets/js/theme.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+</body>
+</html>
