@@ -24,7 +24,6 @@ from .models import (
     Notification, NotificationType,
     AuditLog, AuditAction,
     SalesGoal, GoalType,
-    Lead, LeadStage, LeadSource, LeadInteraction,
     CommunicationHistory,
     QuoteTemplate, QuoteTemplateItem,
 )
@@ -147,7 +146,6 @@ def home(request):
         bi_team_chart_labels = bi_team_chart_values = bi_team_chart_counts = []
         bi_status_labels = bi_status_values = []
         bi_prod_labels = bi_prod_values = []
-        bi_funnel_labels = bi_funnel_values = []
         bi_seller_labels = bi_seller_values = bi_seller_counts = []
         bi_disc_labels = bi_disc_values = []
         bi_top_products = []
@@ -214,14 +212,6 @@ def home(request):
             bi_prod_labels = [p["product_name"][:25] for p in bi_top_products]
             bi_prod_values = [float(p["total_revenue"] or 0) for p in bi_top_products]
 
-            # ── BI: Leads funnel ──
-            from .models import LeadStage as LS
-            bi_leads_funnel = dict(
-                Lead.objects.values_list("stage").annotate(c=Count("id")).values_list("stage", "c")
-            )
-            bi_funnel_labels = [LS(s).label for s in [LS.NEW, LS.CONTACTED, LS.QUOTE_SENT, LS.NEGOTIATION, LS.WON, LS.LOST]]
-            bi_funnel_values = [bi_leads_funnel.get(s, 0) for s in [LS.NEW, LS.CONTACTED, LS.QUOTE_SENT, LS.NEGOTIATION, LS.WON, LS.LOST]]
-
             # ── BI: Seller comparison (bar chart) ──
             bi_seller_labels = [s["seller__username"] for s in seller_ranking]
             bi_seller_values = [float(s["total"] or 0) for s in seller_ranking]
@@ -276,8 +266,6 @@ def home(request):
             "bi_status_values_json": json.dumps(bi_status_values),
             "bi_prod_labels_json": json.dumps(bi_prod_labels),
             "bi_prod_values_json": json.dumps(bi_prod_values),
-            "bi_funnel_labels_json": json.dumps(bi_funnel_labels),
-            "bi_funnel_values_json": json.dumps(bi_funnel_values),
             "bi_seller_labels_json": json.dumps(bi_seller_labels),
             "bi_seller_values_json": json.dumps(bi_seller_values),
             "bi_seller_counts_json": json.dumps(bi_seller_counts),
@@ -425,14 +413,6 @@ def dashboard(request):
     # ── Notifications count ──
     unread_count = Notification.objects.filter(recipient=user, read=False).count()
 
-    # ── Leads summary ──
-    leads_by_stage = dict(
-        Lead.objects.filter(seller=user)
-        .values_list("stage")
-        .annotate(c=Count("id"))
-        .values_list("stage", "c")
-    )
-
     # ── Avg discount ──
     avg_discount = (
         my_converted_month.aggregate(avg=Avg("discount_percent"))["avg"] or 0
@@ -470,7 +450,6 @@ def dashboard(request):
         "upcoming_deliveries": upcoming_deliveries,
         "overdue_events": overdue_events,
         "unread_count": unread_count,
-        "leads_by_stage": leads_by_stage,
     }
     return render(request, "core/dashboard.html", context)
 
@@ -582,14 +561,6 @@ def global_search(request):
             "url": f"/sales/orders/{o.id}/",
         })
 
-    # Leads
-    for lead in Lead.objects.filter(Q(name__icontains=q) | Q(phone__icontains=q))[:3]:
-        results.append({
-            "type": "Lead",
-            "title": str(lead),
-            "url": f"/leads/{lead.id}/",
-        })
-
     return JsonResponse({"results": results})
 
 
@@ -638,131 +609,6 @@ def notification_mark_all_read(request):
         read=True, read_at=timezone.now()
     )
     return JsonResponse({"ok": True})
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Leads & Pipeline
-# ──────────────────────────────────────────────────────────────────────
-@login_required
-def leads_pipeline(request):
-    user = request.user
-    is_admin = user.role in (Role.ADMIN, Role.OWNER) or user.is_superuser
-
-    qs = Lead.objects.select_related("seller", "customer").all()
-    if not is_admin:
-        qs = qs.filter(seller=user)
-
-    stages = LeadStage.choices
-    pipeline = {value: [] for value, label in stages}
-    for lead in qs:
-        pipeline.setdefault(lead.stage, []).append(lead)
-
-    stage_counts = {value: len(pipeline.get(value, [])) for value, label in stages}
-
-    return render(request, "core/leads_pipeline.html", {
-        "pipeline": pipeline,
-        "stages": stages,
-        "stage_counts": stage_counts,
-        "is_admin": is_admin,
-        "sources": LeadSource.choices,
-    })
-
-
-@login_required
-@require_http_methods(["POST"])
-def lead_create(request):
-    name = request.POST.get("name", "").strip()
-    if not name:
-        messages.error(request, "Nome é obrigatório.")
-        return redirect("core:leads_pipeline")
-
-    lead = Lead.objects.create(
-        name=name,
-        phone=request.POST.get("phone", ""),
-        email=request.POST.get("email", ""),
-        source=request.POST.get("source", "OTHER"),
-        seller=request.user,
-        products_of_interest=request.POST.get("products_of_interest", ""),
-        estimated_budget=request.POST.get("estimated_budget") or None,
-        notes=request.POST.get("notes", ""),
-    )
-    AuditLog.log(request.user, AuditAction.CREATE_LEAD, f"Lead criado: {lead.name}", obj=lead,
-                 ip_address=request.META.get("REMOTE_ADDR"))
-
-    Notification.send(
-        request.user, f"Novo lead: {lead.name}",
-        NotificationType.NEW_LEAD, url=f"/leads/{lead.id}/",
-    )
-
-    messages.success(request, f"Lead '{lead.name}' criado.")
-    return redirect("core:leads_pipeline")
-
-
-@login_required
-def lead_detail(request, pk):
-    lead = get_object_or_404(Lead.objects.select_related("seller", "customer", "quote"), pk=pk)
-    interactions = lead.interactions.select_related("created_by").all()
-
-    if request.method == "POST":
-        action = request.POST.get("action")
-
-        if action == "add_interaction":
-            LeadInteraction.objects.create(
-                lead=lead,
-                channel=request.POST.get("channel", "OTHER"),
-                summary=request.POST.get("summary", ""),
-                created_by=request.user,
-            )
-            lead.last_interaction = timezone.now()
-            lead.save(update_fields=["last_interaction"])
-            messages.success(request, "Interação registrada.")
-
-        elif action == "change_stage":
-            new_stage = request.POST.get("stage")
-            if new_stage in dict(LeadStage.choices):
-                lead.stage = new_stage
-                lead.save(update_fields=["stage", "updated_at"])
-                messages.success(request, f"Estágio alterado para {lead.get_stage_display()}.")
-
-        elif action == "convert_to_customer":
-            if not lead.customer:
-                customer = Customer.objects.create(
-                    name=lead.name,
-                    phone=lead.phone,
-                    email=lead.email,
-                    cpf="",
-                    cnpj="",
-                )
-                lead.customer = customer
-                lead.stage = LeadStage.WON
-                lead.save(update_fields=["customer", "stage", "updated_at"])
-                AuditLog.log(request.user, AuditAction.CONVERT_LEAD,
-                             f"Lead convertido em cliente: {lead.name}", obj=lead)
-                messages.success(request, f"Lead convertido em cliente '{customer.name}'.")
-            else:
-                messages.info(request, "Lead já possui cliente vinculado.")
-
-        return redirect("core:lead_detail", pk=pk)
-
-    return render(request, "core/lead_detail.html", {
-        "lead": lead,
-        "interactions": interactions,
-        "stages": LeadStage.choices,
-        "channels": LeadInteraction.CHANNEL_CHOICES,
-    })
-
-
-@login_required
-@require_http_methods(["POST"])
-def lead_update_stage_api(request, pk):
-    """AJAX endpoint for drag-and-drop stage change."""
-    lead = get_object_or_404(Lead, pk=pk)
-    new_stage = request.POST.get("stage", "")
-    if new_stage in dict(LeadStage.choices):
-        lead.stage = new_stage
-        lead.save(update_fields=["stage", "updated_at"])
-        return JsonResponse({"ok": True, "stage": new_stage})
-    return JsonResponse({"ok": False, "error": "Estágio inválido"}, status=400)
 
 
 # ──────────────────────────────────────────────────────────────────────

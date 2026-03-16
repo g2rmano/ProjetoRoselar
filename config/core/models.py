@@ -304,7 +304,6 @@ class NotificationType(models.TextChoices):
     QUOTE_NO_RESPONSE = "QUOTE_NO_RESPONSE", "Orçamento sem resposta"
     GOAL_NEAR = "GOAL_NEAR", "Meta próxima de ser atingida"
     DISCOUNT_AUTH = "DISCOUNT_AUTH", "Desconto autorizado"
-    NEW_LEAD = "NEW_LEAD", "Novo lead atribuído"
     ORDER_CONFIRMED = "ORDER_CONFIRMED", "Pedido confirmado"
     GENERAL = "GENERAL", "Geral"
 
@@ -366,8 +365,6 @@ class AuditAction(models.TextChoices):
     APPROVE_DISCOUNT = "APPROVE_DISCOUNT", "Aprovar desconto"
     CONVERT_ORDER = "CONVERT_ORDER", "Converter em pedido"
     EDIT_VALUES = "EDIT_VALUES", "Editar valores"
-    CREATE_LEAD = "CREATE_LEAD", "Criar lead"
-    CONVERT_LEAD = "CONVERT_LEAD", "Converter lead"
     SAVE_CONDITIONS = "SAVE_CONDITIONS", "Salvar condições"
     LOGIN = "LOGIN", "Login"
     OTHER = "OTHER", "Outro"
@@ -383,7 +380,7 @@ class AuditLog(models.Model):
     )
     action = models.CharField(max_length=20, choices=AuditAction.choices, verbose_name="Ação")
     description = models.TextField(blank=True, verbose_name="Descrição")
-    object_type = models.CharField(max_length=50, blank=True, verbose_name="Tipo de Objeto", help_text="Ex: Quote, Order, Lead")
+    object_type = models.CharField(max_length=50, blank=True, verbose_name="Tipo de Objeto", help_text="Ex: Quote, Order")
     object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name="ID do Objeto")
     ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP")
     extra_data = models.JSONField(default=dict, blank=True, verbose_name="Dados Extras")
@@ -462,113 +459,6 @@ class SalesGoal(models.Model):
         if self.seller:
             return f"Meta {self.seller.username} {self.period_start:%m/%Y} – R${self.target_value}"
         return f"Meta Coletiva {self.period_start:%m/%Y} – R${self.target_value}"
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Leads and Sales Funnel
-# ──────────────────────────────────────────────────────────────────────
-
-class LeadSource(models.TextChoices):
-    PHONE = "PHONE", "Telefone"
-    WHATSAPP = "WHATSAPP", "WhatsApp"
-    WEBSITE = "WEBSITE", "Site"
-    REFERRAL = "REFERRAL", "Indicação"
-    WALK_IN = "WALK_IN", "Visita à loja"
-    INSTAGRAM = "INSTAGRAM", "Instagram"
-    OTHER = "OTHER", "Outro"
-
-
-class LeadStage(models.TextChoices):
-    NEW = "NEW", "Novo"
-    CONTACTED = "CONTACTED", "Contato Feito"
-    QUOTE_SENT = "QUOTE_SENT", "Orçamento Enviado"
-    NEGOTIATION = "NEGOTIATION", "Em Negociação"
-    WON = "WON", "Ganho"
-    LOST = "LOST", "Perdido"
-
-
-class Lead(models.Model):
-    name = models.CharField(max_length=120, verbose_name="Nome")
-    phone = models.CharField(max_length=30, blank=True, verbose_name="Telefone")
-    email = models.EmailField(blank=True, verbose_name="E-mail")
-    source = models.CharField(max_length=12, choices=LeadSource.choices, default=LeadSource.OTHER, verbose_name="Origem")
-    stage = models.CharField(max_length=12, choices=LeadStage.choices, default=LeadStage.NEW, verbose_name="Estágio")
-
-    seller = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="leads",
-    )
-    customer = models.ForeignKey(
-        "core.Customer",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="leads",
-        help_text="Cliente vinculado (após conversão)",
-    )
-    quote = models.ForeignKey(
-        "sales.Quote",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="leads",
-        help_text="Orçamento vinculado (se houver)",
-    )
-
-    products_of_interest = models.TextField(blank=True, help_text="Produtos de interesse")
-    estimated_budget = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True,
-        help_text="Faixa de orçamento estimado",
-    )
-    notes = models.TextField(blank=True)
-
-    last_interaction = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["-updated_at"]
-        verbose_name = "Lead"
-        verbose_name_plural = "Leads"
-        indexes = [
-            models.Index(fields=["stage"]),
-            models.Index(fields=["seller"]),
-        ]
-
-    def __str__(self):
-        return f"{self.name} ({self.get_stage_display()})"
-
-
-class LeadInteraction(models.Model):
-    """Histórico de interações com um lead."""
-    CHANNEL_CHOICES = [
-        ("PHONE", "Telefone"),
-        ("WHATSAPP", "WhatsApp"),
-        ("EMAIL", "E-mail"),
-        ("IN_PERSON", "Presencial"),
-        ("OTHER", "Outro"),
-    ]
-
-    lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name="interactions")
-    channel = models.CharField(max_length=12, choices=CHANNEL_CHOICES, default="OTHER")
-    summary = models.TextField(help_text="Resumo da interação")
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        on_delete=models.SET_NULL,
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-        verbose_name = "Interação com Lead"
-        verbose_name_plural = "Interações com Leads"
-
-    def __str__(self):
-        return f"{self.lead.name} - {self.get_channel_display()} ({self.created_at:%d/%m})"
 
 
 # ──────────────────────────────────────────────────────────────────────

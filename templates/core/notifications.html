@@ -32,7 +32,6 @@
             <li class="nav-item"><a class="nav-link" href="{% url 'core:dashboard' %}">Dashboard</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'calendar_app:calendar' %}">Calendário</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'core:leads_pipeline' %}">Leads</a></li>
             <li class="nav-item"><a class="nav-link active" href="{% url 'core:notifications_list' %}"><i class="fa-solid fa-bell"></i></a></li>
             <li class="nav-item ms-2">
               <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
@@ -65,8 +64,8 @@
         <div class="bg-white shadow-sm" style="border-radius:8px; overflow:hidden;">
           {% for n in notifications %}
           <div class="notif-item d-flex align-items-start gap-3 {% if not n.read %}unread{% endif %}" id="notif-{{ n.id }}">
-            <div class="notif-icon" style="background:{% if n.notification_type == 'ORDER_CONFIRMED' %}#198754{% elif n.notification_type == 'DELIVERY_NEAR' %}#0d6efd{% elif n.notification_type == 'QUOTE_NO_RESPONSE' %}#ffc107{% elif n.notification_type == 'NEW_LEAD' %}#6f42c1{% else %}#6c757d{% endif %};">
-              <i class="fa-solid {% if n.notification_type == 'ORDER_CONFIRMED' %}fa-check{% elif n.notification_type == 'DELIVERY_NEAR' %}fa-truck{% elif n.notification_type == 'QUOTE_NO_RESPONSE' %}fa-clock{% elif n.notification_type == 'NEW_LEAD' %}fa-user-plus{% else %}fa-bell{% endif %}"></i>
+            <div class="notif-icon" style="background:{% if n.notification_type == 'ORDER_CONFIRMED' %}#198754{% elif n.notification_type == 'DELIVERY_NEAR' %}#0d6efd{% elif n.notification_type == 'QUOTE_NO_RESPONSE' %}#ffc107{% else %}#6c757d{% endif %};">
+              <i class="fa-solid {% if n.notification_type == 'ORDER_CONFIRMED' %}fa-check{% elif n.notification_type == 'DELIVERY_NEAR' %}fa-truck{% elif n.notification_type == 'QUOTE_NO_RESPONSE' %}fa-clock{% else %}fa-bell{% endif %}"></i>
             </div>
             <div class="flex-grow-1">
               <div class="d-flex justify-content-between">

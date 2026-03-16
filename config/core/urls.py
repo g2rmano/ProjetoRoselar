@@ -23,12 +23,6 @@ urlpatterns = [
     path("api/notifications/<int:pk>/read/", views.notification_mark_read, name="notification_mark_read"),
     path("api/notifications/mark-all-read/", views.notification_mark_all_read, name="notification_mark_all_read"),
 
-    # Leads
-    path("leads/", views.leads_pipeline, name="leads_pipeline"),
-    path("leads/novo/", views.lead_create, name="lead_create"),
-    path("leads/<int:pk>/", views.lead_detail, name="lead_detail"),
-    path("api/leads/<int:pk>/stage/", views.lead_update_stage_api, name="lead_update_stage_api"),
-
     # Communication History
     path("comunicacao/adicionar/", views.add_communication, name="add_communication"),
 

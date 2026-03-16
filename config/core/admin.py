@@ -3,7 +3,7 @@ from .models import (
     Customer, Supplier, SupplierPaymentOption, ShippingCompany,
     PaymentTariff, ArchitectCommission, SalesMarginConfig,
     Notification, AuditLog, SalesGoal,
-    Lead, LeadInteraction, CommunicationHistory,
+    CommunicationHistory,
     QuoteTemplate, QuoteTemplateItem,
 )
 
@@ -156,29 +156,6 @@ class SalesGoalAdmin(AdminOnly, admin.ModelAdmin):
     fieldsets = (
         ("Tipo e Período", {"fields": ("goal_type", "seller", "period", "period_start", "period_end")}),
         ("Metas", {"fields": ("target_value", "target_quantity")}),
-    )
-
-
-# ── Leads ─────────────────────────────────────────────────────────────
-class LeadInteractionInline(admin.TabularInline):
-    model = LeadInteraction
-    extra = 0
-    verbose_name = "Interação"
-    verbose_name_plural = "Histórico de Interações"
-    readonly_fields = ("created_at",)
-
-
-@admin.register(Lead)
-class LeadAdmin(SellerAccess, admin.ModelAdmin):
-    list_display = ("name", "stage", "source", "seller", "created_at")
-    list_filter = ("stage", "source")
-    search_fields = ("name", "phone", "email")
-    raw_id_fields = ("seller", "customer", "quote")
-    inlines = [LeadInteractionInline]
-    fieldsets = (
-        ("Dados do Lead", {"fields": ("name", "phone", "email", "source", "stage")}),
-        ("Vendedor e Vínculos", {"fields": ("seller", "customer", "quote")}),
-        ("Detalhes", {"fields": ("products_of_interest", "estimated_budget", "notes")}),
     )
 
 
