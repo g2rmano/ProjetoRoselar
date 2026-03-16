@@ -328,12 +328,53 @@
                         <i class="fa-solid fa-info-circle me-2"></i>
                         <strong>Pronto para converter?</strong> Transforme este orçamento em pedidos por fornecedor.
                       </div>
-                      <form method="post" action="{% url 'sales:quote_convert' quote.id %}" onsubmit="return confirm('Tem certeza que deseja converter este orçamento em pedidos? Esta ação não pode ser desfeita.');">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-success">
-                          <i class="fa-solid fa-exchange-alt me-2"></i>Converter em Pedidos
-                        </button>
-                      </form>
+                      <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#convertModal">
+                        <i class="fa-solid fa-exchange-alt me-2"></i>Converter em Pedidos
+                      </button>
+                    </div>
+
+                    <!-- Convert Modal -->
+                    <div class="modal fade" id="convertModal" tabindex="-1" aria-labelledby="convertModalLabel" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <div class="modal-content" style="border-radius:0;">
+                          <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title" id="convertModalLabel">
+                              <i class="fa-solid fa-exchange-alt me-2"></i>Converter em Pedidos
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                          </div>
+                          <form method="post" action="{% url 'sales:quote_convert' quote.id %}">
+                            {% csrf_token %}
+                            <div class="modal-body">
+                              <p class="text-muted mb-3">
+                                Defina a <strong>data real de entrega</strong> acordada com o cliente antes de confirmar.
+                              </p>
+                              <div class="mb-3">
+                                <label for="real-delivery-date" class="form-label fw-bold">
+                                  Data Real de Entrega <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" id="real-delivery-date" name="delivery_deadline"
+                                       class="form-control" required
+                                       min="{{ today|date:'Y-m-d' }}">
+                                <small class="text-muted">
+                                  Prazo estimado no orçamento:
+                                  {% if quote.delivery_weeks %}
+                                    <strong>{{ quote.delivery_weeks }} semana{% if quote.delivery_weeks > 1 %}s{% endif %}</strong>
+                                  {% else %}
+                                    <em>não definido</em>
+                                  {% endif %}
+                                </small>
+                              </div>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                              <button type="submit" class="btn btn-success">
+                                <i class="fa-solid fa-check me-1"></i>Confirmar Conversão
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
                     </div>
                   {% endif %}
                 {% endif %}

@@ -81,22 +81,9 @@
       width: 2px; height: 8px; background: var(--brand); opacity: .5;
     }
 
-    /* ── installments slider (simple) ── */
-    .inst-slider-wrap input[type=range] {
-      -webkit-appearance: none; appearance: none;
-      width: 100%; height: 6px; outline: none; border-radius: 0; cursor: pointer;
-      background: linear-gradient(to right, var(--green) 0%, var(--yellow) 50%, var(--orange) 100%);
-    }
-    .inst-slider-wrap input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
-      background: #fff; border: 3px solid var(--brand);
-      box-shadow: 0 2px 5px rgba(0,0,0,.2); cursor: pointer;
-    }
-    .inst-slider-wrap input[type=range]::-moz-range-thumb {
-      width: 20px; height: 20px; border-radius: 50%;
-      background: #fff; border: 3px solid var(--brand);
-      box-shadow: 0 2px 5px rgba(0,0,0,.2); cursor: pointer;
-    }
+    /* ── installments dropdown ── */
+    #inst-select option.opt-penalty { color: var(--red); font-weight: 700; }
+    #inst-select option.opt-normal  { color: var(--brand); }
 
     /* ── rule tables ── */
     .rtable { width: 100%; border-collapse: collapse; font-size: .82rem; }
@@ -167,6 +154,7 @@
                   <i class="fa-solid fa-arrow-left me-1"></i>Voltar
                 </a>
               </div>
+
             </div>
 
             <!-- ═══════════════════════════════════════════════════════════ -->
@@ -253,19 +241,7 @@
                   </div>
                 </div>
 
-                <!-- Discount rule table -->
-                <div class="table-responsive mt-3">
-                  <table class="rtable" id="disc-table">
-                    <thead>
-                      <tr>
-                        <th>Desconto dado</th>
-                        <th>Comissão do Vendedor</th>
-                        <th>Observação</th>
-                      </tr>
-                    </thead>
-                    <tbody></tbody>
-                  </table>
-                </div>
+
               </div>
 
               <!-- ─────────────────────────────────────────────────────── -->
@@ -281,7 +257,7 @@
                 {% if price_increase_pct > 0 and not installment_penalty %}<div class="unlock-box"><i class="fa-solid fa-unlock text-success me-1"></i><strong>+{{ price_increase_pct }}% aplicado:</strong> Até <strong>{{ max_installments_unlocked }}x</strong> disponível (8x+ com comissão de {% if is_cash_pix %}2,5%{% else %}2%{% endif %}).</div>{% endif %}
                 </div>
 
-                <!-- Payment type selector -->
+                <!-- Payment type + Parcelas row -->
                 <div class="row mb-3 align-items-end">
                   <div class="col-md-5">
                     <label class="fw-bold mb-1" style="color: var(--brand); font-size: .88rem;">
@@ -294,36 +270,20 @@
                       {% endfor %}
                     </select>
                   </div>
+
+                  <div class="col-md-4" id="inst-dropdown-row">
+                    <label class="fw-bold mb-1" style="color: var(--brand); font-size: .88rem;">
+                      <i class="fa-solid fa-hashtag me-1"></i>Parcelas
+                      <span id="max-inst-display" style="font-size:.78rem;color:var(--gray);font-weight:400;margin-left:.3rem;"></span>
+                    </label>
+                    <select id="inst-select" class="form-select" onchange="onInstChange(this.value); scheduleSubmit();"></select>
+                  </div>
+
                   <div class="col-md-3">
                     <div class="sim-card mb-0 py-2 px-3" style="border-left: 3px solid var(--brand);">
                       <div class="lbl mb-0">Taxa do Pagamento</div>
                       <div class="val" style="font-size: 1.05rem;" id="fee-display">{{ payment_fee_percent }}%</div>
                     </div>
-                  </div>
-                </div>
-
-                <!-- Installments slider -->
-                <div class="mb-2">
-                  <div class="d-flex justify-content-between mb-1">
-                    <span class="fw-bold" style="color: var(--brand);">
-                      Parcelas: <span id="inst-disp">{{ sim_installments }}x{% if sim_installments == 1 %} (À vista){% endif %}</span>
-                    </span>
-                    <span style="color: var(--gray); font-size: .82rem;">
-                      Liberado: <strong id="max-inst-display">{{ max_installments_unlocked }}x</strong>
-                    </span>
-                  </div>
-                  <div class="inst-slider-wrap">
-                    <input type="range" id="inst-slider"
-                           min="1" max="{{ max_installments_unlocked }}"
-                           value="{{ sim_installments }}"
-                           oninput="onInstChange(this.value)"
-                           onmouseup="scheduleSubmit()" ontouchend="scheduleSubmit()">
-                  </div>
-                  <div class="d-flex justify-content-between mt-1" style="font-size: .72rem; color: var(--gray);">
-                    <span>1x → 5%</span>
-                    <span>2x → 4%</span>
-                    <span style="color:var(--orange);">7x → 3% (piso e máx. sem acréscimo)</span>
-                    <span style="color:var(--red);">8x+ c/ acréscimo → 2%</span>
                   </div>
                 </div>
 
@@ -412,6 +372,8 @@
                     <div style="text-align: right;">
                       <div class="lbl">Pagamento</div>
                       <div style="font-size: 1rem;">{{ sim_payment_description }}</div>
+                      <div class="lbl mt-2">Valor da Parcela</div>
+                      <div style="font-size: 1.1rem; font-weight: 700;">{{ sim_installments }}x de R$ {{ installment_value|floatformat:2 }}</div>
                     </div>
                   </div>
                 </div>
@@ -577,15 +539,21 @@
     document.getElementById('live-preinc-val').textContent   = priceIncR.toFixed(1) + '%';
     document.getElementById('live-maxinst-val').textContent  = maxInst + 'x';
 
-    // Clamp installments slider
-    var instSlider = document.getElementById('inst-slider');
-    instSlider.max = maxInst;
-    document.getElementById('max-inst-display').textContent = maxInst + 'x';
-    if (parseInt(instSlider.value) > maxInst) instSlider.value = maxInst;
-    onInstChange(instSlider.value, false);
+    // Rebuild installment dropdown options
+    var instSel = document.getElementById('inst-select');
+    var curVal  = parseInt(instSel.value) || 1;
+    instSel.innerHTML = '';
+    for (var n = 1; n <= maxInst; n++) {
+      var opt = document.createElement('option');
+      opt.value = n;
+      opt.className = n > 7 ? 'opt-penalty' : 'opt-normal';
+      opt.textContent = n === 1 ? '1x \u2014 \u00c0 vista (5%)' : (n <= 7 ? n + 'x' : n + 'x \u26a0');
+      if (n === Math.min(curVal, maxInst)) opt.selected = true;
+      instSel.appendChild(opt);
+    }
+    document.getElementById('max-inst-display').textContent = 'm\u00e1x. ' + maxInst + 'x';
+    onInstChange(Math.min(curVal, maxInst), false);
 
-    // Build discount table
-    buildDiscTable(discount);
     paintUnifiedSlider(val);
 
     // Update hidden fields
@@ -598,8 +566,6 @@
     val = parseInt(val);
     var priceIncR = parseFloat(document.getElementById('h-price-inc').value || '0');
     var maxInst   = maxInstFromRaw(priceIncR);
-    var txt = val + 'x' + (val === 1 ? ' (À vista)' : '');
-    document.getElementById('inst-disp').textContent = txt;
     document.getElementById('h-installments').value = val;
     updateFeeDisplay(val);
     buildInstTable(val, maxInst, priceIncR);
@@ -608,9 +574,14 @@
   // ── Payment type change ───────────────────────────────────────────────────
   function onPaymentTypeChange() {
     var pt = document.getElementById('sel-ptype').value;
-    document.getElementById('h-ptype').value = pt;
-    var instSlider = document.getElementById('inst-slider');
-    updateFeeDisplay(parseInt(instSlider.value));
+    document.getElementById('h-ptype').value = pt;    var isCreditCard = (pt === 'CREDIT_CARD');
+    var instRow = document.getElementById('inst-dropdown-row');
+    instRow.style.display = isCreditCard ? '' : 'none';
+    if (!isCreditCard) {
+      // Force 1x for non-credit-card
+      document.getElementById('inst-select').value = 1;
+      document.getElementById('h-installments').value = 1;
+    }    updateFeeDisplay(parseInt(document.getElementById('inst-select').value) || 1);
     scheduleSubmit();
   }
 
@@ -625,29 +596,6 @@
   }
 
   // ── Rule tables ───────────────────────────────────────────────────────────
-  function buildDiscTable(activeDiscount) {
-    var ptype = document.getElementById('sel-ptype') ? document.getElementById('sel-ptype').value : '';
-    var tbody = document.querySelector('#disc-table tbody');
-    tbody.innerHTML = '';
-    [0, 5, 10, 11, 12, 13, 14, 15].forEach(function(d) {
-      var comm    = commFromDiscount(d, ptype);
-      var penalty = d > 10;
-      var active  = Math.abs(d - activeDiscount) < 0.4;
-      var minComm = (ptype === 'CASH' || ptype === 'PIX') ? '2,5%' : '2%';
-      var note    = penalty  ? 'Desconto excedido — mínimo ' + minComm
-                  : d === 0  ? 'Sem desconto — comissão máxima (5%)'
-                  : d === 10 ? 'Limite normal — comissão mínima (3%)'
-                  : '';
-      var cls = active ? 'active' : (penalty ? 'penalty' : '');
-      tbody.innerHTML +=
-        '<tr class="' + cls + '">' +
-          '<td>' + d.toFixed(1) + '%' + (active ? ' ◀' : '') + '</td>' +
-          '<td>' + comm.toFixed(1) + '%</td>' +
-          '<td>' + note + '</td>' +
-        '</tr>';
-    });
-  }
-
   function buildInstTable(activeInst, maxUnlocked, priceInc) {
     var ptype = document.getElementById('sel-ptype') ? document.getElementById('sel-ptype').value : '';
     var tbody = document.querySelector('#inst-table tbody');
@@ -685,7 +633,7 @@
     var priceIncR = raw > 0 ? raw : 0;
     document.getElementById('h-discount').value    = discount.toFixed(1);
     document.getElementById('h-price-inc').value   = priceIncR.toFixed(1);
-    document.getElementById('h-installments').value = document.getElementById('inst-slider').value;
+    document.getElementById('h-installments').value = document.getElementById('inst-select').value;
     document.getElementById('h-ptype').value        = document.getElementById('sel-ptype').value;
     document.getElementById('h-architect').value   = document.getElementById('chk-architect').checked ? '1' : '0';
     // AJAX — sem reload de página
@@ -694,7 +642,7 @@
     fd.append('_ajax', '1');
     fd.append('discount_percent',       discount.toFixed(1));
     fd.append('price_increase_percent', priceIncR.toFixed(1));
-    fd.append('sim_installments',       document.getElementById('inst-slider').value);
+    fd.append('sim_installments',       document.getElementById('inst-select').value);
     fd.append('sim_payment_type',       document.getElementById('sel-ptype').value);
     fd.append('sim_has_architect',      document.getElementById('chk-architect').checked ? '1' : '0');
     fetch(window.location.href, {method: 'POST', body: fd})
@@ -710,29 +658,32 @@
       var curEl = document.getElementById(id);
       if (newEl && curEl) curEl.outerHTML = newEl.outerHTML;
     });
-    // Update installment slider max from new data-max attribute
+    // Rebuild installment dropdown from new data-max attribute
     var zone = document.getElementById('inst-warning-zone');
     var newMax = zone ? parseInt(zone.dataset.max || '7') : 7;
-    var instSlider = document.getElementById('inst-slider');
-    instSlider.max = newMax;
-    document.getElementById('max-inst-display').textContent = newMax + 'x';
     document.getElementById('live-maxinst-val').textContent = newMax + 'x';
-    if (parseInt(instSlider.value) > newMax) {
-      instSlider.value = newMax;
-      document.getElementById('inst-disp').textContent = newMax + 'x';
+    var instSel = document.getElementById('inst-select');
+    var curVal  = parseInt(instSel.value) || 1;
+    instSel.innerHTML = '';
+    for (var n = 1; n <= newMax; n++) {
+      var opt = document.createElement('option');
+      opt.value = n;
+      opt.className = n > 7 ? 'opt-penalty' : 'opt-normal';
+      opt.textContent = n === 1 ? '1x \u2014 \u00c0 vista (5%)' : (n <= 7 ? n + 'x' : n + 'x \u26a0');
+      if (n === Math.min(curVal, newMax)) opt.selected = true;
+      instSel.appendChild(opt);
     }
+    document.getElementById('max-inst-display').textContent = 'm\u00e1x. ' + newMax + 'x';
     // Rebuild rule tables
-    var disc = parseFloat(document.getElementById('h-discount').value || '0');
     var pi   = parseFloat(document.getElementById('h-price-inc').value || '0');
-    buildDiscTable(disc);
-    buildInstTable(parseInt(instSlider.value), newMax, pi);
-    updateFeeDisplay(parseInt(instSlider.value));
+    buildInstTable(Math.min(curVal, newMax), newMax, pi);
+    updateFeeDisplay(Math.min(curVal, newMax));
   }
 
   // ── Save conditions ───────────────────────────────────────────────────────
   function saveConditions() {
     document.getElementById('save-ptype').value = document.getElementById('sel-ptype').value;
-    document.getElementById('save-inst').value  = document.getElementById('inst-slider').value;
+    document.getElementById('save-inst').value  = document.getElementById('inst-select').value;
     document.getElementById('save-arch').value  = document.getElementById('chk-architect').checked ? '1' : '0';
     document.getElementById('save-disc').value  = document.getElementById('h-discount').value;
     document.getElementById('save-pi').value    = document.getElementById('h-price-inc').value;
@@ -753,15 +704,27 @@
     unifiedSlider.value = (initPriceInc > 0) ? initPriceInc : -initDiscount;
     paintUnifiedSlider(parseFloat(unifiedSlider.value));
 
-    // inst slider
-    var instSlider = document.getElementById('inst-slider');
-    instSlider.max   = initMaxInst;
-    instSlider.value = initInstall;
+    // inst dropdown — init options
+    var instSel = document.getElementById('inst-select');
+    instSel.innerHTML = '';
+    for (var n = 1; n <= initMaxInst; n++) {
+      var opt = document.createElement('option');
+      opt.value = n;
+      opt.className = n > 7 ? 'opt-penalty' : 'opt-normal';
+      opt.textContent = n === 1 ? '1x \u2014 \u00c0 vista (5%)' : (n <= 7 ? n + 'x' : n + 'x \u26a0');
+      if (n === initInstall) opt.selected = true;
+      instSel.appendChild(opt);
+    }
+    document.getElementById('max-inst-display').textContent = 'm\u00e1x. ' + initMaxInst + 'x';
 
-    buildDiscTable(initDiscount);
+    // Show/hide installments dropdown based on initial payment type
+    var initRow = document.getElementById('inst-dropdown-row');
+    initRow.style.display = (initPType === 'CREDIT_CARD') ? '' : 'none';
+
     buildInstTable(initInstall, initMaxInst, initPriceInc);
     updateFeeDisplay(initInstall);
   })();
+
   </script>
 </body>
 </html>

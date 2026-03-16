@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR" dir="ltr">
 
@@ -63,6 +63,11 @@
         position: absolute;
         top: 10px;
         right: 10px;
+        opacity: 1;
+        background-color: #dc3545;
+        color: #fff;
+        border: none;
+        z-index: 10;
       }
       .add-row-btn {
         margin-top: 1rem;
@@ -155,43 +160,20 @@
                 <form method="post" id="quote-form" enctype="multipart/form-data">
                   {% csrf_token %}
 
-                  {% if form.errors or formset.errors %}
-                  <div class="alert alert-danger mb-4">
-                    <i class="fa-solid fa-exclamation-triangle me-2"></i>
-                    <strong>Corrija os erros abaixo:</strong>
-                    <ul class="mb-0 mt-2">
-                      {% for field, errors in form.errors.items %}
-                        {% for error in errors %}
-                          <li>{{ field }}: {{ error }}</li>
-                        {% endfor %}
-                      {% endfor %}
-                      {% for form_item in formset %}
-                        {% for field, errors in form_item.errors.items %}
-                          {% for error in errors %}
-                            <li>Item {{ forloop.parentloop.parentloop.counter }}: {{ error }}</li>
-                          {% endfor %}
-                        {% endfor %}
-                      {% endfor %}
-                    </ul>
-                  </div>
-                  {% endif %}
+
 
                   <div class="card mb-4">
                     <div class="card-header bg-info text-white">
                       <h5 class="mb-0"><i class="fa-solid fa-user me-2"></i>Cliente</h5>
                     </div>
                     <div class="card-body">
-                      <div class="row">
-                        <div class="col-md-6 mb-3">
-                          <label for="customer-document" class="form-label fw-bold">CPF ou CNPJ do Cliente</label>
-                          <input type="text" id="customer-document" class="form-control" placeholder="Digite o CPF ou CNPJ">
-                          <small class="text-muted">Digite e aguarde para buscar automaticamente</small>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                          <label for="customer-name-search" class="form-label fw-bold">Ou buscar por Nome</label>
-                          <input type="text" id="customer-name-search" class="form-control" placeholder="Digite o nome do cliente">
-                          <small class="text-muted">Busca aproximada - encontra nomes similares</small>
-                        </div>
+                      <div class="mb-3">
+                        <label for="customer-unified-search" class="form-label fw-bold">Buscar Cliente</label>
+                        <input type="text" id="customer-unified-search" class="form-control"
+                               placeholder="Digite o nome, CPF ou CNPJ do cliente" autocomplete="off">
+                        <small id="unified-search-hint" class="text-muted">
+                          Apenas números → busca por CPF / CNPJ &nbsp;|&nbsp; Texto ? busca por nome
+                        </small>
                       </div>
                       
                       <!-- Search results list -->
@@ -211,9 +193,14 @@
                       </div>
                       
                       <!-- Customer info display (when found) -->
-                      <div id="customer-found" class="alert alert-success d-none mb-0">
-                        <i class="fa-solid fa-check-circle me-2"></i>
-                        Cliente encontrado: <strong id="customer-found-name"></strong>
+                      <div id="customer-found" class="alert alert-success d-none mb-0 d-flex justify-content-between align-items-center">
+                        <span>
+                          <i class="fa-solid fa-check-circle me-2"></i>
+                          Cliente encontrado: <strong id="customer-found-name"></strong>
+                        </span>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deselectCustomer()">
+                          <i class="fa-solid fa-xmark me-1"></i>Trocar
+                        </button>
                       </div>
                       
                       <!-- Customer registration fields (when not found) -->
@@ -224,25 +211,21 @@
                         </div>
                         <div class="row">
                           <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">CPF ou CNPJ <span class="text-danger">*</span></label>
-                            <input type="text" id="new-customer-document" class="form-control" placeholder="Digite CPF (11 dígitos) ou CNPJ (14 dígitos)">
-                            <small class="text-muted">11 dígitos = Pessoa Física | 14 dígitos = Pessoa Jurídica</small>
+                            <label class="form-label fw-bold">Nome Completo <span class="text-danger">*</span></label>
+                            <input type="text" id="new-customer-name" class="form-control" placeholder="Nome completo do cliente">
                           </div>
                           <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Tipo</label>
-                            <input type="text" id="new-customer-type" class="form-control bg-light" readonly>
-                          </div>
-                          <div class="col-md-12 mb-3">
-                            <label class="form-label fw-bold">Nome do Cliente <span class="text-danger">*</span></label>
-                            <input type="text" id="new-customer-name" class="form-control">
+                            <label class="form-label fw-bold">Celular <span class="text-danger">*</span></label>
+                            <input type="text" id="new-customer-phone" class="form-control" placeholder="(xx) 9xxxx-xxxx">
                           </div>
                           <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Telefone</label>
-                            <input type="text" id="new-customer-phone" class="form-control">
+                            <label class="form-label fw-bold">CPF ou CNPJ <small class="text-muted fw-normal">(opcional)</small></label>
+                            <input type="text" id="new-customer-document" class="form-control" placeholder="Somente números – 11 (CPF) ou 14 (CNPJ) dígitos">
+                            <small id="doc-feedback" class="fw-semibold"></small>
                           </div>
                           <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">E-mail</label>
-                            <input type="email" id="new-customer-email" class="form-control">
+                            <label class="form-label fw-bold">E-mail <small class="text-muted fw-normal">(opcional)</small></label>
+                            <input type="email" id="new-customer-email" class="form-control" placeholder="email@exemplo.com">
                           </div>
                         </div>
                         <button type="button" class="btn btn-success" onclick="createCustomer()">
@@ -252,36 +235,13 @@
                     </div>
                   </div>
                   
-                  <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
-                      <h5 class="mb-0"><i class="fa-solid fa-info-circle me-2"></i>Informações do Orçamento</h5>
-                    </div>
-                    <div class="card-body">
-                      <div class="row">
-                        <div class="col-md-6 mb-3">
-                          <label for="{{ form.number.id_for_label }}" class="form-label fw-bold">Número do Orçamento</label>
-                          {{ form.number }}
-                          {% if form.number.errors %}
-                            <div class="text-danger small">{{ form.number.errors }}</div>
-                          {% endif %}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                          <label for="{{ form.quote_date.id_for_label }}" class="form-label fw-bold">Data</label>
-                          {{ form.quote_date }}
-                          {% if form.quote_date.errors %}
-                            <div class="text-danger small">{{ form.quote_date.errors }}</div>
-                          {% endif %}
-                        </div>
-                      </div>
-                      <!-- Hidden fields for pricing (set in Step 2) -->
-                      <div class="d-none">
-                        {{ form.discount_percent }}
-                        {{ form.has_architect }}
-                        {{ form.payment_type }}
-                        {{ form.payment_installments }}
-                        {{ form.payment_fee_percent }}
-                      </div>
-                    </div>
+                  <!-- Hidden fields for pricing (set in Step 2) -->
+                  <div class="d-none">
+                    {{ form.discount_percent }}
+                    {{ form.has_architect }}
+                    {{ form.payment_type }}
+                    {{ form.payment_installments }}
+                    {{ form.payment_fee_percent }}
                   </div>
 
                   <div class="card mb-4">
@@ -299,8 +259,7 @@
                         </div>
                       </div>
                       
-                      <!-- Loja: freight value + delivery deadline -->
-                      <!-- Transportadora: shipping company + payment methods + freight value + delivery deadline -->
+                      <!-- Empresa paga: mostrar valor e prazo | Cliente paga: ocultar -->
                       <div id="freight-content">
                         <div class="row" id="freight-value-container">
                           <div class="col-md-6 mb-3">
@@ -317,26 +276,8 @@
                             <div class="col-md-12 mb-3">
                               <label for="{{ form.shipping_company.id_for_label }}" class="form-label fw-bold">Transportadora</label>
                               {{ form.shipping_company }}
-                              <small class="text-muted">Selecione a transportadora responsável</small>
                               {% if form.shipping_company.errors %}
                                 <div class="text-danger small">{{ form.shipping_company.errors }}</div>
-                              {% endif %}
-                            </div>
-                          </div>
-                          
-                          <!-- Display payment methods from selected shipping company -->
-                          <div id="payment-methods-display" class="alert alert-info d-none mb-3">
-                            <strong><i class="fa-solid fa-credit-card me-2"></i>Métodos de Pagamento Disponíveis:</strong>
-                            <div id="payment-methods-list" class="mt-2"></div>
-                          </div>
-                          
-                          <div class="row" id="shipping-payment-method-container">
-                            <div class="col-md-12 mb-3">
-                              <label for="{{ form.shipping_payment_method.id_for_label }}" class="form-label fw-bold">Método de Pagamento Selecionado</label>
-                              {{ form.shipping_payment_method }}
-                              <small class="text-muted">Escolha um dos métodos disponíveis acima</small>
-                              {% if form.shipping_payment_method.errors %}
-                                <div class="text-danger small">{{ form.shipping_payment_method.errors }}</div>
                               {% endif %}
                             </div>
                           </div>
@@ -345,10 +286,11 @@
                         <div id="delivery-fields-container">
                           <div class="row">
                             <div class="col-md-6 mb-3">
-                              <label for="{{ form.delivery_deadline.id_for_label }}" class="form-label fw-bold">Prazo de Entrega</label>
-                              {{ form.delivery_deadline }}
-                              {% if form.delivery_deadline.errors %}
-                                <div class="text-danger small">{{ form.delivery_deadline.errors }}</div>
+                              <label for="{{ form.delivery_weeks.id_for_label }}" class="form-label fw-bold">Prazo de Entrega Estimado</label>
+                              {{ form.delivery_weeks }}
+                              <small class="text-muted">Prazo estimado em semanas. A data real será definida ao gerar o pedido.</small>
+                              {% if form.delivery_weeks.errors %}
+                                <div class="text-danger small">{{ form.delivery_weeks.errors }}</div>
                               {% endif %}
                             </div>
                           </div>
@@ -445,6 +387,17 @@
                     </div>
                   </div>
 
+                  <div id="form-warnings" class="alert alert-danger d-none mb-3" role="alert">
+                    <i class="fa-solid fa-exclamation-triangle me-2"></i><span id="form-warnings-text"></span>
+                  </div>
+
+                  {% if form.errors or formset.errors %}
+                  <div class="alert alert-danger mb-3" id="server-errors">
+                    <i class="fa-solid fa-exclamation-triangle me-2"></i>
+                    <strong>Corrija os campos em vermelho:</strong>
+                  </div>
+                  {% endif %}
+
                   <div class="d-flex justify-content-end gap-3">
                     <button type="submit" class="btn btn-success btn-lg" name="action" value="save">
                       <i class="fa-solid fa-save me-2"></i>Salvar Orçamento
@@ -497,13 +450,8 @@
         const freightValueContainer = document.getElementById('freight-value-container');
         const freightValueInput = document.querySelector('input[name="freight_value"]');
         const shippingCompanyContainer = document.getElementById('shipping-company-container');
-        const shippingCompanySelect = document.querySelector('select[name="shipping_company"]');
-        const shippingPaymentMethodContainer = document.getElementById('shipping-payment-method-container');
-        const shippingPaymentMethodInput = document.querySelector('input[name="shipping_payment_method"]');
         const deliveryFieldsContainer = document.getElementById('delivery-fields-container');
-        const deliveryDeadlineInput = document.querySelector('input[name="delivery_deadline"]');
-        const paymentMethodsDisplay = document.getElementById('payment-methods-display');
-        const paymentMethodsList = document.getElementById('payment-methods-list');
+        const deliveryDeadlineInput = document.querySelector('select[name="delivery_weeks"]');
         
         function updateFreightAndDeliveryFields() {
           const selectedValue = freightResponsibleSelect.value;
@@ -511,27 +459,16 @@
           if (selectedValue === 'CUSTOMER') {
             // Cliente: hide everything
             freightContent.style.display = 'none';
-            
-            // Clear all values
             if (freightValueInput) freightValueInput.value = '0.00';
-            if (shippingCompanySelect) shippingCompanySelect.value = '';
-            if (shippingPaymentMethodInput) shippingPaymentMethodInput.value = '';
             if (deliveryDeadlineInput) deliveryDeadlineInput.value = '';
-            
           } else if (selectedValue === 'STORE') {
-            // Loja: freight value + delivery deadline
+            // Frete Próprio: freight value + delivery weeks (no shipping company)
             freightContent.style.display = 'block';
             freightValueContainer.style.display = 'block';
             shippingCompanyContainer.style.display = 'none';
             deliveryFieldsContainer.style.display = 'block';
-            
-            // Clear shipping company fields
-            if (shippingCompanySelect) shippingCompanySelect.value = '';
-            if (shippingPaymentMethodInput) shippingPaymentMethodInput.value = '';
-            paymentMethodsDisplay.classList.add('d-none');
-            
           } else if (selectedValue === 'CARRIER') {
-            // Transportadora: everything
+            // Transportadora: freight value + shipping company + delivery weeks
             freightContent.style.display = 'block';
             freightValueContainer.style.display = 'block';
             shippingCompanyContainer.style.display = 'block';
@@ -547,107 +484,80 @@
           freightResponsibleSelect.addEventListener('change', updateFreightAndDeliveryFields);
         }
         
-        // Setup shipping company change handler to fetch payment methods
-        if (shippingCompanySelect) {
-          shippingCompanySelect.addEventListener('change', function() {
-            const companyId = this.value;
-            
-            if (companyId) {
-              // Fetch payment methods for this shipping company
-              fetch(`/api/shipping-company/${companyId}/payment-methods/`)
-                .then(res => res.json())
-                .then(data => {
-                  if (data.payment_methods && data.payment_methods.trim()) {
-                    // Display payment methods
-                    const methods = data.payment_methods.split('\\n').filter(m => m.trim());
-                    paymentMethodsList.innerHTML = methods.map(m => `<div class=\"py-1\"><i class=\"fa-solid fa-check-circle text-success me-2\"></i>${m}</div>`).join('');
-                    paymentMethodsDisplay.classList.remove('d-none');
-                  } else {
-                    paymentMethodsDisplay.classList.add('d-none');
-                  }
-                })
-                .catch(err => {
-                  console.error('Error fetching payment methods:', err);
-                  paymentMethodsDisplay.classList.add('d-none');
-                });
-            } else {
-              paymentMethodsDisplay.classList.add('d-none');
-              if (shippingPaymentMethodInput) shippingPaymentMethodInput.value = '';
-            }
-          });
-          
-          // Trigger on page load if a company is already selected
-          if (shippingCompanySelect.value) {
-            shippingCompanySelect.dispatchEvent(new Event('change'));
-          }
-        }
+        // Payment for shipping companies is always boleto - no handler needed
         
-        // Setup customer document search
-        const docInput = document.getElementById('customer-document');
-        let searchTimeout;
-        
-        if (docInput) {
-          docInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            const doc = this.value.replace(/\D/g, ''); // Remove non-digits
-            
-            // Clear name search when typing in document field
-            if (doc.length > 0) {
-              document.getElementById('customer-name-search').value = '';
-            }
-            
-            if (doc.length >= 11) { // Min CPF length
-              searchTimeout = setTimeout(() => searchCustomer(doc), 800);
-            } else {
+        // -- Unified customer search (numbers ? doc, text ? name) ----------
+        const unifiedInput = document.getElementById('customer-unified-search');
+        let unifiedTimer;
+
+        if (unifiedInput) {
+          unifiedInput.addEventListener('input', function() {
+            clearTimeout(unifiedTimer);
+            const raw   = this.value.trim();
+            const digits = raw.replace(/\D/g, '');
+            const isNumeric = raw.length > 0 && raw === raw.replace(/[^\d\s.\-\/]/g, '');
+
+            // Update hint
+            const hint = document.getElementById('unified-search-hint');
+            if (raw.length === 0) {
+              hint.textContent = 'Apenas números → busca por CPF / CNPJ \u00a0|\u00a0 Texto ? busca por nome';
+              hint.className = 'text-muted';
               hideAllCustomerUI();
+              return;
+            }
+
+            if (isNumeric) {
+              hint.textContent = 'Buscando por CPF / CNPJ…';
+              hint.className = 'text-muted';
+              if (digits.length >= 11) {
+                unifiedTimer = setTimeout(() => searchCustomer(digits), 600);
+              } else {
+                hideAllCustomerUI();
+              }
+            } else {
+              hint.textContent = 'Buscando por nome…';
+              hint.className = 'text-muted';
+              if (raw.length >= 2) {
+                unifiedTimer = setTimeout(() => searchCustomerByName(raw), 400);
+              } else {
+                hideAllCustomerUI();
+              }
             }
           });
         }
-        
-        // Setup new customer document input to auto-detect type
+
+        // Setup new customer document input to auto-detect type and validate
         const newDocInput = document.getElementById('new-customer-document');
         if (newDocInput) {
           newDocInput.addEventListener('input', function() {
             const doc = this.value.replace(/\D/g, '');
-            const typeInput = document.getElementById('new-customer-type');
-            
-            if (doc.length === 11) {
-              typeInput.value = 'Pessoa Física (CPF)';
-              typeInput.classList.remove('text-danger');
-              typeInput.classList.add('text-success');
+            const fb  = document.getElementById('doc-feedback');
+            if (!fb) return;
+            if (doc.length === 0) {
+              fb.textContent = '';
+              fb.className = 'fw-semibold';
+            } else if (doc.length === 11) {
+              if (validateCPF(doc)) {
+                fb.textContent = '✓ CPF válido (Pessoa Física)';
+                fb.className = 'fw-semibold text-success';
+              } else {
+                fb.textContent = '✗ CPF inválido';
+                fb.className = 'fw-semibold text-danger';
+              }
             } else if (doc.length === 14) {
-              typeInput.value = 'Pessoa Jurídica (CNPJ)';
-              typeInput.classList.remove('text-danger');
-              typeInput.classList.add('text-success');
-            } else if (doc.length > 0) {
-              typeInput.value = 'Inválido - Digite 11 ou 14 dígitos';
-              typeInput.classList.remove('text-success');
-              typeInput.classList.add('text-danger');
+              if (validateCNPJ(doc)) {
+                fb.textContent = '✓ CNPJ válido (Pessoa Jurídica)';
+                fb.className = 'fw-semibold text-success';
+              } else {
+                fb.textContent = '✗ CNPJ inválido';
+                fb.className = 'fw-semibold text-danger';
+              }
+            } else if (doc.length > 14) {
+              fb.textContent = '✗ Número muito longo (máx. 14 dígitos)';
+              fb.className = 'fw-semibold text-danger';
             } else {
-              typeInput.value = '';
-              typeInput.classList.remove('text-success', 'text-danger');
-            }
-          });
-        }
-        
-        // Setup name search
-        const nameSearchInput = document.getElementById('customer-name-search');
-        let nameSearchTimeout;
-        
-        if (nameSearchInput) {
-          nameSearchInput.addEventListener('input', function() {
-            clearTimeout(nameSearchTimeout);
-            const query = this.value.trim();
-            
-            // Clear document search when typing in name field
-            if (query.length > 0) {
-              document.getElementById('customer-document').value = '';
-            }
-            
-            if (query.length >= 2) {
-              nameSearchTimeout = setTimeout(() => searchCustomerByName(query), 500);
-            } else {
-              hideAllCustomerUI();
+              fb.textContent = doc.length + ' dígitos → continue digitando (11 = CPF, 14 = CNPJ)';
+              fb.className = 'fw-semibold text-muted';
             }
           });
         }
@@ -802,33 +712,88 @@
         document.getElementById('customer-found').classList.remove('d-none');
         
         // Clear search inputs
-        document.getElementById('customer-name-search').value = '';
-        document.getElementById('customer-document').value = '';
+        const unified = document.getElementById('customer-unified-search');
+        if (unified) unified.value = '';
+        const hint = document.getElementById('unified-search-hint');
+        if (hint) { hint.textContent = 'Apenas números → busca por CPF / CNPJ \u00a0|\u00a0 Texto → busca por nome'; hint.className = 'text-muted'; }
+      }
+
+      function deselectCustomer() {
+        // Clear selected customer
+        const customerSelect = document.querySelector('select[name="customer"]');
+        if (customerSelect) customerSelect.value = '';
+        
+        // Hide found message, show search again
+        document.getElementById('customer-found').classList.add('d-none');
+        const unified = document.getElementById('customer-unified-search');
+        if (unified) { unified.value = ''; unified.focus(); }
+      }
+
+      // -- CPF / CNPJ checksum validators ----------------------------------
+      function validateCPF(cpf) {
+        cpf = cpf.replace(/\D/g, '');
+        if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+        let sum = 0;
+        for (let i = 0; i < 9; i++) sum += parseInt(cpf[i]) * (10 - i);
+        let d1 = (sum * 10) % 11; if (d1 === 10) d1 = 0;
+        if (d1 !== parseInt(cpf[9])) return false;
+        sum = 0;
+        for (let i = 0; i < 10; i++) sum += parseInt(cpf[i]) * (11 - i);
+        let d2 = (sum * 10) % 11; if (d2 === 10) d2 = 0;
+        return d2 === parseInt(cpf[10]);
+      }
+
+      function validateCNPJ(cnpj) {
+        cnpj = cnpj.replace(/\D/g, '');
+        if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+        function calc(s, w) {
+          let sum = 0;
+          for (let i = 0; i < w.length; i++) sum += parseInt(s[i]) * w[i];
+          const r = sum % 11; return r < 2 ? 0 : 11 - r;
+        }
+        const w1 = [5,4,3,2,9,8,7,6,5,4,3,2];
+        const w2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+        return calc(cnpj, w1) === parseInt(cnpj[12]) && calc(cnpj, w2) === parseInt(cnpj[13]);
       }
 
       function createCustomer() {
-        const doc = document.getElementById('new-customer-document').value.replace(/\D/g, '');
-        const name = document.getElementById('new-customer-name').value;
-        const phone = document.getElementById('new-customer-phone').value;
-        const email = document.getElementById('new-customer-email').value;
-        
+        const name  = document.getElementById('new-customer-name').value.trim();
+        const phone = document.getElementById('new-customer-phone').value.trim();
+        const email = document.getElementById('new-customer-email').value.trim();
+        const doc   = document.getElementById('new-customer-document').value.replace(/\D/g, '');
+
         if (!name) {
-          alert('Por favor, preencha o nome do cliente.');
+          alert('Por favor, preencha o nome completo do cliente.');
           return;
         }
-        
-        if (!doc || (doc.length !== 11 && doc.length !== 14)) {
-          alert('Por favor, digite um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.');
+
+        if (!phone) {
+          alert('Por favor, informe o celular do cliente.');
           return;
         }
-        
-        const data = {
-          name: name,
-          phone: phone,
-          email: email,
-          cpf: doc.length === 11 ? doc : '',
-          cnpj: doc.length === 14 ? doc : ''
-        };
+
+        // Validate CPF/CNPJ only if the field was filled
+        let cpf = '', cnpj = '';
+        if (doc.length > 0) {
+          if (doc.length === 11) {
+            if (!validateCPF(doc)) {
+              alert('CPF inválido. Verifique os dígitos ou deixe o campo em branco.');
+              return;
+            }
+            cpf = doc;
+          } else if (doc.length === 14) {
+            if (!validateCNPJ(doc)) {
+              alert('CNPJ inválido. Verifique os dígitos ou deixe o campo em branco.');
+              return;
+            }
+            cnpj = doc;
+          } else {
+            alert('CPF deve ter 11 dígitos e CNPJ 14 dígitos. Corrija ou deixe o campo em branco.');
+            return;
+          }
+        }
+
+        const data = { name, phone, email, cpf, cnpj };
         
         fetch('/api/create-customer/', {
           method: 'POST',
@@ -922,8 +887,178 @@
             }
           });
         });
+
+        // Apply currency mask to new unit_value inputs
+        newRow.querySelectorAll('input[name$="-unit_value"]').forEach(applyCurrencyMask);
       }
-      
+
+      // ── Currency mask for Valor Unitário ──────────────────────────────
+      function applyCurrencyMask(input) {
+        // Remove any previous listener by replacing node
+        input.setAttribute('inputmode', 'numeric');
+        input.addEventListener('keydown', function(e) {
+          // Allow: backspace, delete, tab, escape, enter, arrows
+          const allowed = [8, 9, 13, 27, 37, 38, 39, 40, 46, 116];
+          if (allowed.includes(e.keyCode)) return;
+          // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+          if ((e.ctrlKey || e.metaKey) && [65, 67, 86, 88].includes(e.keyCode)) return;
+          // Block non-digits
+          if ((e.keyCode < 48 || e.keyCode > 57) && (e.keyCode < 96 || e.keyCode > 105)) {
+            e.preventDefault();
+          }
+        });
+        input.addEventListener('input', function() {
+          let raw = this.value.replace(/\D/g, '');
+          if (!raw) { this.value = ''; return; }
+          // Pad to at least 3 digits (for cents)
+          while (raw.length < 3) raw = '0' + raw;
+          const intPart = raw.slice(0, -2).replace(/^0+/, '') || '0';
+          const decPart = raw.slice(-2);
+          // Format with dots for thousands
+          const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + decPart;
+          this.value = formatted;
+        });
+      }
+
+      // Apply mask to all existing unit_value inputs on page load
+      document.querySelectorAll('input[name$="-unit_value"]').forEach(input => {
+        // Format existing decimal values (e.g. 1234.56) to display format (1.234,56)
+        if (input.value && input.value.includes('.')) {
+          const parts = input.value.split('.');
+          const intPart = parts[0].replace(/^0+/, '') || '0';
+          const decPart = (parts[1] || '00').padEnd(2, '0').slice(0, 2);
+          const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + decPart;
+          input.value = formatted;
+        }
+        applyCurrencyMask(input);
+      });
+
+      function showFormWarning(msg) {
+        const box = document.getElementById('form-warnings');
+        const txt = document.getElementById('form-warnings-text');
+        txt.textContent = msg;
+        box.classList.remove('d-none');
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      function hideFormWarning() {
+        document.getElementById('form-warnings').classList.add('d-none');
+      }
+
+      // ── Form validation: required fields + auto-delete blank items ────
+      document.querySelector('form').addEventListener('submit', function(e) {
+        hideFormWarning();
+        // Clear previous row highlights
+        document.querySelectorAll('[data-formset-row]').forEach(r => r.style.border = '');
+
+        // ── Freight validation ──
+        const frSel = document.querySelector('select[name="freight_responsible"]');
+        const frVal = frSel ? frSel.value : '';
+        const missingFreight = [];
+
+        if (frVal === 'STORE' || frVal === 'CARRIER') {
+          const fv = document.querySelector('input[name="freight_value"]');
+          const dw = document.querySelector('select[name="delivery_weeks"]');
+          if (!fv || !fv.value.trim() || parseFloat(fv.value.replace(',','.')) <= 0) missingFreight.push('Valor do Frete');
+          if (!dw || !dw.value) missingFreight.push('Prazo de Entrega');
+          if (frVal === 'CARRIER') {
+            const sc = document.querySelector('select[name="shipping_company"]');
+            if (!sc || !sc.value) missingFreight.push('Transportadora');
+          }
+        }
+
+        if (missingFreight.length > 0) {
+          e.preventDefault();
+          showFormWarning('Preencha os campos obrigatórios de Frete: ' + missingFreight.join(', '));
+          return false;
+        }
+
+        // ── Item validation ──
+        const rows = document.querySelectorAll('[data-formset-row]');
+        let hasValidItem = false;
+        let hasIncompleteItem = false;
+        let incompleteMsg = '';
+
+        rows.forEach(row => {
+          // Skip already-deleted rows
+          const delCb = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+          if (delCb && delCb.checked) return;
+          if (row.style.display === 'none') return;
+
+          const supplier    = row.querySelector('select[name$="-supplier"]');
+          const productName = row.querySelector('input[name$="-product_name"]');
+          const quantity    = row.querySelector('input[name$="-quantity"]');
+          const unitValue   = row.querySelector('input[name$="-unit_value"]');
+
+          const sVal = supplier ? supplier.value.trim() : '';
+          const pVal = productName ? productName.value.trim() : '';
+          const qVal = quantity ? quantity.value.trim() : '';
+          const uVal = unitValue ? unitValue.value.trim() : '';
+
+          const allEmpty = !sVal && !pVal && !qVal && !uVal;
+          const onlySupplier = sVal && !pVal && !qVal && !uVal;
+          const allFilled = sVal && pVal && qVal && uVal;
+
+          if (allEmpty || onlySupplier) {
+            if (delCb) {
+              delCb.checked = true;
+              row.style.display = 'none';
+            } else {
+              row.remove();
+            }
+          } else if (allFilled) {
+            hasValidItem = true;
+            if (unitValue) {
+              let val = unitValue.value;
+              val = val.replace(/\./g, '').replace(',', '.');
+              unitValue.value = val;
+            }
+          } else {
+            hasIncompleteItem = true;
+            const missing = [];
+            if (!sVal) missing.push('Fornecedor');
+            if (!pVal) missing.push('Nome do Produto');
+            if (!qVal) missing.push('Quantidade');
+            if (!uVal) missing.push('Valor Unitário');
+            incompleteMsg = 'Item incompleto. Preencha: ' + missing.join(', ') + '.';
+            row.style.border = '2px solid #dc3545';
+          }
+        });
+
+        if (hasIncompleteItem) {
+          e.preventDefault();
+          showFormWarning(incompleteMsg);
+          return false;
+        }
+
+        if (!hasValidItem) {
+          e.preventDefault();
+          showFormWarning('Adicione pelo menos um item completo ao orçamento.');
+          return false;
+        }
+      });
+
+      // ── On page load: highlight fields with server-side errors + scroll ──
+      (function() {
+        // Add is-invalid class to any input/select/textarea that has a .text-danger sibling
+        document.querySelectorAll('.text-danger.small').forEach(function(errDiv) {
+          const field = errDiv.previousElementSibling;
+          if (field && (field.tagName === 'INPUT' || field.tagName === 'SELECT' || field.tagName === 'TEXTAREA')) {
+            field.classList.add('is-invalid');
+            field.style.borderColor = '#dc3545';
+          }
+        });
+        // Also highlight formset rows that have errors
+        document.querySelectorAll('[data-formset-row]').forEach(function(row) {
+          if (row.querySelector('.text-danger.small')) {
+            row.style.border = '2px solid #dc3545';
+          }
+        });
+        // Scroll to server error block if present
+        const serverErr = document.getElementById('server-errors');
+        if (serverErr) {
+          serverErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      })();
 
     </script>
   </body>
