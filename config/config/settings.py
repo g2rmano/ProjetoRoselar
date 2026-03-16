@@ -79,43 +79,29 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
-LOCAL_DATABASE_URL = os.environ.get("LOCAL_DATABASE_URL")
-IS_RAILWAY = os.environ.get("RAILWAY_ENVIRONMENT") is not None
 
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=600,
-            ssl_require=not DEBUG,
+            ssl_require=False,          # Railway internal network = no SSL
         )
     }
+elif os.environ.get("RAILWAY_ENVIRONMENT"):
+    raise ImproperlyConfigured(
+        "DATABASE_URL is not set on Railway. "
+        "Link the Postgres service to this app (Variables → Add Reference)."
+    )
 else:
-    if IS_RAILWAY:
-        raise ImproperlyConfigured(
-            "DATABASE_URL is not set on Railway. Add a PostgreSQL service and attach it to this app."
-        )
-
-    # Local development: optional local Postgres URL, fallback to SQLite.
-    if LOCAL_DATABASE_URL:
-        DATABASES = {
-            "default": dj_database_url.parse(
-                LOCAL_DATABASE_URL,
-                conn_max_age=600,
-                ssl_require=False,
-            )
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
-    else:
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.sqlite3",
-                "NAME": BASE_DIR / "db.sqlite3",
-            }
-        }
+    }
 
 
 # Password validation

@@ -1,0 +1,1659 @@
+[
+{
+  "model": "core.customer",
+  "pk": 1,
+  "fields": {
+    "name": "Pessoa Física",
+    "cpf": "11144477735",
+    "cnpj": "",
+    "phone": "",
+    "email": "",
+    "notes": "",
+    "created_at": "2026-02-10T01:52:57.227Z"
+  }
+},
+{
+  "model": "core.customer",
+  "pk": 3,
+  "fields": {
+    "name": "Germano Argenta Dal Prá",
+    "cpf": "01923473069",
+    "cnpj": "",
+    "phone": "54996202127",
+    "email": "germano2227@gmail.com",
+    "notes": "",
+    "created_at": "2026-02-10T01:52:57.231Z"
+  }
+},
+{
+  "model": "core.customer",
+  "pk": 4,
+  "fields": {
+    "name": "Carlos Eduardo Mendes",
+    "cpf": "123.456.789-10",
+    "cnpj": "",
+    "phone": "(11) 98888-7777",
+    "email": "carlos.mendes@email.com",
+    "notes": "Cliente VIP - Compras frequentes",
+    "created_at": "2026-02-14T23:43:04.530Z"
+  }
+},
+{
+  "model": "core.customer",
+  "pk": 5,
+  "fields": {
+    "name": "Ana Paula Costa",
+    "cpf": "987.654.321-00",
+    "cnpj": "",
+    "phone": "(11) 97777-6666",
+    "email": "ana.costa@email.com",
+    "notes": "Preferência por materiais importados",
+    "created_at": "2026-02-14T23:43:04.535Z"
+  }
+},
+{
+  "model": "core.customer",
+  "pk": 6,
+  "fields": {
+    "name": "Roberto Alves Junior",
+    "cpf": "456.789.123-45",
+    "cnpj": "",
+    "phone": "(11) 96666-5555",
+    "email": "roberto.junior@email.com",
+    "notes": "Arquiteto - Busca qualidade premium",
+    "created_at": "2026-02-14T23:43:04.539Z"
+  }
+},
+{
+  "model": "core.customer",
+  "pk": 7,
+  "fields": {
+    "name": "Construtora São Paulo Ltda",
+    "cpf": "",
+    "cnpj": "12.345.678/0001-90",
+    "phone": "(11) 3333-4444",
+    "email": "contato@construtoraSP.com.br",
+    "notes": "Pedidos grandes - Pagamento 30/60 dias",
+    "created_at": "2026-02-14T23:43:04.544Z"
+  }
+},
+{
+  "model": "core.customer",
+  "pk": 8,
+  "fields": {
+    "name": "Design & Interiores LTDA",
+    "cpf": "",
+    "cnpj": "98.765.432/0001-10",
+    "phone": "(11) 3222-1111",
+    "email": "comercial@designinteriores.com.br",
+    "notes": "Escritório de arquitetura - Projetos residenciais",
+    "created_at": "2026-02-14T23:43:04.550Z"
+  }
+},
+{
+  "model": "core.customer",
+  "pk": 9,
+  "fields": {
+    "name": "Reformas Express ME",
+    "cpf": "",
+    "cnpj": "45.678.901/0001-23",
+    "phone": "(11) 3111-0000",
+    "email": "vendas@reformasexpress.com",
+    "notes": "Parceiro comercial - Desconto corporativo",
+    "created_at": "2026-02-14T23:43:04.554Z"
+  }
+},
+{
+  "model": "core.supplier",
+  "pk": 1,
+  "fields": {
+    "name": "Distribuidora ABC Materiais",
+    "supplier_number": "FORN-001",
+    "email": "vendas@abcmateriais.com.br",
+    "phone": "(11) 4444-5555",
+    "notes": "Fornecedor principal de pisos e revestimentos",
+    "created_at": "2026-02-14T23:43:04.560Z"
+  }
+},
+{
+  "model": "core.supplier",
+  "pk": 2,
+  "fields": {
+    "name": "Madeireira Premium",
+    "supplier_number": "FORN-002",
+    "email": "contato@madeireirapremium.com.br",
+    "phone": "(11) 4555-6666",
+    "notes": "Especializada em madeiras nobres e MDF",
+    "created_at": "2026-02-14T23:43:04.584Z"
+  }
+},
+{
+  "model": "core.supplier",
+  "pk": 3,
+  "fields": {
+    "name": "Ferragens & Ferramentas Silva",
+    "supplier_number": "FORN-003",
+    "email": "comercial@ferragenssilva.com.br",
+    "phone": "(11) 4666-7777",
+    "notes": "Fornecedor de ferragens, fechaduras e acessórios",
+    "created_at": "2026-02-14T23:43:04.605Z"
+  }
+},
+{
+  "model": "core.supplier",
+  "pk": 4,
+  "fields": {
+    "name": "Tintas e Acabamentos Costa",
+    "supplier_number": "FORN-004",
+    "email": "vendas@tintascosta.com.br",
+    "phone": "(11) 4777-8888",
+    "notes": "Tintas, vernizes e produtos de acabamento",
+    "created_at": "2026-02-14T23:43:04.627Z"
+  }
+},
+{
+  "model": "core.supplier",
+  "pk": 5,
+  "fields": {
+    "name": "Iluminação Total Ltda",
+    "supplier_number": "FORN-005",
+    "email": "atendimento@iluminacaototal.com.br",
+    "phone": "(11) 4888-9999",
+    "notes": "Luminárias, spots e sistemas de iluminação",
+    "created_at": "2026-02-14T23:43:04.648Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 1,
+  "fields": {
+    "supplier": 1,
+    "description": "À vista",
+    "days_to_pay": 0,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.566Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 2,
+  "fields": {
+    "supplier": 1,
+    "description": "30 dias",
+    "days_to_pay": 30,
+    "is_default": true,
+    "created_at": "2026-02-14T23:43:04.570Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 3,
+  "fields": {
+    "supplier": 1,
+    "description": "30/60 dias",
+    "days_to_pay": 60,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.575Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 4,
+  "fields": {
+    "supplier": 1,
+    "description": "30/60/90 dias",
+    "days_to_pay": 90,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.580Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 5,
+  "fields": {
+    "supplier": 2,
+    "description": "À vista",
+    "days_to_pay": 0,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.589Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 6,
+  "fields": {
+    "supplier": 2,
+    "description": "30 dias",
+    "days_to_pay": 30,
+    "is_default": true,
+    "created_at": "2026-02-14T23:43:04.593Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 7,
+  "fields": {
+    "supplier": 2,
+    "description": "30/60 dias",
+    "days_to_pay": 60,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.597Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 8,
+  "fields": {
+    "supplier": 2,
+    "description": "30/60/90 dias",
+    "days_to_pay": 90,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.600Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 9,
+  "fields": {
+    "supplier": 3,
+    "description": "À vista",
+    "days_to_pay": 0,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.610Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 10,
+  "fields": {
+    "supplier": 3,
+    "description": "30 dias",
+    "days_to_pay": 30,
+    "is_default": true,
+    "created_at": "2026-02-14T23:43:04.614Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 11,
+  "fields": {
+    "supplier": 3,
+    "description": "30/60 dias",
+    "days_to_pay": 60,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.618Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 12,
+  "fields": {
+    "supplier": 3,
+    "description": "30/60/90 dias",
+    "days_to_pay": 90,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.623Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 13,
+  "fields": {
+    "supplier": 4,
+    "description": "À vista",
+    "days_to_pay": 0,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.632Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 14,
+  "fields": {
+    "supplier": 4,
+    "description": "30 dias",
+    "days_to_pay": 30,
+    "is_default": true,
+    "created_at": "2026-02-14T23:43:04.636Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 15,
+  "fields": {
+    "supplier": 4,
+    "description": "30/60 dias",
+    "days_to_pay": 60,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.640Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 16,
+  "fields": {
+    "supplier": 4,
+    "description": "30/60/90 dias",
+    "days_to_pay": 90,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.644Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 17,
+  "fields": {
+    "supplier": 5,
+    "description": "À vista",
+    "days_to_pay": 0,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.652Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 18,
+  "fields": {
+    "supplier": 5,
+    "description": "30 dias",
+    "days_to_pay": 30,
+    "is_default": true,
+    "created_at": "2026-02-14T23:43:04.656Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 19,
+  "fields": {
+    "supplier": 5,
+    "description": "30/60 dias",
+    "days_to_pay": 60,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.660Z"
+  }
+},
+{
+  "model": "core.supplierpaymentoption",
+  "pk": 20,
+  "fields": {
+    "supplier": 5,
+    "description": "30/60/90 dias",
+    "days_to_pay": 90,
+    "is_default": false,
+    "created_at": "2026-02-14T23:43:04.664Z"
+  }
+},
+{
+  "model": "core.shippingcompany",
+  "pk": 1,
+  "fields": {
+    "name": "Transportadora Rápida Express",
+    "cnpj": "11.222.333/0001-44",
+    "phone": "(11) 5555-6666",
+    "email": "contato@rapidaexpress.com.br",
+    "contact_person": "Pedro Oliveira",
+    "address": "Rua das Transportadoras, 123 - São Paulo/SP",
+    "notes": "Entrega rápida em SP e região metropolitana",
+    "payment_methods": "Boleto bancário\nTransferência\nCartão corporativo",
+    "is_active": true,
+    "created_at": "2026-02-14T23:43:04.670Z"
+  }
+},
+{
+  "model": "core.shippingcompany",
+  "pk": 2,
+  "fields": {
+    "name": "Logística Brasil",
+    "cnpj": "22.333.444/0001-55",
+    "phone": "(11) 5666-7777",
+    "email": "comercial@logisticabrasil.com.br",
+    "contact_person": "Juliana Santos",
+    "address": "Av. Logística, 456 - Guarulhos/SP",
+    "notes": "Cobertura nacional - Bom custo-benefício",
+    "payment_methods": "Boleto bancário\nPIX\nTransferência",
+    "is_active": true,
+    "created_at": "2026-02-14T23:43:04.674Z"
+  }
+},
+{
+  "model": "core.shippingcompany",
+  "pk": 3,
+  "fields": {
+    "name": "Cargas Pesadas Transporte",
+    "cnpj": "33.444.555/0001-66",
+    "phone": "(11) 5777-8888",
+    "email": "atendimento@cargaspesadas.com.br",
+    "contact_person": "Marcos Ferreira",
+    "address": "Rodovia dos Transportes, Km 23 - Osasco/SP",
+    "notes": "Especializada em cargas grandes e pesadas",
+    "payment_methods": "Boleto bancário\nCheque\nTransferência",
+    "is_active": true,
+    "created_at": "2026-02-14T23:43:04.678Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 1,
+  "fields": {
+    "payment_type": "CASH",
+    "installments": 1,
+    "fee_percent": "0.0",
+    "created_at": "2026-02-15T14:10:06.122Z",
+    "updated_at": "2026-02-15T14:10:06.122Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 2,
+  "fields": {
+    "payment_type": "PIX",
+    "installments": 1,
+    "fee_percent": "0.0",
+    "created_at": "2026-02-15T14:10:06.124Z",
+    "updated_at": "2026-02-15T14:10:06.124Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 3,
+  "fields": {
+    "payment_type": "CHEQUE",
+    "installments": 1,
+    "fee_percent": "0.0",
+    "created_at": "2026-02-15T14:10:06.125Z",
+    "updated_at": "2026-02-15T14:10:06.125Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 4,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 1,
+    "fee_percent": "0.0",
+    "created_at": "2026-02-15T14:10:06.125Z",
+    "updated_at": "2026-02-15T14:10:06.125Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 5,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 2,
+    "fee_percent": "2.5",
+    "created_at": "2026-02-15T14:10:06.126Z",
+    "updated_at": "2026-02-15T14:10:06.126Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 6,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 3,
+    "fee_percent": "3.8",
+    "created_at": "2026-02-15T14:10:06.126Z",
+    "updated_at": "2026-02-15T14:10:06.126Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 7,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 4,
+    "fee_percent": "5.1",
+    "created_at": "2026-02-15T14:10:06.127Z",
+    "updated_at": "2026-02-15T14:10:06.127Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 8,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 5,
+    "fee_percent": "6.4",
+    "created_at": "2026-02-15T14:10:06.127Z",
+    "updated_at": "2026-02-15T14:10:06.127Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 9,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 6,
+    "fee_percent": "7.7",
+    "created_at": "2026-02-15T14:10:06.127Z",
+    "updated_at": "2026-02-15T14:10:06.127Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 10,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 7,
+    "fee_percent": "9.0",
+    "created_at": "2026-02-15T14:10:06.128Z",
+    "updated_at": "2026-02-15T14:10:06.128Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 11,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 8,
+    "fee_percent": "10.3",
+    "created_at": "2026-02-15T14:10:06.128Z",
+    "updated_at": "2026-02-15T14:10:06.128Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 12,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 9,
+    "fee_percent": "11.6",
+    "created_at": "2026-02-15T14:10:06.128Z",
+    "updated_at": "2026-02-15T14:10:06.128Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 13,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 10,
+    "fee_percent": "12.9",
+    "created_at": "2026-02-15T14:10:06.129Z",
+    "updated_at": "2026-02-15T14:10:06.129Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 14,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 11,
+    "fee_percent": "14.2",
+    "created_at": "2026-02-15T14:10:06.129Z",
+    "updated_at": "2026-02-15T14:10:06.129Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 15,
+  "fields": {
+    "payment_type": "CREDIT_CARD",
+    "installments": 12,
+    "fee_percent": "15.5",
+    "created_at": "2026-02-15T14:10:06.130Z",
+    "updated_at": "2026-02-15T14:10:06.130Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 16,
+  "fields": {
+    "payment_type": "BOLETO",
+    "installments": 1,
+    "fee_percent": "0.0",
+    "created_at": "2026-02-15T14:10:06.130Z",
+    "updated_at": "2026-02-15T14:10:06.130Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 17,
+  "fields": {
+    "payment_type": "BOLETO",
+    "installments": 2,
+    "fee_percent": "2.0",
+    "created_at": "2026-02-15T14:10:06.130Z",
+    "updated_at": "2026-02-15T14:10:06.130Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 18,
+  "fields": {
+    "payment_type": "BOLETO",
+    "installments": 3,
+    "fee_percent": "3.5",
+    "created_at": "2026-02-15T14:10:06.131Z",
+    "updated_at": "2026-02-15T14:10:06.131Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 19,
+  "fields": {
+    "payment_type": "BOLETO",
+    "installments": 4,
+    "fee_percent": "5.0",
+    "created_at": "2026-02-15T14:10:06.131Z",
+    "updated_at": "2026-02-15T14:10:06.131Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 20,
+  "fields": {
+    "payment_type": "BOLETO",
+    "installments": 5,
+    "fee_percent": "6.5",
+    "created_at": "2026-02-15T14:10:06.131Z",
+    "updated_at": "2026-02-15T14:10:06.131Z"
+  }
+},
+{
+  "model": "core.paymenttariff",
+  "pk": 21,
+  "fields": {
+    "payment_type": "BOLETO",
+    "installments": 6,
+    "fee_percent": "8.0",
+    "created_at": "2026-02-15T14:10:06.132Z",
+    "updated_at": "2026-02-15T14:10:06.132Z"
+  }
+},
+{
+  "model": "core.architectcommission",
+  "pk": 1,
+  "fields": {
+    "commission_percent": "10.0",
+    "updated_at": "2026-02-16T00:53:17.010Z"
+  }
+},
+{
+  "model": "core.salesmarginconfig",
+  "pk": 1,
+  "fields": {
+    "total_margin": "16.0",
+    "min_commission": "1.0",
+    "max_commission": "5.0",
+    "updated_at": "2026-02-19T00:54:15.766Z"
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$ngkCGOTYQMAsDyteWdcf9f$ql5molG7FWZdMvzh5vXDFnxvvxGnQCTZzS0J78VIRyg=",
+    "last_login": "2026-03-12T13:00:19.829Z",
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "",
+    "last_name": "",
+    "email": "admin@admin.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-02-07T20:32:50.553Z",
+    "role": "SELLER",
+    "individual_target_value": "0.00",
+    "phone": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$nmla9Gjj1muCcE8jiLkD1c$76FJYg91V5de0wO9gcBVAQfcrWSzy+2RyOc3Ir0Dlrg=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "vendedor1",
+    "first_name": "João",
+    "last_name": "Silva",
+    "email": "vendedor1@roselar.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-02-14T23:43:03.722Z",
+    "role": "SELLER",
+    "individual_target_value": "50000.00",
+    "phone": "(11) 98765-4321",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$MizISIXPMxC3frQxVZksFH$eCotjsjba96wFDF6K3UXgVSuy3+WabKscGELh68rEhU=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "vendedor2",
+    "first_name": "Maria",
+    "last_name": "Santos",
+    "email": "vendedor2@roselar.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-02-14T23:43:04.128Z",
+    "role": "SELLER",
+    "individual_target_value": "45000.00",
+    "phone": "(11) 97654-3210",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$6PTmrlaUruDxaSwVI5Bqja$c2Bw0og80PjnuZihG5gnqGqVuTqceYZ6d6deejU4lbE=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "Katia",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-03-03T02:44:08.443Z",
+    "role": "SELLER",
+    "individual_target_value": "0.00",
+    "phone": "",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "sales.quote",
+  "pk": 1,
+  "fields": {
+    "number": "ORC-0001",
+    "customer": 1,
+    "seller": [
+      "admin"
+    ],
+    "status": "CONVERTED",
+    "quote_date": "2026-02-14",
+    "delivery_weeks": null,
+    "freight_value": "150.00",
+    "freight_responsible": "STORE",
+    "shipping_company": null,
+    "shipping_payment_method": "",
+    "discount_percent": "0.0",
+    "discount_authorized_by": null,
+    "discount_authorized_at": null,
+    "has_architect": false,
+    "payment_type": "",
+    "payment_installments": 1,
+    "payment_fee_percent": "0.0",
+    "total_value_snapshot": "3431.50",
+    "created_at": "2026-02-14T23:43:36.547Z"
+  }
+},
+{
+  "model": "sales.quote",
+  "pk": 2,
+  "fields": {
+    "number": "ORC-0002",
+    "customer": 3,
+    "seller": [
+      "admin"
+    ],
+    "status": "CONVERTED",
+    "quote_date": "2026-02-15",
+    "delivery_weeks": null,
+    "freight_value": "100.00",
+    "freight_responsible": "STORE",
+    "shipping_company": null,
+    "shipping_payment_method": "",
+    "discount_percent": "5.0",
+    "discount_authorized_by": null,
+    "discount_authorized_at": null,
+    "has_architect": false,
+    "payment_type": "CREDIT_CARD",
+    "payment_installments": 1,
+    "payment_fee_percent": "0.0",
+    "total_value_snapshot": "1130.50",
+    "created_at": "2026-02-15T14:50:21.543Z"
+  }
+},
+{
+  "model": "sales.quote",
+  "pk": 3,
+  "fields": {
+    "number": "ORC-0003",
+    "customer": 3,
+    "seller": [
+      "admin"
+    ],
+    "status": "DRAFT",
+    "quote_date": "2026-02-15",
+    "delivery_weeks": null,
+    "freight_value": "110.00",
+    "freight_responsible": "STORE",
+    "shipping_company": null,
+    "shipping_payment_method": "",
+    "discount_percent": "5.0",
+    "discount_authorized_by": null,
+    "discount_authorized_at": null,
+    "has_architect": false,
+    "payment_type": "CREDIT_CARD",
+    "payment_installments": 2,
+    "payment_fee_percent": "2.5",
+    "total_value_snapshot": "4479.25",
+    "created_at": "2026-02-15T14:59:50.732Z"
+  }
+},
+{
+  "model": "sales.quote",
+  "pk": 4,
+  "fields": {
+    "number": "ORC-0004",
+    "customer": 3,
+    "seller": [
+      "admin"
+    ],
+    "status": "DRAFT",
+    "quote_date": "2026-02-26",
+    "delivery_weeks": null,
+    "freight_value": "100.00",
+    "freight_responsible": "STORE",
+    "shipping_company": null,
+    "shipping_payment_method": "",
+    "discount_percent": "0.0",
+    "discount_authorized_by": null,
+    "discount_authorized_at": null,
+    "has_architect": false,
+    "payment_type": "",
+    "payment_installments": 1,
+    "payment_fee_percent": "0.0",
+    "total_value_snapshot": "3970.40",
+    "created_at": "2026-02-26T02:49:21.326Z"
+  }
+},
+{
+  "model": "sales.quote",
+  "pk": 5,
+  "fields": {
+    "number": "ORC-0005",
+    "customer": 3,
+    "seller": [
+      "admin"
+    ],
+    "status": "DRAFT",
+    "quote_date": "2026-02-26",
+    "delivery_weeks": null,
+    "freight_value": "189.00",
+    "freight_responsible": "CARRIER",
+    "shipping_company": 2,
+    "shipping_payment_method": "boleto",
+    "discount_percent": "0.0",
+    "discount_authorized_by": null,
+    "discount_authorized_at": null,
+    "has_architect": false,
+    "payment_type": "",
+    "payment_installments": 1,
+    "payment_fee_percent": "0.0",
+    "total_value_snapshot": "121125.30",
+    "created_at": "2026-02-26T03:05:28.522Z"
+  }
+},
+{
+  "model": "sales.quote",
+  "pk": 6,
+  "fields": {
+    "number": "ORC-0006",
+    "customer": 3,
+    "seller": [
+      "admin"
+    ],
+    "status": "DRAFT",
+    "quote_date": "2026-02-26",
+    "delivery_weeks": null,
+    "freight_value": "0.00",
+    "freight_responsible": "CARRIER",
+    "shipping_company": null,
+    "shipping_payment_method": "",
+    "discount_percent": "0.0",
+    "discount_authorized_by": null,
+    "discount_authorized_at": null,
+    "has_architect": false,
+    "payment_type": "",
+    "payment_installments": 1,
+    "payment_fee_percent": "0.0",
+    "total_value_snapshot": "30.00",
+    "created_at": "2026-02-26T15:32:00.848Z"
+  }
+},
+{
+  "model": "sales.quote",
+  "pk": 7,
+  "fields": {
+    "number": "ORC-0007",
+    "customer": 3,
+    "seller": [
+      "admin"
+    ],
+    "status": "DRAFT",
+    "quote_date": "2026-03-12",
+    "delivery_weeks": null,
+    "freight_value": "0.00",
+    "freight_responsible": "CUSTOMER",
+    "shipping_company": null,
+    "shipping_payment_method": "",
+    "discount_percent": "0.0",
+    "discount_authorized_by": null,
+    "discount_authorized_at": null,
+    "has_architect": false,
+    "payment_type": "",
+    "payment_installments": 1,
+    "payment_fee_percent": "0.0",
+    "total_value_snapshot": "0.00",
+    "created_at": "2026-03-12T23:48:48.832Z"
+  }
+},
+{
+  "model": "sales.quote",
+  "pk": 8,
+  "fields": {
+    "number": "ORC-0008",
+    "customer": 3,
+    "seller": [
+      "admin"
+    ],
+    "status": "DRAFT",
+    "quote_date": "2026-03-12",
+    "delivery_weeks": null,
+    "freight_value": "150.00",
+    "freight_responsible": "CARRIER",
+    "shipping_company": 1,
+    "shipping_payment_method": "Boleto",
+    "discount_percent": "0.0",
+    "discount_authorized_by": null,
+    "discount_authorized_at": null,
+    "has_architect": false,
+    "payment_type": "",
+    "payment_installments": 1,
+    "payment_fee_percent": "0.0",
+    "total_value_snapshot": "750.00",
+    "created_at": "2026-03-13T00:06:18.509Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 1,
+  "fields": {
+    "quote": 1,
+    "supplier": 1,
+    "product_name": "Piso Laminado Premium",
+    "description": "Piso laminado cor carvalho, 8mm espessura, caixa com 2,5m²",
+    "quantity": 20,
+    "unit_value": "89.90",
+    "condition_text": "Disponibilidade imediata",
+    "architect_percent": "0.0",
+    "created_at": "2026-02-14T23:43:36.552Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 2,
+  "fields": {
+    "quote": 1,
+    "supplier": 1,
+    "product_name": "Rodapé MDF Branco",
+    "description": "Rodapé em MDF, 10cm altura, 2,20m comprimento",
+    "quantity": 15,
+    "unit_value": "24.50",
+    "condition_text": "Entrega em 7 dias",
+    "architect_percent": "0.0",
+    "created_at": "2026-02-14T23:43:36.557Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 3,
+  "fields": {
+    "quote": 1,
+    "supplier": 2,
+    "product_name": "Tinta Acrílica Branco Neve",
+    "description": "Tinta acrílica premium, galão 18L, rendimento 250m²",
+    "quantity": 4,
+    "unit_value": "189.00",
+    "condition_text": "Pronta entrega",
+    "architect_percent": "0.0",
+    "created_at": "2026-02-14T23:43:36.561Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 4,
+  "fields": {
+    "quote": 1,
+    "supplier": 2,
+    "product_name": "Luminária LED Embutir",
+    "description": "Luminária LED 12W, luz branca, quadrada 17x17cm",
+    "quantity": 8,
+    "unit_value": "45.00",
+    "condition_text": "Disponível",
+    "architect_percent": "0.0",
+    "created_at": "2026-02-14T23:43:36.565Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 5,
+  "fields": {
+    "quote": 2,
+    "supplier": 1,
+    "product_name": "Bujao de gas",
+    "description": "P13",
+    "quantity": 1,
+    "unit_value": "890.00",
+    "condition_text": "",
+    "architect_percent": "0.0",
+    "created_at": "2026-02-15T14:50:21.545Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 6,
+  "fields": {
+    "quote": 2,
+    "supplier": 4,
+    "product_name": "Pedra de crack",
+    "description": "muitas",
+    "quantity": 10,
+    "unit_value": "20.00",
+    "condition_text": "",
+    "architect_percent": "0.0",
+    "created_at": "2026-02-15T14:50:21.546Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 7,
+  "fields": {
+    "quote": 3,
+    "supplier": 1,
+    "product_name": "Bujao de gas",
+    "description": "P13",
+    "quantity": 1,
+    "unit_value": "890.00",
+    "condition_text": "",
+    "architect_percent": "0.0",
+    "created_at": "2026-02-15T14:59:50.734Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 8,
+  "fields": {
+    "quote": 3,
+    "supplier": 5,
+    "product_name": "Drogas",
+    "description": "as melhor",
+    "quantity": 300,
+    "unit_value": "12.00",
+    "condition_text": "a melhor",
+    "architect_percent": null,
+    "created_at": "2026-02-15T14:59:50.734Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 9,
+  "fields": {
+    "quote": 4,
+    "supplier": 1,
+    "product_name": "Pedra de crack",
+    "description": "duas pedrinhas bem boas",
+    "quantity": 2,
+    "unit_value": "1920.20",
+    "condition_text": "lembrar de tirar sabosta",
+    "architect_percent": null,
+    "created_at": "2026-02-26T02:49:21.326Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 10,
+  "fields": {
+    "quote": 4,
+    "supplier": 5,
+    "product_name": "Viagra",
+    "description": "20mg",
+    "quantity": 15,
+    "unit_value": "2.00",
+    "condition_text": "minimal wear",
+    "architect_percent": null,
+    "created_at": "2026-02-26T02:49:21.330Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 11,
+  "fields": {
+    "quote": 5,
+    "supplier": 1,
+    "product_name": "Pedra de crack",
+    "description": "Novo Orçamento\r\n Corrija os erros abaixo:\r\ndiscount_percent: Ensure that there are no more than 1 decimal place.\r\npayment_fee_percent: Ensure that there are no more than 1 decimal place.",
+    "quantity": 3,
+    "unit_value": "312.10",
+    "condition_text": "",
+    "architect_percent": null,
+    "created_at": "2026-02-26T03:05:28.524Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 12,
+  "fields": {
+    "quote": 5,
+    "supplier": 3,
+    "product_name": "Viagra",
+    "description": "http://127.0.0.1:8000/sales/quotes/4/simulate/",
+    "quantity": 1,
+    "unit_value": "120000.00",
+    "condition_text": "cu",
+    "architect_percent": null,
+    "created_at": "2026-02-26T03:05:28.525Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 13,
+  "fields": {
+    "quote": 6,
+    "supplier": 1,
+    "product_name": "Pedra de crack",
+    "description": "boa",
+    "quantity": 3,
+    "unit_value": "10.00",
+    "condition_text": "",
+    "architect_percent": null,
+    "created_at": "2026-02-26T15:32:00.854Z"
+  }
+},
+{
+  "model": "sales.quoteitem",
+  "pk": 14,
+  "fields": {
+    "quote": 8,
+    "supplier": 4,
+    "product_name": "Tinta de carro",
+    "description": "Tinta vermelha, faixa 7 coral padrão de viado.",
+    "quantity": 2,
+    "unit_value": "300.00",
+    "condition_text": "",
+    "architect_percent": null,
+    "created_at": "2026-03-13T00:06:18.523Z"
+  }
+},
+{
+  "model": "sales.order",
+  "pk": 1,
+  "fields": {
+    "number": "ORC-0001",
+    "quote": 1,
+    "supplier": 1,
+    "is_total_conference": false,
+    "status": "OPEN",
+    "purchase_condition_text": "",
+    "notes": "",
+    "delivery_deadline": null,
+    "created_at": "2026-02-15T20:40:50.244Z"
+  }
+},
+{
+  "model": "sales.order",
+  "pk": 2,
+  "fields": {
+    "number": "ORC-0001",
+    "quote": 1,
+    "supplier": 2,
+    "is_total_conference": false,
+    "status": "OPEN",
+    "purchase_condition_text": "",
+    "notes": "",
+    "delivery_deadline": null,
+    "created_at": "2026-02-15T20:40:50.246Z"
+  }
+},
+{
+  "model": "sales.order",
+  "pk": 3,
+  "fields": {
+    "number": "ORC-0001",
+    "quote": 1,
+    "supplier": null,
+    "is_total_conference": true,
+    "status": "OPEN",
+    "purchase_condition_text": "",
+    "notes": "",
+    "delivery_deadline": null,
+    "created_at": "2026-02-15T20:40:50.247Z"
+  }
+},
+{
+  "model": "sales.order",
+  "pk": 4,
+  "fields": {
+    "number": "ORC-0002",
+    "quote": 2,
+    "supplier": 1,
+    "is_total_conference": false,
+    "status": "OPEN",
+    "purchase_condition_text": "",
+    "notes": "",
+    "delivery_deadline": null,
+    "created_at": "2026-02-19T00:35:17.021Z"
+  }
+},
+{
+  "model": "sales.order",
+  "pk": 5,
+  "fields": {
+    "number": "ORC-0002",
+    "quote": 2,
+    "supplier": 4,
+    "is_total_conference": false,
+    "status": "OPEN",
+    "purchase_condition_text": "",
+    "notes": "",
+    "delivery_deadline": null,
+    "created_at": "2026-02-19T00:35:17.024Z"
+  }
+},
+{
+  "model": "sales.order",
+  "pk": 6,
+  "fields": {
+    "number": "ORC-0002",
+    "quote": 2,
+    "supplier": null,
+    "is_total_conference": true,
+    "status": "OPEN",
+    "purchase_condition_text": "",
+    "notes": "",
+    "delivery_deadline": null,
+    "created_at": "2026-02-19T00:35:17.024Z"
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 1,
+  "fields": {
+    "order": 1,
+    "product_name": "Piso Laminado Premium",
+    "description": "Piso laminado cor carvalho, 8mm espessura, caixa com 2,5m²",
+    "quantity": 20,
+    "purchase_unit_cost": "89.90",
+    "quote_item": 1
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 2,
+  "fields": {
+    "order": 1,
+    "product_name": "Rodapé MDF Branco",
+    "description": "Rodapé em MDF, 10cm altura, 2,20m comprimento",
+    "quantity": 15,
+    "purchase_unit_cost": "24.50",
+    "quote_item": 2
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 3,
+  "fields": {
+    "order": 2,
+    "product_name": "Tinta Acrílica Branco Neve",
+    "description": "Tinta acrílica premium, galão 18L, rendimento 250m²",
+    "quantity": 4,
+    "purchase_unit_cost": "189.00",
+    "quote_item": 3
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 4,
+  "fields": {
+    "order": 2,
+    "product_name": "Luminária LED Embutir",
+    "description": "Luminária LED 12W, luz branca, quadrada 17x17cm",
+    "quantity": 8,
+    "purchase_unit_cost": "45.00",
+    "quote_item": 4
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 5,
+  "fields": {
+    "order": 3,
+    "product_name": "Piso Laminado Premium",
+    "description": "Piso laminado cor carvalho, 8mm espessura, caixa com 2,5m²",
+    "quantity": 20,
+    "purchase_unit_cost": "89.90",
+    "quote_item": 1
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 6,
+  "fields": {
+    "order": 3,
+    "product_name": "Rodapé MDF Branco",
+    "description": "Rodapé em MDF, 10cm altura, 2,20m comprimento",
+    "quantity": 15,
+    "purchase_unit_cost": "24.50",
+    "quote_item": 2
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 7,
+  "fields": {
+    "order": 3,
+    "product_name": "Tinta Acrílica Branco Neve",
+    "description": "Tinta acrílica premium, galão 18L, rendimento 250m²",
+    "quantity": 4,
+    "purchase_unit_cost": "189.00",
+    "quote_item": 3
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 8,
+  "fields": {
+    "order": 3,
+    "product_name": "Luminária LED Embutir",
+    "description": "Luminária LED 12W, luz branca, quadrada 17x17cm",
+    "quantity": 8,
+    "purchase_unit_cost": "45.00",
+    "quote_item": 4
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 9,
+  "fields": {
+    "order": 4,
+    "product_name": "Bujao de gas",
+    "description": "P13",
+    "quantity": 1,
+    "purchase_unit_cost": "890.00",
+    "quote_item": 5
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 10,
+  "fields": {
+    "order": 5,
+    "product_name": "Pedra de crack",
+    "description": "muitas",
+    "quantity": 10,
+    "purchase_unit_cost": "20.00",
+    "quote_item": 6
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 11,
+  "fields": {
+    "order": 6,
+    "product_name": "Bujao de gas",
+    "description": "P13",
+    "quantity": 1,
+    "purchase_unit_cost": "890.00",
+    "quote_item": 5
+  }
+},
+{
+  "model": "sales.orderitem",
+  "pk": 12,
+  "fields": {
+    "order": 6,
+    "product_name": "Pedra de crack",
+    "description": "muitas",
+    "quantity": 10,
+    "purchase_unit_cost": "20.00",
+    "quote_item": 6
+  }
+},
+{
+  "model": "sales.proposalconfig",
+  "pk": 1,
+  "fields": {
+    "cover_image": "",
+    "about_image": ""
+  }
+},
+{
+  "model": "calendar_app.calendarevent",
+  "pk": 2,
+  "fields": {
+    "title": "Follow-up: orçamento sem resposta (3 dias)",
+    "description": "Orçamento ORC-0007 para Germano Argenta Dal Prá ainda em rascunho.",
+    "event_type": "QUOTE_FOLLOWUP",
+    "status": "PENDING",
+    "event_date": "2026-03-15",
+    "event_time": null,
+    "assigned_to": [
+      "admin"
+    ],
+    "quote": 7,
+    "order": null,
+    "customer": 3,
+    "created_at": "2026-03-12T23:48:48.842Z",
+    "updated_at": "2026-03-12T23:48:48.842Z",
+    "tags": []
+  }
+},
+{
+  "model": "calendar_app.calendarevent",
+  "pk": 3,
+  "fields": {
+    "title": "Follow-up: orçamento ainda em rascunho (7 dias)",
+    "description": "Orçamento ORC-0007 para Germano Argenta Dal Prá ainda em rascunho.",
+    "event_type": "QUOTE_FOLLOWUP",
+    "status": "PENDING",
+    "event_date": "2026-03-19",
+    "event_time": null,
+    "assigned_to": [
+      "admin"
+    ],
+    "quote": 7,
+    "order": null,
+    "customer": 3,
+    "created_at": "2026-03-12T23:48:48.846Z",
+    "updated_at": "2026-03-12T23:48:48.846Z",
+    "tags": []
+  }
+},
+{
+  "model": "calendar_app.calendarevent",
+  "pk": 4,
+  "fields": {
+    "title": "Follow-up: orçamento sem resposta (3 dias)",
+    "description": "Orçamento ORC-0008 para Germano Argenta Dal Prá ainda em rascunho.",
+    "event_type": "QUOTE_FOLLOWUP",
+    "status": "PENDING",
+    "event_date": "2026-03-15",
+    "event_time": null,
+    "assigned_to": [
+      "admin"
+    ],
+    "quote": 8,
+    "order": null,
+    "customer": 3,
+    "created_at": "2026-03-13T00:06:18.523Z",
+    "updated_at": "2026-03-13T00:06:18.523Z",
+    "tags": []
+  }
+},
+{
+  "model": "calendar_app.calendarevent",
+  "pk": 5,
+  "fields": {
+    "title": "Follow-up: orçamento ainda em rascunho (7 dias)",
+    "description": "Orçamento ORC-0008 para Germano Argenta Dal Prá ainda em rascunho.",
+    "event_type": "QUOTE_FOLLOWUP",
+    "status": "PENDING",
+    "event_date": "2026-03-19",
+    "event_time": null,
+    "assigned_to": [
+      "admin"
+    ],
+    "quote": 8,
+    "order": null,
+    "customer": 3,
+    "created_at": "2026-03-13T00:06:18.536Z",
+    "updated_at": "2026-03-13T00:06:18.536Z",
+    "tags": []
+  }
+},
+{
+  "model": "calendar_app.calendarevent",
+  "pk": 6,
+  "fields": {
+    "title": "Entrega - Germano Argenta Dal Prá (ORC-0008)",
+    "description": "Entrega do pedido ORC-0008 para Germano Argenta Dal Prá",
+    "event_type": "DELIVERY",
+    "status": "PENDING",
+    "event_date": "2026-03-31",
+    "event_time": null,
+    "assigned_to": [
+      "admin"
+    ],
+    "quote": 8,
+    "order": null,
+    "customer": 3,
+    "created_at": "2026-03-13T00:06:18.549Z",
+    "updated_at": "2026-03-13T00:06:18.549Z",
+    "tags": []
+  }
+},
+{
+  "model": "calendar_app.reminder",
+  "pk": 1,
+  "fields": {
+    "event": 2,
+    "remind_date": "2026-03-15",
+    "status": "SCHEDULED",
+    "message": "Follow-up: orçamento sem resposta (3 dias) - Germano Argenta Dal Prá",
+    "read": false,
+    "read_at": null,
+    "created_at": "2026-03-12T23:48:48.846Z"
+  }
+},
+{
+  "model": "calendar_app.reminder",
+  "pk": 2,
+  "fields": {
+    "event": 3,
+    "remind_date": "2026-03-19",
+    "status": "SCHEDULED",
+    "message": "Follow-up: orçamento ainda em rascunho (7 dias) - Germano Argenta Dal Prá",
+    "read": false,
+    "read_at": null,
+    "created_at": "2026-03-12T23:48:48.859Z"
+  }
+},
+{
+  "model": "calendar_app.reminder",
+  "pk": 3,
+  "fields": {
+    "event": 4,
+    "remind_date": "2026-03-15",
+    "status": "SCHEDULED",
+    "message": "Follow-up: orçamento sem resposta (3 dias) - Germano Argenta Dal Prá",
+    "read": false,
+    "read_at": null,
+    "created_at": "2026-03-13T00:06:18.536Z"
+  }
+},
+{
+  "model": "calendar_app.reminder",
+  "pk": 4,
+  "fields": {
+    "event": 5,
+    "remind_date": "2026-03-19",
+    "status": "SCHEDULED",
+    "message": "Follow-up: orçamento ainda em rascunho (7 dias) - Germano Argenta Dal Prá",
+    "read": false,
+    "read_at": null,
+    "created_at": "2026-03-13T00:06:18.549Z"
+  }
+},
+{
+  "model": "calendar_app.reminder",
+  "pk": 5,
+  "fields": {
+    "event": 6,
+    "remind_date": "2026-03-24",
+    "status": "SCHEDULED",
+    "message": "Entrega em 7 dias: Germano Argenta Dal Prá - ORC-0008",
+    "read": false,
+    "read_at": null,
+    "created_at": "2026-03-13T00:06:18.562Z"
+  }
+},
+{
+  "model": "calendar_app.reminder",
+  "pk": 6,
+  "fields": {
+    "event": 6,
+    "remind_date": "2026-03-28",
+    "status": "SCHEDULED",
+    "message": "Entrega em 3 dias: Germano Argenta Dal Prá - ORC-0008",
+    "read": false,
+    "read_at": null,
+    "created_at": "2026-03-13T00:06:18.562Z"
+  }
+},
+{
+  "model": "calendar_app.reminder",
+  "pk": 7,
+  "fields": {
+    "event": 6,
+    "remind_date": "2026-03-31",
+    "status": "SCHEDULED",
+    "message": "Entrega HOJE: Germano Argenta Dal Prá - ORC-0008",
+    "read": false,
+    "read_at": null,
+    "created_at": "2026-03-13T00:06:18.576Z"
+  }
+},
+{
+  "model": "core.auditlog",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "admin"
+    ],
+    "action": "CREATE_QUOTE",
+    "description": "Orçamento ORC-0007 criado",
+    "object_type": "Quote",
+    "object_id": 7,
+    "ip_address": "127.0.0.1",
+    "extra_data": {},
+    "created_at": "2026-03-12T23:48:48.859Z"
+  }
+},
+{
+  "model": "core.auditlog",
+  "pk": 2,
+  "fields": {
+    "user": [
+      "admin"
+    ],
+    "action": "CREATE_QUOTE",
+    "description": "Orçamento ORC-0008 criado",
+    "object_type": "Quote",
+    "object_id": 8,
+    "ip_address": "127.0.0.1",
+    "extra_data": {},
+    "created_at": "2026-03-13T00:06:18.576Z"
+  }
+}
+]
