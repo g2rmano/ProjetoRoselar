@@ -14,12 +14,20 @@ def login(request):
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
+            remember = request.POST.get('remember')
+            if not remember:
+                # Session expires when the browser closes
+                request.session.set_expiry(0)
+            else:
+                # Session lasts 30 days
+                request.session.set_expiry(60 * 60 * 24 * 30)
             auth_login(request, user)
             messages.success(request, f'Bem-vindo de volta, {user.username}!')
             next_url = request.GET.get('next') or reverse('core:index')
             return redirect(next_url)
         else:
             messages.error(request, 'Nome de usuário ou senha inválidos.')
+            return render(request, 'accounts/login.html', {'login_failed': True, 'username_value': username})
     
     return render(request, 'accounts/login.html')
 

@@ -39,6 +39,17 @@
     <!-- Flowbite CSS -->
     <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
 
+    <style>
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        20%, 60% { transform: translateX(-8px); }
+        40%, 80% { transform: translateX(8px); }
+      }
+      .shake { animation: shake 0.4s ease-in-out; }
+      #togglePassword { border-left: 0; }
+      #togglePassword:focus { box-shadow: none; }
+    </style>
+
   </head>
 
 
@@ -107,26 +118,50 @@
                   <p class="text-gray">Faça login na sua conta para continuar</p>
                 </div>
 
-                <form method="post" action="{% url 'accounts:login' %}">
+                <form method="post" action="{% url 'accounts:login' %}" id="loginForm" autocomplete="on">
                   {% csrf_token %}
-                  
+
                   {% if messages %}
                     {% for message in messages %}
-                      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      <div class="alert alert-{{ message.tags }} alert-dismissible fade show d-flex align-items-center" role="alert">
+                        {% if message.tags == 'danger' %}
+                          <i class="fa-solid fa-circle-exclamation me-2 flex-shrink-0"></i>
+                        {% elif message.tags == 'success' %}
+                          <i class="fa-solid fa-circle-check me-2 flex-shrink-0"></i>
+                        {% else %}
+                          <i class="fa-solid fa-circle-info me-2 flex-shrink-0"></i>
+                        {% endif %}
+                        <div>{{ message }}</div>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
                       </div>
                     {% endfor %}
                   {% endif %}
 
                   <div class="mb-4">
                     <label for="username" class="form-label fw-bold">E-mail ou Nome de Usuário</label>
-                    <input type="text" class="form-control form-control-lg" id="username" name="username" placeholder="Digite seu e-mail ou nome de usuário" required>
+                    <input type="text"
+                           class="form-control form-control-lg{% if login_failed %} is-invalid{% endif %}"
+                           id="username" name="username"
+                           value="{{ username_value|default:'' }}"
+                           placeholder="Digite seu e-mail ou nome de usuário"
+                           autocomplete="username"
+                           required>
                   </div>
 
                   <div class="mb-4">
                     <label for="password" class="form-label fw-bold">Senha</label>
-                    <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="Digite sua senha" required>
+                    <div class="input-group{% if login_failed %} has-validation{% endif %}">
+                      <input type="password"
+                             class="form-control form-control-lg{% if login_failed %} is-invalid{% endif %}"
+                             id="password" name="password"
+                             placeholder="Digite sua senha"
+                             autocomplete="current-password"
+                             required>
+                      <button class="btn btn-outline-secondary{% if login_failed %} is-invalid{% endif %}"
+                              type="button" id="togglePassword" tabindex="-1" title="Mostrar/ocultar senha">
+                        <i class="fa-solid fa-eye-slash" id="toggleIcon"></i>
+                      </button>
+                    </div>
                   </div>
 
                   <div class="mb-4 d-flex justify-content-between align-items-center">
@@ -219,6 +254,32 @@
     
     <!-- Flowbite JS -->
     <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+
+    <script>
+      // Password show/hide toggle
+      const togglePassword = document.getElementById('togglePassword');
+      const passwordInput  = document.getElementById('password');
+
+      if (togglePassword) {
+        togglePassword.addEventListener('click', function () {
+          const isHidden = passwordInput.type === 'password';
+          passwordInput.type = isHidden ? 'text' : 'password';
+          togglePassword.innerHTML = isHidden
+            ? '<i class="fa-solid fa-eye" id="toggleIcon"></i>'
+            : '<i class="fa-solid fa-eye-slash" id="toggleIcon"></i>';
+          passwordInput.focus();
+        });
+      }
+
+      {% if login_failed %}
+      // Shake animation on failed login
+      const loginCard = document.querySelector('.bg-white.p-5');
+      if (loginCard) {
+        loginCard.classList.add('shake');
+        loginCard.addEventListener('animationend', () => loginCard.classList.remove('shake'), { once: true });
+      }
+      {% endif %}
+    </script>
 
   </body>
 

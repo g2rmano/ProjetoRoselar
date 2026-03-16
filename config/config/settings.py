@@ -148,6 +148,16 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'core:index'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
+# Message tags (Bootstrap compatibility)
+from django.contrib.messages import constants as message_constants
+MESSAGE_TAGS = {
+    message_constants.ERROR: 'danger',
+    message_constants.WARNING: 'warning',
+    message_constants.SUCCESS: 'success',
+    message_constants.INFO: 'info',
+    message_constants.DEBUG: 'secondary',
+}
+
 # CSRF trusted origins (required for Railway deployment)
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     'CSRF_TRUSTED_ORIGINS',
