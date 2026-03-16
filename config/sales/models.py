@@ -43,9 +43,9 @@ class QuoteStatus(models.TextChoices):
 
 class FreightResponsible(models.TextChoices):
     """Responsável pelo pagamento do frete."""
-    STORE = "STORE", "Loja"
-    CUSTOMER = "CUSTOMER", "Cliente"
+    STORE = "STORE", "Frete Próprio - Empresa"
     CARRIER = "CARRIER", "Transportadora"
+    CUSTOMER = "CUSTOMER", "Cliente"
 
 
 class Quote(models.Model):
@@ -68,12 +68,14 @@ class Quote(models.Model):
 
     quote_date = models.DateField(default=timezone.localdate, verbose_name="Data")
     
-    # prazo de entrega
-    delivery_deadline = models.DateField(
+    # prazo de entrega estimado em semanas (no orçamento)
+    DELIVERY_WEEKS_CHOICES = [(i, f"{i} semana{'s' if i > 1 else ''}") for i in range(1, 13)]
+    delivery_weeks = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
-        verbose_name="Prazo de Entrega",
-        help_text="Prazo de entrega previsto"
+        choices=DELIVERY_WEEKS_CHOICES,
+        verbose_name="Prazo de Entrega (semanas)",
+        help_text="Prazo estimado em semanas"
     )
     
     # frete
@@ -318,6 +320,14 @@ class Order(models.Model):
 
     purchase_condition_text = models.CharField(max_length=200, blank=True, verbose_name="Condição de Compra")
     notes = models.TextField(blank=True, verbose_name="Observações")
+
+    # data real de entrega (obrigatória ao converter o orçamento em pedido)
+    delivery_deadline = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Prazo de Entrega (data real)",
+        help_text="Data real de entrega acordada com o cliente"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
 

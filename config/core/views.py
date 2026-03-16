@@ -6,6 +6,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db.models import Sum, Count, Q, F, Avg
 
 
@@ -500,12 +501,30 @@ def search_customer(request):
 def create_customer(request):
     try:
         data = json.loads(request.body)
-        customer = Customer.objects.create(
-            name=data.get("name"), cpf=data.get("cpf", ""),
-            cnpj=data.get("cnpj", ""), phone=data.get("phone", ""),
+        name = (data.get("name") or "").strip()
+        phone = (data.get("phone") or "").strip()
+        if not name:
+            return JsonResponse({"success": False, "error": "Nome é obrigatório."}, status=400)
+        if not phone:
+            return JsonResponse({"success": False, "error": "Celular é obrigatório."}, status=400)
+        customer = Customer(
+            name=name,
+            cpf=data.get("cpf", ""),
+            cnpj=data.get("cnpj", ""),
+            phone=phone,
             email=data.get("email", ""),
         )
+        customer.full_clean()  # validates CPF/CNPJ checksums if provided
+        customer.save()
         return JsonResponse({"success": True, "customer": {"id": customer.id, "name": str(customer)}})
+    except ValidationError as e:
+        msgs = []
+        if hasattr(e, 'message_dict'):
+            for field, errors in e.message_dict.items():
+                msgs.extend(errors)
+        else:
+            msgs = list(e.messages)
+        return JsonResponse({"success": False, "error": " ".join(msgs)}, status=400)
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 

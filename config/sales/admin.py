@@ -13,7 +13,7 @@ class QuoteItemInline(admin.TabularInline):
 
 @admin.register(Quote)
 class QuoteAdmin(SellerAccess, admin.ModelAdmin):
-    list_display = ("number", "customer", "seller", "status", "quote_date", "delivery_deadline", "total_value_snapshot", "created_at")
+    list_display = ("number", "customer", "seller", "status", "quote_date", "delivery_weeks", "total_value_snapshot", "created_at")
     list_display_links = ("number",)
     list_filter = ("status", "quote_date", "freight_responsible", "created_at")
     search_fields = ("number", "customer__name", "seller__username")
@@ -25,7 +25,7 @@ class QuoteAdmin(SellerAccess, admin.ModelAdmin):
             "fields": ("number", "customer", "seller", "status", "quote_date", "total_value_snapshot"),
         }),
         ("Prazo de Entrega", {
-            "fields": ("delivery_deadline",),
+            "fields": ("delivery_weeks",),
         }),
         ("Frete", {
             "fields": ("freight_value", "freight_responsible", "shipping_company", "shipping_payment_method"),

@@ -287,13 +287,15 @@ class EventAttachment(models.Model):
         return f"{self.file_size / (1024 * 1024):.1f} MB"
 
 
-def create_delivery_events_for_quote(quote) -> CalendarEvent | None:
+def create_delivery_events_for_quote(order) -> CalendarEvent | None:
     """
-    Cria evento de entrega e lembretes automáticos para um orçamento com prazo de entrega.
-    Chamado quando um orçamento é convertido em pedido ou quando delivery_deadline é definido.
+    Cria evento de entrega e lembretes automáticos para um pedido com prazo de entrega real.
+    Chamado quando um orçamento é convertido em pedido.
     """
-    if not quote.delivery_deadline:
+    if not order.delivery_deadline:
         return None
+
+    quote = order.quote
 
     event, created = CalendarEvent.objects.update_or_create(
         quote=quote,
@@ -301,7 +303,7 @@ def create_delivery_events_for_quote(quote) -> CalendarEvent | None:
         defaults={
             "title": f"Entrega - {quote.customer.name} ({quote.number})",
             "description": f"Entrega do pedido {quote.number} para {quote.customer.name}",
-            "event_date": quote.delivery_deadline,
+            "event_date": order.delivery_deadline,
             "assigned_to": quote.seller,
             "customer": quote.customer,
             "status": EventStatus.PENDING,
@@ -319,7 +321,7 @@ def create_delivery_events_for_quote(quote) -> CalendarEvent | None:
         ]
 
         for days_before, msg in reminders_config:
-            remind_date = quote.delivery_deadline - timedelta(days=days_before)
+            remind_date = order.delivery_deadline - timedelta(days=days_before)
             if remind_date >= timezone.localdate():
                 Reminder.objects.get_or_create(
                     event=event,

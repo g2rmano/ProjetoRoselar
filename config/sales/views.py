@@ -40,23 +40,24 @@ from calendar_app.models import (
 
 
 def generate_next_quote_number() -> str:
-    """Generate the next quote number in sequence."""
+    """Generate the next available quote number, skipping any already in use."""
     last_quote = Quote.objects.order_by("-id").first()
     if not last_quote:
-        return "ORC-0001"
-    
-    # Try to extract number from last quote number
-    try:
-        if last_quote.number.startswith("ORC-"):
-            last_num = int(last_quote.number.split("-")[1])
-            next_num = last_num + 1
-        else:
-            # Fallback if format is different
-            next_num = Quote.objects.count() + 1
-    except (ValueError, IndexError):
-        next_num = Quote.objects.count() + 1
-    
-    return f"ORC-{next_num:04d}"
+        candidate = 1
+    else:
+        try:
+            if last_quote.number.startswith("ORC-"):
+                candidate = int(last_quote.number.split("-")[1]) + 1
+            else:
+                candidate = Quote.objects.count() + 1
+        except (ValueError, IndexError):
+            candidate = Quote.objects.count() + 1
+
+    # Increment until we find an unused number
+    while Quote.objects.filter(number=f"ORC-{candidate:04d}").exists():
+        candidate += 1
+
+    return f"ORC-{candidate:04d}"
 
 
 @login_required
@@ -223,7 +224,7 @@ def quote_create(request: HttpRequest) -> HttpResponse:
                 quote: Quote = form.save(commit=False)
                 quote.seller = request.user
                 quote.status = QuoteStatus.DRAFT
-                # Auto-generate quote number
+                quote.quote_date = timezone.localdate()
                 quote.number = generate_next_quote_number()
                 
                 # Defaults for pricing fields (set later in Step 2)
@@ -264,7 +265,6 @@ def quote_create(request: HttpRequest) -> HttpResponse:
             # Criar eventos de follow-up no calendário (fora da transação)
             try:
                 create_quote_followup_events(quote)
-                create_delivery_events_for_quote(quote)
             except Exception:
                 pass  # Não impede o fluxo principal
 
@@ -285,9 +285,8 @@ def quote_create(request: HttpRequest) -> HttpResponse:
         else:
             messages.error(request, "Corrija os campos inválidos.")
     else:
-        # Initialize form with next quote number and pricing defaults
+        # Initialize form with pricing defaults
         initial_data = {
-            'number': generate_next_quote_number(),
             'discount_percent': Decimal('0.0'),
             'payment_installments': 1,
             'payment_fee_percent': Decimal('0.0'),
@@ -346,9 +345,9 @@ def quote_edit(request: HttpRequest, quote_id: int) -> HttpResponse:
                 quote_obj.save()
                 formset.save()
 
-            # Atualizar evento de entrega no calendário se prazo foi definido/alterado
+            # Atualizar evento de follow-up no calendário
             try:
-                create_delivery_events_for_quote(quote_obj)
+                pass  # Entrega agendada apenas ao converter em pedido
             except Exception:
                 pass  # Não impede o fluxo principal
 
@@ -391,7 +390,7 @@ def quote_detail(request: HttpRequest, quote_id: int) -> HttpResponse:
         .get(id=quote_id)
     )
 
-    return render(request, "sales/quote_detail.html", {"quote": quote})
+    return render(request, "sales/quote_detail.html", {"quote": quote, "today": timezone.localdate()})
 
 
 @login_required
@@ -410,6 +409,18 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
         .prefetch_related("items", "items__supplier")
         .get(id=quote_id)
     )
+
+    # Parse the required real delivery date from the modal form
+    from datetime import date as date_type
+    delivery_deadline_str = request.POST.get("delivery_deadline", "").strip()
+    try:
+        real_deadline = date_type.fromisoformat(delivery_deadline_str) if delivery_deadline_str else None
+    except ValueError:
+        real_deadline = None
+
+    if not real_deadline:
+        messages.error(request, "Data real de entrega é obrigatória para converter o orçamento.")
+        return redirect("sales:quote_detail", quote_id=quote_id)
 
     try:
         with transaction.atomic():
@@ -446,6 +457,7 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                     supplier_id=supplier_id,
                     is_total_conference=False,
                     status="OPEN",
+                    delivery_deadline=real_deadline,
                 )
                 created_orders.append(order)
 
@@ -468,6 +480,7 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                 supplier=None,
                 is_total_conference=True,
                 status="OPEN",
+                delivery_deadline=real_deadline,
             )
 
             OrderItem.objects.bulk_create([
@@ -496,7 +509,14 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                         pass
             imgs.delete()
         
-        # 8) Gerar PDFs para cada fornecedor (fora da transação, após commit)
+        # 8) Criar eventos de entrega no calendário para cada pedido (fora da transação)
+        for order in created_orders:
+            try:
+                create_delivery_events_for_quote(order)
+            except Exception:
+                pass  # Não impede o fluxo principal
+
+        # 9) Gerar PDFs para cada fornecedor (fora da transação, após commit)
         pdf_count = 0
         for order in created_orders:
             if not order.is_total_conference and order.supplier:
@@ -1061,10 +1081,11 @@ def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
     if quote.freight_value:
         elements.append(Paragraph(f"<b>Frete:</b> R$ {quote.freight_value:,.2f} ({quote.get_freight_responsible_display()})", normal_style))
     
-    # Delivery deadline
-    if quote.delivery_deadline:
+    # Delivery weeks (estimated)
+    if quote.delivery_weeks:
         elements.append(Spacer(1, 0.3*cm))
-        elements.append(Paragraph(f"<b>Prazo de Entrega:</b> {quote.delivery_deadline.strftime('%d/%m/%Y')}", normal_style))
+        semanas = 'semana' if quote.delivery_weeks == 1 else 'semanas'
+        elements.append(Paragraph(f"<b>Prazo de Entrega Estimado:</b> {quote.delivery_weeks} {semanas}", normal_style))
     
     # Build PDF
     doc.build(elements)
@@ -1257,10 +1278,14 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
     subtotal = sum(item.purchase_unit_cost * item.quantity for item in order.items.all())
     elements.append(Paragraph(f"<b>Total do Pedido:</b> R$ {subtotal:,.2f}", normal_style))
     
-    # Delivery deadline (from quote)
-    if order.quote.delivery_deadline:
+    # Delivery deadline (real date on order)
+    if order.delivery_deadline:
         elements.append(Spacer(1, 0.3*cm))
-        elements.append(Paragraph(f"<b>Prazo de Entrega Solicitado:</b> {order.quote.delivery_deadline.strftime('%d/%m/%Y')}", normal_style))
+        elements.append(Paragraph(f"<b>Prazo de Entrega:</b> {order.delivery_deadline.strftime('%d/%m/%Y')}", normal_style))
+    elif order.quote.delivery_weeks:
+        semanas = 'semana' if order.quote.delivery_weeks == 1 else 'semanas'
+        elements.append(Spacer(1, 0.3*cm))
+        elements.append(Paragraph(f"<b>Prazo de Entrega Estimado:</b> {order.quote.delivery_weeks} {semanas}", normal_style))
     
     # Notes
     if order.notes:
@@ -1381,6 +1406,7 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
     total_after_disc  = total_before_disc - discount_value
     payment_fee_value = total_after_disc * payment_fee_percent / Decimal("100")
     final_total       = total_after_disc + payment_fee_value
+    installment_value = (final_total / Decimal(sim_installments)) if sim_installments else final_total
 
     # ── Architect commission ──────────────────────────────────────────────────
     architect_percent          = Decimal("0")
@@ -1389,8 +1415,19 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
         architect_percent          = ArchitectCommission.get_commission()
         architect_commission_value = adj_subtotal * architect_percent / Decimal("100")
 
-    # ── Seller commission ─────────────────────────────────────────────────────
-    seller_commission_base  = total_after_disc - architect_commission_value
+    # ── Seller commission base (always over subtotal logic) ──────────────────
+    # Base uses adjusted subtotal, then applies discount and payment fee impact.
+    # Freight is not part of seller commission base.
+    seller_base_before_discount = adj_subtotal
+    seller_discount_value = seller_base_before_discount * sim_discount / Decimal("100")
+    seller_base_after_discount = seller_base_before_discount - seller_discount_value
+    seller_payment_fee_value = seller_base_after_discount * payment_fee_percent / Decimal("100")
+
+    seller_commission_base = seller_base_after_discount + seller_payment_fee_value
+    if sim_has_architect:
+        seller_commission_base -= architect_commission_value
+    seller_commission_base = max(Decimal("0"), seller_commission_base)
+
     seller_commission_value = seller_commission_base * seller_commission_percent / Decimal("100")
 
     # ── Save action ───────────────────────────────────────────────────────────
@@ -1452,6 +1489,7 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
         'payment_fee_percent':      payment_fee_percent,
         'payment_fee_value':        payment_fee_value,
         'final_total':              final_total,
+        'installment_value':        installment_value,
         # Commission
         'seller_commission_percent': seller_commission_percent,
         'seller_commission_value':   seller_commission_value,
@@ -1484,6 +1522,8 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
             {'value': '10', 'max_inst': 18, 'label': '+10% no valor', 'desc': 'até 18x'},
         ],
     }
+
+    context['max_installments_range'] = range(1, max_installments_unlocked + 1)
 
     return render(request, 'sales/quote_simulation.html', context)
 

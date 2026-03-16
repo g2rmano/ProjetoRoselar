@@ -44,10 +44,6 @@ class Customer(models.Model):
                 name="uniq_customer_cnpj",
                 condition=~Q(cnpj=""),
             ),
-            models.CheckConstraint(
-                condition=~(Q(cpf="") & Q(cnpj="")),
-                name="cpf_or_cnpj_required",
-            ),
         ]
 
     def __str__(self):

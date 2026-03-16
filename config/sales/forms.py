@@ -17,14 +17,11 @@ class QuoteForm(forms.ModelForm):
     class Meta:
         model = Quote
         fields = [
-            "number",
             "customer",
-            "quote_date",
-            "delivery_deadline",
+            "delivery_weeks",
             "freight_value",
             "freight_responsible",
             "shipping_company",
-            "shipping_payment_method",
             "discount_percent",
             "has_architect",
             "payment_type",
@@ -32,9 +29,7 @@ class QuoteForm(forms.ModelForm):
             "payment_fee_percent",
         ]
         widgets = {
-            "quote_date": forms.DateInput(attrs={"type": "date"}),
-            "delivery_deadline": forms.DateInput(attrs={"type": "date"}),
-            "number": forms.TextInput(attrs={"readonly": "readonly"}),
+            "delivery_weeks": forms.Select(attrs={"class": "form-control"}),
             "payment_installments": forms.Select(attrs={"class": "form-control"}),
             "payment_fee_percent": forms.HiddenInput(),
         }
@@ -48,11 +43,32 @@ class QuoteForm(forms.ModelForm):
         self.fields['payment_installments'].required = False
         self.fields['payment_fee_percent'].required = False
         
+        # Freight fields are conditionally required (validated in clean)
+        self.fields['freight_value'].required = False
+        self.fields['delivery_weeks'].required = False
+        self.fields['shipping_company'].required = False
+        
         # Adicionar classes CSS
         for field_name, field in self.fields.items():
-            if field_name not in ['number', 'payment_fee_percent']:
+            if field_name not in ['payment_fee_percent']:
                 if 'class' not in field.widget.attrs:
                     field.widget.attrs['class'] = 'form-control'
+
+    def clean(self):
+        cleaned = super().clean()
+        responsible = cleaned.get('freight_responsible')
+        from decimal import Decimal
+
+        if responsible in ('STORE', 'CARRIER'):
+            fv = cleaned.get('freight_value')
+            if fv is None or fv <= Decimal('0'):
+                self.add_error('freight_value', 'Informe o valor do frete.')
+            if not cleaned.get('delivery_weeks'):
+                self.add_error('delivery_weeks', 'Informe o prazo de entrega.')
+            if responsible == 'CARRIER' and not cleaned.get('shipping_company'):
+                self.add_error('shipping_company', 'Selecione a transportadora.')
+
+        return cleaned
 
 
 class QuoteItemForm(forms.ModelForm):
@@ -63,12 +79,36 @@ class QuoteItemForm(forms.ModelForm):
         label="% Arquiteto"
     )
     
+    # Override unit_value as CharField to accept Brazilian currency format
+    unit_value = forms.CharField(
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'inputmode': 'numeric'}),
+        label="Valor Unitário"
+    )
+    
     # Image upload for the item (shown in buyer's PDF)
     item_image = forms.ImageField(
         required=False,
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
         label="Imagem do Produto"
     )
+
+    def clean_unit_value(self):
+        raw = self.cleaned_data.get('unit_value', '')
+        if not raw:
+            raise forms.ValidationError('Informe o valor unitário.')
+        # Accept both "1234.56" (JS-converted) and "1.234,56" (Brazilian format)
+        raw = str(raw).strip()
+        if ',' in raw:
+            raw = raw.replace('.', '').replace(',', '.')
+        from decimal import Decimal, InvalidOperation
+        try:
+            val = Decimal(raw)
+        except InvalidOperation:
+            raise forms.ValidationError('Valor unitário inválido.')
+        if val <= 0:
+            raise forms.ValidationError('O valor unitário deve ser maior que zero.')
+        return val
     
     class Meta:
         model = QuoteItem
