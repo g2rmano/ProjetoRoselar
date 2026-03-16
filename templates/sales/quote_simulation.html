@@ -93,6 +93,27 @@
     .rtable tr.penalty  { background: #ffe5e5; color: var(--red); font-weight: 600; }
     .rtable tr.unlocked { background: #e8f5e9; color: var(--green); font-weight: 600; }
 
+    /* ── seller commission collapse ── */
+    .commission-toggle {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      padding: 0;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .6rem;
+    }
+    .commission-toggle .toggle-arrow {
+      transition: transform .2s ease;
+      opacity: .9;
+    }
+    .commission-toggle[aria-expanded="true"] .toggle-arrow {
+      transform: rotate(180deg);
+    }
+
     /* ── misc ── */
     .penalty-badge { background: var(--red); color: #fff; font-size: .72rem; font-weight: 700; padding: .15rem .55rem; border-radius: 3px; display: inline-block; margin-left: .4rem; vertical-align: middle; }
     .warning-box { background: #fff3cd; border: 1px solid var(--yellow); padding: .85rem; margin-bottom: 1rem; font-size: .87rem; }
@@ -393,15 +414,23 @@
                   {% endif %}
                   <div class="col-md-{% if sim_has_architect %}6{% else %}12{% endif %}">
                     <div class="hi-card {% if is_penalty %}red{% elif seller_commission_percent >= 4 %}green{% else %}orange{% endif %}">
-                      <div class="lbl">
-                        Comissão do Vendedor ({{ seller_commission_percent }}%)
-                      </div>
-                      <div class="val">R$ {{ seller_commission_value|floatformat:2 }}</div>
-                      <div style="font-size: .8rem; opacity: .85; margin-top: .4rem;">
-                        {{ seller_commission_percent }}% sobre R$ {{ seller_commission_base|floatformat:2 }}
-                        {% if sim_has_architect %} (após comissão arquiteto){% endif %}
-                        — Desconto→{{ comm_discount }}% · Parcelas→{{ comm_installments }}%
-                        → Final = <strong>{{ seller_commission_percent }}% (menor dos dois)</strong>
+                      <button type="button"
+                              class="commission-toggle"
+                              data-bs-toggle="collapse"
+                              data-bs-target="#seller-commission-collapse"
+                              aria-expanded="false"
+                              aria-controls="seller-commission-collapse">
+                        <span class="lbl mb-0">Comissão do Vendedor</span>
+                        <i class="fa-solid fa-chevron-down toggle-arrow"></i>
+                      </button>
+                      <div id="seller-commission-collapse" class="collapse mt-2">
+                        <div class="val">R$ {{ seller_commission_value|floatformat:2 }}</div>
+                        <div style="font-size: .8rem; opacity: .85; margin-top: .4rem;">
+                          {{ seller_commission_percent }}% sobre R$ {{ seller_commission_base|floatformat:2 }}
+                          {% if sim_has_architect %} (após comissão arquiteto){% endif %}
+                          — Desconto→{{ comm_discount }}% · Parcelas→{{ comm_installments }}%
+                          → Final = <strong>{{ seller_commission_percent }}% (menor dos dois)</strong>
+                        </div>
                       </div>
                     </div>
                   </div>

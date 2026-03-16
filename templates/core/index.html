@@ -108,6 +108,30 @@
         </div>
       </nav>
 
+      {% if messages %}
+      <div aria-live="polite" aria-atomic="true" class="position-fixed top-0 end-0 p-3" style="z-index:1090;margin-top:76px;">
+        {% for message in messages %}
+        <div class="toast align-items-center border-0 show text-bg-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}"
+             role="alert" aria-live="assertive" aria-atomic="true"
+             data-bs-autohide="true" data-bs-delay="5000">
+          <div class="d-flex">
+            <div class="toast-body fw-semibold">
+              <i class="fa-solid fa-circle-check me-1"></i> {{ message }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          document.querySelectorAll('.toast').forEach(function (el) {
+            bootstrap.Toast.getOrCreateInstance(el).show();
+          });
+        });
+      </script>
+      {% endif %}
+
       <div class="bg-dark"><img class="img-fluid position-absolute end-0" src="{% static 'assets/img/hero/hero-bg.png' %}" alt="" />
 
         <section>
