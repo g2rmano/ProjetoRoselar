@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import calendar
 import json
+import logging
+import re
+import unicodedata
+from urllib.parse import quote as url_quote
 from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
@@ -650,8 +654,16 @@ def api_attachment_download(request: HttpRequest, attachment_id: int) -> HttpRes
     if not _is_admin(request.user) and event.assigned_to != request.user:
         return JsonResponse({"error": "Sem permissão."}, status=403)
 
+    fn = attachment.filename
+    nfkd = unicodedata.normalize('NFKD', fn)
+    ascii_name = nfkd.encode('ascii', 'ignore').decode('ascii')
+    ascii_name = re.sub(r'[^\w.\-]', '_', ascii_name) or 'download'
+    disposition = (
+        f'attachment; filename="{ascii_name}"; '
+        f"filename*=UTF-8''{url_quote(fn)}"
+    )
     response = HttpResponse(attachment.file_data, content_type=attachment.content_type)
-    response["Content-Disposition"] = f'attachment; filename="{attachment.filename}"'
+    response["Content-Disposition"] = disposition
     return response
 
 

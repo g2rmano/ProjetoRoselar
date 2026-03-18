@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import json
+import logging
+import re
+import unicodedata
 from collections import defaultdict
 from decimal import Decimal
 from io import BytesIO
+from urllib.parse import quote as url_quote
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -21,6 +25,22 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+
+logger = logging.getLogger(__name__)
+
+
+def _safe_content_disposition(filename: str) -> str:
+    """Build a Content-Disposition header value safe for any filename."""
+    # ASCII-safe fallback: strip accents, replace non-ASCII
+    nfkd = unicodedata.normalize('NFKD', filename)
+    ascii_name = nfkd.encode('ascii', 'ignore').decode('ascii')
+    ascii_name = re.sub(r'[^\w.\-]', '_', ascii_name)
+    # RFC 6266: filename for ASCII, filename* for UTF-8
+    return (
+        f'attachment; filename="{ascii_name}"; '
+        f"filename*=UTF-8''{url_quote(filename)}"
+    )
+
 
 from .forms import QuoteForm, QuoteItemFormSet
 from .models import (
@@ -961,13 +981,18 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
     _draw_proposta_especial(cur_y - 10)
 
     # ── finalise ──────────────────────────────────────────────────
-    c.save()
+    try:
+        c.save()
+    except Exception:
+        logger.exception('Error generating client PDF for quote %s', quote.number)
+        raise
     pdf = buffer.getvalue()
     buffer.close()
 
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="proposta_{quote.number}.pdf"'
-    response.write(pdf)
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = _safe_content_disposition(
+        f'proposta_{quote.number}.pdf'
+    )
     return response
 
 
@@ -1088,17 +1113,21 @@ def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
         elements.append(Paragraph(f"<b>Prazo de Entrega Estimado:</b> {quote.delivery_weeks} {semanas}", normal_style))
     
     # Build PDF
-    doc.build(elements)
+    try:
+        doc.build(elements)
+    except Exception:
+        logger.exception('Error generating supplier PDF for quote %s', quote.number)
+        raise
     
     # Get PDF from buffer
     pdf = buffer.getvalue()
     buffer.close()
     
     # Create response
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="orcamento_{quote.number}_fornecedor.pdf"'
-    response.write(pdf)
-    
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = _safe_content_disposition(
+        f'orcamento_{quote.number}_fornecedor.pdf'
+    )
     return response
 
 
@@ -1296,17 +1325,23 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
     # Build PDF
     doc.build(elements)
     
+    # Build PDF
+    try:
+        doc.build(elements)
+    except Exception:
+        logger.exception('Error generating order PDF %s', order.number)
+        raise
+    
     # Get PDF from buffer
     pdf = buffer.getvalue()
     buffer.close()
     
     # Create response
-    filename = f"pedido_{order.number}_{order.supplier.name if order.supplier else 'sem_fornecedor'}.pdf"
+    supplier_name = order.supplier.name if order.supplier else 'sem_fornecedor'
+    filename = f'pedido_{order.number}_{supplier_name}.pdf'
     filename = filename.replace(' ', '_').replace('/', '_')
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    response.write(pdf)
-    
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = _safe_content_disposition(filename)
     return response
 
 
