@@ -16,6 +16,9 @@ urlpatterns = [
     path("quotes/<int:quote_id>/pdf/supplier/", views.quote_pdf_supplier, name="quote_pdf_supplier"),
     path("quotes/<int:quote_id>/duplicate/", views.quote_duplicate, name="quote_duplicate"),
     
+    # Standalone simulator
+    path("simulador/", views.standalone_simulation, name="standalone_simulation"),
+
     # API endpoints
     path("api/payment-method-fees/", views.payment_method_fees_api, name="payment_method_fees_api"),
     path("api/authorize-discount/", views.authorize_discount_api, name="authorize_discount_api"),

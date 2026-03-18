@@ -142,10 +142,10 @@ class Quote(models.Model):
     )
     payment_fee_percent = models.DecimalField(
         max_digits=5,
-        decimal_places=1,
-        default=Decimal("0.0"),
+        decimal_places=2,
+        default=Decimal("0.00"),
         verbose_name="Taxa de Pagamento (%)",
-        help_text="Taxa aplicada conforme parcelas"
+        help_text="Taxa (juros) aplicada conforme parcelas"
     )
 
     # snapshots

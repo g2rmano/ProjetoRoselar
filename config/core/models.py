@@ -154,11 +154,11 @@ class PaymentTariff(models.Model):
     )
     
     fee_percent = models.DecimalField(
-        max_digits=4,
-        decimal_places=1,
+        max_digits=5,
+        decimal_places=2,
         default=0,
         verbose_name="Taxa (%)",
-        help_text="Porcentagem de acréscimo (ex: 2.5 para 2.5%)"
+        help_text="Porcentagem de acréscimo (ex: 5.32 para 5.32%)"
     )
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -222,9 +222,9 @@ class SalesMarginConfig(models.Model):
     total_margin = models.DecimalField(
         max_digits=5,
         decimal_places=1,
-        default=16.0,
+        default=10.0,
         verbose_name="Margem Total (%)",
-        help_text="Margem total (%) dividida entre desconto, taxa do cartão e comissão",
+        help_text="Margem da empresa (%)",
     )
     min_commission = models.DecimalField(
         max_digits=5,

@@ -541,12 +541,23 @@ def api_event_create(request: HttpRequest) -> JsonResponse:
     except (ValueError, TypeError):
         return JsonResponse({"error": "Data inválida."}, status=400)
 
+    # Resolve optional customer FK
+    customer = None
+    customer_id = body.get("customer_id")
+    if customer_id:
+        from core.models import Customer
+        try:
+            customer = Customer.objects.get(pk=int(customer_id))
+        except (Customer.DoesNotExist, ValueError, TypeError):
+            pass
+
     event = CalendarEvent.objects.create(
         title=title,
         description=body.get("description", "").strip(),
         event_type=body.get("event_type", EventType.CUSTOM),
         event_date=event_date,
         assigned_to=request.user,
+        customer=customer,
     )
 
     # Lembretes: usa escolha do usuário ou padrão (3, 1, 0)

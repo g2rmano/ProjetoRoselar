@@ -1,12 +1,11 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Simulação - {{ quote.number }} | Roselar</title>
-  <!-- REWRITTEN TEMPLATE v4 (new pricing rules) -->
+  <title>Simulação Rápida | Roselar</title>
   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
@@ -30,7 +29,6 @@
     }
     body { font-family: 'Manrope', sans-serif; }
 
-    /* ── sim cards ── */
     .sim-card { border: 1px solid #dee2e6; background: #fff; padding: 1.1rem; margin-bottom: .9rem; }
     .sim-card .lbl { font-size: .76rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gray); font-weight: 600; margin-bottom: .15rem; }
     .sim-card .val { font-size: 1.3rem; font-weight: 700; color: var(--brand); }
@@ -38,7 +36,6 @@
     .sim-card .val.red    { color: var(--red); }
     .sim-card .val.orange { color: var(--orange); }
 
-    /* ── highlight cards ── */
     .hi-card { color: #fff; padding: 1.5rem; margin-bottom: .9rem; }
     .hi-card .lbl { font-size: .76rem; text-transform: uppercase; letter-spacing: .05em; opacity: .8; margin-bottom: .2rem; }
     .hi-card .val { font-size: 1.8rem; font-weight: 700; }
@@ -48,11 +45,9 @@
     .hi-card.red    { background: var(--red); }
     .hi-card.gray   { background: var(--gray); }
 
-    /* ── section headers ── */
     .sec-hdr { background: var(--brand); color: #fff; padding: .6rem 1rem; font-weight: 600; font-size: .88rem; display: flex; align-items: center; gap: .5rem; margin-bottom: 0; }
     .sec-body { border: 1px solid #dee2e6; border-top: none; padding: 1.1rem; background: #fff; margin-bottom: 1.4rem; }
 
-    /* ── slider ── */
     .slider-wrap { position: relative; padding: .5rem 0 1.5rem; }
     .slider-wrap input[type=range] {
       -webkit-appearance: none; appearance: none;
@@ -71,11 +66,11 @@
       box-shadow: 0 2px 6px rgba(0,0,0,.25); cursor: pointer;
     }
 
-    /* ── margin warning ── */
+
+
     .margin-warning { background: #fff3cd; border: 1px solid var(--yellow); padding: .85rem; margin-bottom: 1rem; font-size: .87rem; border-radius: 4px; }
     .margin-ok { background: #e8f5e9; border: 1px solid var(--green); padding: .85rem; margin-bottom: 1rem; font-size: .87rem; border-radius: 4px; }
 
-    /* ── seller commission collapse ── */
     .commission-toggle {
       width: 100%; border: 0; background: transparent; color: #fff;
       padding: 0; text-align: left;
@@ -84,13 +79,16 @@
     .commission-toggle .toggle-arrow { transition: transform .2s ease; opacity: .9; }
     .commission-toggle[aria-expanded="true"] .toggle-arrow { transform: rotate(180deg); }
 
-    /* ── misc ── */
     .btn-brand  { background: var(--brand); color: #fff; border: none; padding: .55rem 1.4rem; font-weight: 600; cursor: pointer; }
     .btn-brand:hover { background: #08203a; color: #fff; }
     .btn-green  { background: var(--green); color: #fff; border: none; padding: .55rem 1.4rem; font-weight: 600; cursor: pointer; }
     .btn-green:hover { background: #146c43; color: #fff; }
     .btn-outline { background: transparent; border: 1px solid var(--gray); color: var(--gray); padding: .55rem 1.4rem; font-weight: 600; cursor: pointer; }
     .btn-outline:hover { background: #f8f9fa; }
+
+    /* value input */
+    .value-input { font-size: 1.4rem; font-weight: 700; color: var(--brand); border: 2px solid var(--brand); padding: .6rem 1rem; text-align: right; }
+    .value-input:focus { border-color: var(--green); box-shadow: 0 0 0 .15rem rgba(25,135,84,.25); outline: none; }
 
     @keyframes flashUpdate { 0%{opacity:.4} 100%{opacity:1} }
     .flash { animation: flashUpdate .3s ease; }
@@ -99,7 +97,6 @@
 
 <body>
   <main class="main" id="top">
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
       <div class="container">
         <a class="navbar-brand" href="{% url 'core:index' %}">
@@ -112,7 +109,6 @@
           <ul class="navbar-nav ms-auto">
             <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Início</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'sales:quote_detail' quote.id %}">Orçamento {{ quote.number }}</a></li>
           </ul>
         </div>
       </div>
@@ -130,22 +126,18 @@
               <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
                   <h4 class="fw-bold mb-1" style="color: var(--brand);">
-                    <i class="fa-solid fa-calculator me-2"></i>Simulador de Venda
+                    <i class="fa-solid fa-calculator me-2"></i>Simulação Rápida
                   </h4>
                   <span style="color: var(--gray);">
-                    {{ quote.number }} &middot; {{ quote.customer.name }}
-                    &middot; {{ quote.seller.username }} &middot; {{ quote.quote_date|date:"d/m/Y" }}
+                    Simule valores de venda sem precisar criar um orçamento
                   </span>
                 </div>
-                <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-outline" style="text-decoration: none;">
+                <a href="{% url 'core:index' %}" class="btn-outline" style="text-decoration: none;">
                   <i class="fa-solid fa-arrow-left me-1"></i>Voltar
                 </a>
               </div>
             </div>
 
-            <!-- ═══════════════════════════════════════════════════════════ -->
-            <!-- MAIN FORM                                                  -->
-            <!-- ═══════════════════════════════════════════════════════════ -->
             <form method="post" id="sim-form">
               {% csrf_token %}
               <input type="hidden" name="discount_percent"       id="h-discount">
@@ -153,6 +145,46 @@
               <input type="hidden" name="sim_installments"       id="h-installments">
               <input type="hidden" name="sim_payment_type"       id="h-ptype">
               <input type="hidden" name="sim_has_architect"      id="h-architect">
+
+              <!-- ─────────────────────────────────────────────────────── -->
+              <!-- VALOR DE ENTRADA                                        -->
+              <!-- ─────────────────────────────────────────────────────── -->
+              <div class="sec-hdr">
+                <i class="fa-solid fa-dollar-sign"></i>
+                Valores Base
+              </div>
+              <div class="sec-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="fw-bold mb-1" style="color: var(--brand); font-size: .88rem;">
+                      <i class="fa-solid fa-box me-1"></i>Valor dos Produtos (R$)
+                    </label>
+                    <div class="input-group">
+                      <span class="input-group-text fw-bold" style="background: var(--brand); color: #fff;">R$</span>
+                      <input type="text" id="input-subtotal" name="sim_subtotal"
+                             class="form-control value-input"
+                             inputmode="decimal"
+                             value="{% if sim_subtotal %}{{ sim_subtotal|floatformat:2 }}{% endif %}"
+                             placeholder="0,00"
+                             oninput="maskCurrency(this); scheduleSubmit()">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="fw-bold mb-1" style="color: var(--brand); font-size: .88rem;">
+                      <i class="fa-solid fa-truck me-1"></i>Frete (R$)
+                    </label>
+                    <div class="input-group">
+                      <span class="input-group-text fw-bold" style="background: var(--brand); color: #fff;">R$</span>
+                      <input type="text" id="input-freight" name="sim_freight"
+                             class="form-control value-input"
+                             inputmode="decimal"
+                             value="{% if sim_freight %}{{ sim_freight|floatformat:2 }}{% endif %}"
+                             placeholder="0,00"
+                             oninput="maskCurrency(this); scheduleSubmit()">
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <!-- ─────────────────────────────────────────────────────── -->
               <!-- DESCONTO                                                -->
@@ -399,13 +431,16 @@
                     style="display:none;"></span>
               <div class="sec-hdr"><i class="fa-solid fa-chart-bar"></i>Resumo dos Valores</div>
               <div class="sec-body">
+                {% if subtotal > 0 %}
                 <div class="row g-2">
+                  {% if freight_value > 0 %}
                   <div class="col-md-4">
                     <div class="sim-card">
-                      <div class="lbl">Frete ({{ quote.get_freight_responsible_display }})</div>
+                      <div class="lbl">Frete</div>
                       <div class="val">R$ {{ freight_value|floatformat:2 }}</div>
                     </div>
                   </div>
+                  {% endif %}
                   <div class="col-md-4">
                     <div class="sim-card">
                       <div class="lbl">Total antes do desconto</div>
@@ -483,47 +518,31 @@
                     </div>
                   </div>
                 </div>
+                {% else %}
+                <div class="text-center py-4" style="color: var(--gray);">
+                  <i class="fa-solid fa-info-circle fa-2x mb-2"></i>
+                  <p class="mb-0">Insira o valor dos produtos acima para ver os resultados da simulação.</p>
+                </div>
+                {% endif %}
               </div>
               </div><!-- /sim-results -->
 
               <!-- ─────────────────────────────────────────────────────── -->
-              <!-- ACTION BUTTONS                                          -->
+              <!-- BOTÕES                                                  -->
               <!-- ─────────────────────────────────────────────────────── -->
               <div class="bg-white p-4 shadow-sm mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                   <div class="d-flex gap-2 flex-wrap">
-                    <button type="button" class="btn-green" onclick="saveConditions()">
-                      <i class="fa-solid fa-floppy-disk me-1"></i>Salvar Condições no Orçamento
+                    <button type="button" class="btn-brand" onclick="resetSimulation()">
+                      <i class="fa-solid fa-rotate-left me-1"></i>Nova Simulação
                     </button>
-                    <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-outline" style="text-decoration: none;" target="_blank">
-                      <i class="fa-solid fa-file-pdf me-1"></i>PDF Cliente
-                    </a>
-                    <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-outline" style="text-decoration: none;" target="_blank">
-                      <i class="fa-solid fa-file-pdf me-1"></i>PDF Fornecedor
-                    </a>
                   </div>
-                  <div class="d-flex gap-2">
-                    <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-outline" style="text-decoration: none;">
-                      <i class="fa-solid fa-pencil me-1"></i>Editar Orçamento
-                    </a>
-                    <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-outline" style="text-decoration: none;">
-                      <i class="fa-solid fa-eye me-1"></i>Ver Orçamento
-                    </a>
-                  </div>
+                  <a href="{% url 'core:index' %}" class="btn-outline" style="text-decoration: none;">
+                    <i class="fa-solid fa-home me-1"></i>Início
+                  </a>
                 </div>
               </div>
 
-            </form><!-- /sim-form -->
-
-            <!-- Hidden save form -->
-            <form method="post" id="save-form" style="display: none;">
-              {% csrf_token %}
-              <input type="hidden" name="action"                 value="save_conditions">
-              <input type="hidden" name="sim_payment_type"       id="save-ptype">
-              <input type="hidden" name="sim_installments"       id="save-inst">
-              <input type="hidden" name="sim_has_architect"      id="save-arch">
-              <input type="hidden" name="discount_percent"       id="save-disc">
-              <input type="hidden" name="price_increase_percent" id="save-pi">
             </form>
 
           </div>
@@ -545,7 +564,6 @@
   <script>
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
-  // ── Server data ───────────────────────────────────────────────────────────
   var tariffsByType      = JSON.parse('{{ tariffs_by_type_json|escapejs }}');
   var initDiscount       = parseFloat('{{ discount_percent }}');
   var initPriceInc       = parseFloat('{{ price_increase_pct }}');
@@ -553,7 +571,6 @@
   var initPType          = '{{ sim_payment_type }}';
   var MARGIN_BASE        = parseFloat('{{ margin_base }}');
 
-  // ── Discount slider ──────────────────────────────────────────────────────
   function onDiscountChange(val) {
     val = parseFloat(val);
     document.getElementById('h-discount').value = val.toFixed(1);
@@ -567,7 +584,6 @@
     }
   }
 
-  // ── Price increase slider ────────────────────────────────────────────────
   function onIncreaseChange(val) {
     val = parseFloat(val);
     document.getElementById('h-price-inc').value = val.toFixed(1);
@@ -581,14 +597,12 @@
     }
   }
 
-  // ── Installments change ───────────────────────────────────────────────────
   function onInstChange(val) {
     val = parseInt(val);
     document.getElementById('h-installments').value = val;
     updateFeeDisplay(val);
   }
 
-  // ── Payment type change ───────────────────────────────────────────────────
   function onPaymentTypeChange() {
     var pt = document.getElementById('sel-ptype').value;
     document.getElementById('h-ptype').value = pt;
@@ -617,9 +631,7 @@
       if (o.installments === curVal) opt.selected = true;
       instSel.appendChild(opt);
     });
-    if (!instSel.value) {
-      instSel.value = 1;
-    }
+    if (!instSel.value) instSel.value = 1;
   }
 
   function updateFeeDisplay(installments) {
@@ -632,16 +644,55 @@
     document.getElementById('fee-display').textContent = fee.toFixed(2) + '%';
   }
 
-  // ── Auto-submit (debounced AJAX) ──────────────────────────────────────────
   var submitTimer = null;
   function scheduleSubmit() {
     clearTimeout(submitTimer);
-    submitTimer = setTimeout(doSubmit, 400);
+    submitTimer = setTimeout(doSubmit, 500);
+  }
+
+  function parseBRL(str) {
+    if (!str) return 0;
+    // Remove everything except digits and comma/dot
+    str = str.replace(/[^\d.,]/g, '');
+    // Brazilian format: 1.234,56 → replace dots (thousands) then comma (decimal)
+    str = str.replace(/\./g, '').replace(',', '.');
+    return parseFloat(str) || 0;
+  }
+
+  function maskCurrency(el) {
+    // Accumulator pattern: strip non-digits, divide by 100, format as BRL
+    var raw = el.value.replace(/\D/g, '');
+    if (!raw) { el.value = ''; return; }
+    // Remove leading zeros but keep at least one digit
+    raw = raw.replace(/^0+/, '') || '0';
+    // Pad to at least 3 chars for cents
+    while (raw.length < 3) raw = '0' + raw;
+    var intPart = raw.slice(0, -2);
+    var decPart = raw.slice(-2);
+    // Thousands separator
+    intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    el.value = intPart + ',' + decPart;
+    // Accumulator: cursor always at end
+    try { el.setSelectionRange(el.value.length, el.value.length); } catch(e) {}
+  }
+
+  function formatInitialValue(el) {
+    if (!el.value) return;
+    // Django outputs US format "1234.56" — parse with parseFloat, NOT parseBRL
+    var v = parseFloat(el.value);
+    if (v > 0) {
+      el.value = v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    } else {
+      el.value = '';
+    }
   }
 
   function doSubmit() {
     var discount  = parseFloat(document.getElementById('discount-slider').value) || 0;
     var priceInc  = parseFloat(document.getElementById('increase-slider').value) || 0;
+    var subtotal  = parseBRL(document.getElementById('input-subtotal').value);
+    var freight   = parseBRL(document.getElementById('input-freight').value);
+
     document.getElementById('h-discount').value     = discount.toFixed(1);
     document.getElementById('h-price-inc').value    = priceInc.toFixed(1);
     document.getElementById('h-installments').value = document.getElementById('inst-select').value;
@@ -651,6 +702,8 @@
     var fd = new FormData();
     fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
     fd.append('_ajax', '1');
+    fd.append('sim_subtotal',           subtotal.toFixed(2));
+    fd.append('sim_freight',            freight.toFixed(2));
     fd.append('discount_percent',       discount.toFixed(1));
     fd.append('price_increase_percent', priceInc.toFixed(1));
     fd.append('sim_installments',       document.getElementById('inst-select').value);
@@ -693,17 +746,21 @@
     }
   }
 
-  // ── Save conditions ───────────────────────────────────────────────────────
-  function saveConditions() {
-    document.getElementById('save-ptype').value = document.getElementById('sel-ptype').value;
-    document.getElementById('save-inst').value  = document.getElementById('inst-select').value;
-    document.getElementById('save-arch').value  = document.getElementById('chk-architect').checked ? '1' : '0';
-    document.getElementById('save-disc').value  = document.getElementById('h-discount').value;
-    document.getElementById('save-pi').value    = document.getElementById('h-price-inc').value;
-    document.getElementById('save-form').submit();
+  function resetSimulation() {
+    document.getElementById('input-subtotal').value = '';
+    document.getElementById('input-freight').value = '';
+    document.getElementById('input-subtotal').placeholder = '0,00';
+    document.getElementById('input-freight').placeholder = '0,00';
+    document.getElementById('discount-slider').value = 0;
+    document.getElementById('increase-slider').value = 0;
+    document.getElementById('sel-ptype').value = '';
+    document.getElementById('chk-architect').checked = false;
+    onDiscountChange(0);
+    onIncreaseChange(0);
+    onPaymentTypeChange();
+    scheduleSubmit();
   }
 
-  // ── Init ──────────────────────────────────────────────────────────────────
   (function init() {
     document.getElementById('h-discount').value     = initDiscount.toFixed(1);
     document.getElementById('h-price-inc').value     = initPriceInc.toFixed(1);
@@ -711,20 +768,21 @@
     document.getElementById('h-ptype').value         = initPType;
     document.getElementById('h-architect').value     = '{{ sim_has_architect|yesno:"1,0" }}';
 
-    // Init sliders
     document.getElementById('discount-slider').value = initDiscount;
     document.getElementById('increase-slider').value = initPriceInc;
 
-    // Init installment dropdown
     rebuildInstOptions();
     var instSel = document.getElementById('inst-select');
     instSel.value = initInstall;
 
-    // Show/hide installments dropdown
     var hasInstallments = (initPType === 'CREDIT_CARD' || initPType === 'BOLETO');
     document.getElementById('inst-dropdown-row').style.display = hasInstallments ? '' : 'none';
 
     updateFeeDisplay(initInstall);
+
+    // Format initial values with mask
+    formatInitialValue(document.getElementById('input-subtotal'));
+    formatInitialValue(document.getElementById('input-freight'));
   })();
   </script>
 </body>

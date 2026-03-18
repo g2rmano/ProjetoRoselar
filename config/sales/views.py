@@ -5,7 +5,7 @@ import logging
 import re
 import unicodedata
 from collections import defaultdict
-from decimal import Decimal
+from decimal import Decimal, ROUND_CEILING
 from io import BytesIO
 from urllib.parse import quote as url_quote
 
@@ -1345,11 +1345,209 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
     return response
 
 
-@login_required
-@require_http_methods(["GET", "POST"])
-def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpResponse: 
+# ──────────────────────────────────────────────────────────────────────
+# Shared simulation logic
+# ──────────────────────────────────────────────────────────────────────
+def _build_simulation_context(
+    *,
+    subtotal: Decimal,
+    freight_value: Decimal,
+    sim_payment_type: str,
+    sim_has_architect: bool,
+    sim_discount: Decimal,
+    price_increase_pct: Decimal,
+    sim_installments: int,
+) -> dict:
+    """Pure calculation — no DB writes, no request handling."""
     from core.models import PaymentTariff, PaymentMethodType, ArchitectCommission
 
+    MARGIN_BASE = Decimal("10")
+
+    COMMISSION_FLOOR = Decimal("2")   # when margin is exceeded
+    COMMISSION_MIN   = Decimal("3")
+    COMMISSION_MAX   = Decimal("5")
+    MAX_DISCOUNT_ABSOLUTE = Decimal("30")
+    MAX_MARGIN_EXCESS = Decimal("5")   # margin can go at most 5% below
+    FEE_STORE_MAX_INSTALLMENTS = 12  # store absorbs fee up to this many installments
+
+    # Clamp
+    price_increase_pct = max(Decimal('0'), min(price_increase_pct, Decimal('30')))
+    sim_discount       = max(Decimal("0"), min(sim_discount, MAX_DISCOUNT_ABSOLUTE))
+    sim_installments   = max(1, min(sim_installments, 18))
+
+    # Interest / fee
+    payment_fee_percent = (
+        Decimal(str(PaymentTariff.get_fee(sim_payment_type, sim_installments)))
+        if sim_payment_type else Decimal("0")
+    )
+
+    # For 13-18x: store absorbs up to the 12x fee; client pays the difference
+    store_fee_percent = payment_fee_percent  # store's cost (capped at 12x rate)
+    client_surcharge_percent = Decimal("0")
+    if sim_installments > FEE_STORE_MAX_INSTALLMENTS and sim_payment_type:
+        fee_12x = Decimal(str(PaymentTariff.get_fee(sim_payment_type, FEE_STORE_MAX_INSTALLMENTS)))
+        if payment_fee_percent > fee_12x:
+            client_surcharge_percent = payment_fee_percent - fee_12x
+            store_fee_percent = fee_12x
+
+    # Architect — always loaded (immutable, non-negotiable when present)
+    architect_percent = ArchitectCommission.get_commission()
+    architect_commission_value = Decimal("0")
+    # Architect cost in margin: only when client has architect, but always at full rate
+    architect_cost_pct = architect_percent if sim_has_architect else Decimal("0")
+
+    # Effective margin and max discount allowed
+    # Margin can go at most MAX_MARGIN_EXCESS below zero.
+    # With commission at COMMISSION_FLOOR (worst case):
+    #   total_cost = store_fee + architect + discount + COMMISSION_FLOOR
+    #   total_cost - effective_margin <= MAX_MARGIN_EXCESS
+    #   → discount <= effective_margin + MAX_MARGIN_EXCESS - store_fee - architect - COMMISSION_FLOOR
+    effective_margin = MARGIN_BASE + price_increase_pct
+    allowance = effective_margin + MAX_MARGIN_EXCESS - store_fee_percent - architect_cost_pct - COMMISSION_FLOOR
+    max_discount_allowed = max(Decimal("0"), min(MAX_DISCOUNT_ABSOLUTE, allowance))
+
+    # Re-clamp discount to max_discount_allowed
+    sim_discount = min(sim_discount, max_discount_allowed)
+
+    # Dynamic commission based on margin room
+    # room = what's left in effective margin after fixed costs (fee, architect, discount)
+    # Commission = room/2 clamped to [3%, 5%]: splits available space evenly
+    # between commission and remaining profit margin
+    fixed_costs = store_fee_percent + architect_cost_pct + sim_discount
+    room = effective_margin - fixed_costs
+
+    # Commission = half of room, clamped between 3% and 5%
+    # Then check: if margin is exceeded with that commission → drop to 2%
+    seller_commission_percent = min(COMMISSION_MAX, max(COMMISSION_MIN, room / 2))
+    total_cost_pct = fixed_costs + seller_commission_percent
+    if total_cost_pct > effective_margin:
+        seller_commission_percent = COMMISSION_FLOOR
+    original_commission_percent = COMMISSION_MAX  # for display: max possible
+
+    # Total cost and margin check
+    total_cost_pct  = fixed_costs + seller_commission_percent
+    margin_exceeded = total_cost_pct > effective_margin
+    commission_reduced = seller_commission_percent < COMMISSION_MAX
+
+    margin_excess = total_cost_pct - effective_margin if margin_exceeded else Decimal("0")
+    controls_blocked = margin_excess >= MAX_MARGIN_EXCESS
+
+    # Suggested increase: how much MORE to increase price to eliminate the excess
+    suggested_increase = Decimal("0")
+    if margin_exceeded:
+        suggested_increase = (margin_excess * 2).quantize(Decimal("1"), rounding=ROUND_CEILING) / 2
+
+    # Price-adjusted subtotal
+    price_multiplier  = (Decimal("100") + price_increase_pct) / Decimal("100")
+    adj_subtotal      = subtotal * price_multiplier
+    total_before_disc = adj_subtotal + freight_value
+    discount_value    = total_before_disc * sim_discount / Decimal("100")
+    total_after_disc  = total_before_disc - discount_value
+
+    # Card fee: store absorbs store_fee_percent; client pays client_surcharge_percent
+    payment_fee_value = total_after_disc * store_fee_percent / Decimal("100")
+    client_surcharge_value = total_after_disc * client_surcharge_percent / Decimal("100")
+
+    # Client pays total_after_disc + surcharge for 13-18x
+    final_total       = total_after_disc + client_surcharge_value
+    installment_value = (final_total / Decimal(sim_installments)) if sim_installments else final_total
+
+    # valor_avista: what the store actually receives (client total minus ALL card fees)
+    valor_avista = final_total - payment_fee_value - client_surcharge_value
+
+    # Architect commission (based on what the store actually receives)
+    if sim_has_architect:
+        architect_commission_value = valor_avista * architect_percent / Decimal("100")
+
+    # Seller commission base
+    seller_commission_base = adj_subtotal
+    seller_discount_value  = seller_commission_base * sim_discount / Decimal("100")
+    seller_commission_base = seller_commission_base - seller_discount_value
+    if sim_has_architect:
+        seller_commission_base -= architect_commission_value
+    seller_commission_base  = max(Decimal("0"), seller_commission_base)
+    seller_commission_value = seller_commission_base * seller_commission_percent / Decimal("100")
+
+    # Payment selects
+    payment_type_choices = list(PaymentMethodType.choices)
+    max_inst_map = {
+        'CASH': 1, 'PIX': 1, 'CREDIT_CARD': 18, 'CHEQUE': 1, 'BOLETO': 18,
+    }
+    tariffs_by_type: dict[str, list] = {}
+    for pt_val, _pt_lbl in payment_type_choices:
+        max_inst = max_inst_map.get(pt_val, 1)
+        existing = {
+            t.installments: float(t.fee_percent)
+            for t in PaymentTariff.objects.filter(payment_type=pt_val)
+        }
+        options = []
+        for i in range(1, max_inst + 1):
+            fee = existing.get(i, 0)
+            if i == 1:
+                lbl = "À vista"
+            elif i <= FEE_STORE_MAX_INSTALLMENTS:
+                lbl = f"{i}x sem juros"
+            else:
+                lbl = f"{i}x com juros"
+            options.append({'installments': i, 'fee': fee, 'label': lbl})
+        tariffs_by_type[pt_val] = options
+
+    # Payment description
+    if sim_payment_type:
+        pt_label = dict(PaymentMethodType.choices).get(sim_payment_type, sim_payment_type)
+        sim_payment_description = (
+            f"{pt_label} - À vista" if sim_installments == 1
+            else f"{pt_label} - {sim_installments}x"
+        )
+    else:
+        sim_payment_description = "Não definido"
+
+    return {
+        'subtotal':                 subtotal,
+        'adj_subtotal':             adj_subtotal,
+        'freight_value':            freight_value,
+        'price_increase_pct':       price_increase_pct,
+        'total_before_discount':    total_before_disc,
+        'discount_percent':         sim_discount,
+        'discount_value':           discount_value,
+        'total_after_discount':     total_after_disc,
+        'payment_fee_percent':      payment_fee_percent,
+        'store_fee_percent':        store_fee_percent,
+        'payment_fee_value':        payment_fee_value,
+        'client_surcharge_percent': client_surcharge_percent,
+        'client_surcharge_value':   client_surcharge_value,
+        'final_total':              final_total,
+        'installment_value':        installment_value,
+        'seller_commission_percent': seller_commission_percent,
+        'seller_commission_value':   seller_commission_value,
+        'seller_commission_base':    seller_commission_base,
+        'original_commission_percent': original_commission_percent,
+        'commission_reduced':          commission_reduced,
+        'margin_base':               MARGIN_BASE,
+        'effective_margin':          effective_margin,
+        'total_cost_pct':            total_cost_pct,
+        'margin_exceeded':           margin_exceeded,
+        'margin_excess':             margin_excess,
+        'controls_blocked':          controls_blocked,
+        'max_discount_allowed':      max_discount_allowed,
+
+        'suggested_increase':        suggested_increase,
+        'architect_percent':          architect_percent,
+        'architect_commission_value': architect_commission_value,
+        'valor_avista':               valor_avista,
+        'max_discount_absolute':     MAX_DISCOUNT_ABSOLUTE,
+        'payment_type_choices':      payment_type_choices,
+        'sim_payment_type':          sim_payment_type,
+        'sim_installments':          sim_installments,
+        'tariffs_by_type_json':      json.dumps(tariffs_by_type),
+        'sim_payment_description':   sim_payment_description,
+        'sim_has_architect':         sim_has_architect,
+    }
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpResponse:
     quote = get_object_or_404(
         Quote.objects.select_related('customer', 'seller'), id=quote_id
     )
@@ -1357,11 +1555,6 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
     subtotal = quote.calculate_subtotal()
     freight_value = quote.freight_value or Decimal("0.00")
 
-    # ── Constants ─────────────────────────────────────────────────────────────
-    MAX_DISCOUNT_NORMAL   = Decimal("10")   # above this → penalty zone
-    MAX_DISCOUNT_ABSOLUTE = Decimal("15")   # hard ceiling
-
-    # ── Parse inputs ──────────────────────────────────────────────────────────
     if request.method == "POST":
         sim_payment_type    = request.POST.get('sim_payment_type', '') or ''
         sim_has_architect   = request.POST.get('sim_has_architect') == '1'
@@ -1378,189 +1571,104 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
         price_increase_pct  = Decimal('0')
         sim_installments    = quote.payment_installments or 1
 
-    # Continuous threshold — accepts any float, no whitelist
-    price_increase_pct = max(Decimal('0'), min(price_increase_pct, Decimal('10')))
-    if price_increase_pct >= 10:
-        max_installments_unlocked = 18
-    elif price_increase_pct >= 5:
-        max_installments_unlocked = 14
-    elif price_increase_pct >= 3:
-        max_installments_unlocked = 10
-    else:
-        max_installments_unlocked = 7
-
-    # Clamp discount and installments to their allowed ranges
-    sim_discount     = max(Decimal("0"), min(sim_discount, MAX_DISCOUNT_ABSOLUTE))
-    sim_installments = min(sim_installments, max_installments_unlocked)
-    sim_installments = max(1, sim_installments)
-
-    # ── Commission from discount ──────────────────────────────────────────────
-    if sim_discount <= MAX_DISCOUNT_NORMAL:
-        # Linear: 5 % at 0 %, 3 % at 10 % → step = −0.2 % per 1 %
-        comm_discount    = max(Decimal("3"), Decimal("5") - sim_discount / Decimal("5"))
-        discount_penalty = False
-    else:
-        # Dinheiro/PIX: metade da penalidade
-        comm_discount    = Decimal("2.5") if sim_payment_type in ("CASH", "PIX") else Decimal("2")
-        discount_penalty = True
-
-    # ── Commission from installments ──────────────────────────────────────────
-    # 1x=5%, 2x=4%, 3-7x linear to 3%, 8x+=2% (penalty, unlocked by price increase)
-    if sim_installments <= 1:
-        comm_installments   = Decimal("5")
-        installment_penalty = False
-    elif sim_installments == 2:
-        comm_installments   = Decimal("4")
-        installment_penalty = False
-    elif sim_installments <= 7:
-        comm_installments   = max(
-            Decimal("3"),
-            Decimal("4") - Decimal("0.2") * (sim_installments - 2),
-        )
-        installment_penalty = False
-    else:
-        # 8x+: only reachable with price increase; dinheiro/PIX = metade da penalidade
-        comm_installments   = Decimal("2.5") if sim_payment_type in ("CASH", "PIX") else Decimal("2")
-        installment_penalty = True
-
-    # ── Final commission = lower of the two ──────────────────────────────────
-    seller_commission_percent = min(comm_discount, comm_installments)
-    is_penalty                = discount_penalty or installment_penalty
-
-    # ── Payment fee ───────────────────────────────────────────────────────────
-    payment_fee_percent = (
-        Decimal(str(PaymentTariff.get_fee(sim_payment_type, sim_installments)))
-        if sim_payment_type else Decimal("0")
+    ctx = _build_simulation_context(
+        subtotal=subtotal,
+        freight_value=freight_value,
+        sim_payment_type=sim_payment_type,
+        sim_has_architect=sim_has_architect,
+        sim_discount=sim_discount,
+        price_increase_pct=price_increase_pct,
+        sim_installments=sim_installments,
     )
 
-    # ── Price-adjusted subtotal ───────────────────────────────────────────────
-    price_multiplier  = (Decimal("100") + price_increase_pct) / Decimal("100")
-    adj_subtotal      = subtotal * price_multiplier
-    total_before_disc = adj_subtotal + freight_value
-    discount_value    = total_before_disc * sim_discount / Decimal("100")
-    total_after_disc  = total_before_disc - discount_value
-    payment_fee_value = total_after_disc * payment_fee_percent / Decimal("100")
-    final_total       = total_after_disc + payment_fee_value
-    installment_value = (final_total / Decimal(sim_installments)) if sim_installments else final_total
-
-    # ── Architect commission ──────────────────────────────────────────────────
-    architect_percent          = Decimal("0")
-    architect_commission_value = Decimal("0")
-    if sim_has_architect:
-        architect_percent          = ArchitectCommission.get_commission()
-        architect_commission_value = adj_subtotal * architect_percent / Decimal("100")
-
-    # ── Seller commission base (always over subtotal logic) ──────────────────
-    # Base uses adjusted subtotal, then applies discount and payment fee impact.
-    # Freight is not part of seller commission base.
-    seller_base_before_discount = adj_subtotal
-    seller_discount_value = seller_base_before_discount * sim_discount / Decimal("100")
-    seller_base_after_discount = seller_base_before_discount - seller_discount_value
-    seller_payment_fee_value = seller_base_after_discount * payment_fee_percent / Decimal("100")
-
-    seller_commission_base = seller_base_after_discount + seller_payment_fee_value
-    if sim_has_architect:
-        seller_commission_base -= architect_commission_value
-    seller_commission_base = max(Decimal("0"), seller_commission_base)
-
-    seller_commission_value = seller_commission_base * seller_commission_percent / Decimal("100")
-
-    # ── Save action ───────────────────────────────────────────────────────────
     if request.method == "POST" and request.POST.get('action') == 'save_conditions':
         with transaction.atomic():
-            quote.discount_percent     = sim_discount
-            quote.payment_type         = sim_payment_type
-            quote.payment_installments = sim_installments
-            quote.payment_fee_percent  = payment_fee_percent
-            quote.has_architect        = sim_has_architect
+            quote.discount_percent     = ctx['discount_percent']
+            quote.payment_type         = ctx['sim_payment_type']
+            quote.payment_installments = ctx['sim_installments']
+            quote.payment_fee_percent  = ctx['payment_fee_percent']
+            quote.has_architect        = ctx['sim_has_architect']
             quote.save()
         messages.success(request, f"Condições do orçamento {quote.number} salvas com sucesso.")
         return redirect("sales:quote_detail", quote_id=quote.id)
 
-    # Non-AJAX POST — redirect to GET to prevent browser resubmission dialog
     if request.method == "POST" and not request.POST.get('_ajax'):
         return redirect(request.path)
 
-    # ── Build payment selects (tariffs up to 18 x) ────────────────────────────
-    payment_type_choices = list(PaymentMethodType.choices)
-    max_inst_map = {
-        'CASH': 1, 'PIX': 1, 'CREDIT_CARD': 18, 'CHEQUE': 1, 'BOLETO': 18,
-    }
-    tariffs_by_type: dict[str, list] = {}
-    for pt_val, _pt_lbl in payment_type_choices:
-        max_inst = max_inst_map.get(pt_val, 1)
-        existing = {
-            t.installments: float(t.fee_percent)
-            for t in PaymentTariff.objects.filter(payment_type=pt_val)
-        }
-        options = []
-        for i in range(1, max_inst + 1):
-            fee = existing.get(i, 0)
-            lbl = ("À vista" if i == 1 else f"{i}x") + (f" (+{fee}%)" if fee else "")
-            options.append({'installments': i, 'fee': fee, 'label': lbl})
-        tariffs_by_type[pt_val] = options
+    ctx['quote'] = quote
+    return render(request, 'sales/quote_simulation.html', ctx)
 
-    # Payment description
-    if sim_payment_type:
-        pt_label = dict(PaymentMethodType.choices).get(sim_payment_type, sim_payment_type)
-        sim_payment_description = (
-            f"{pt_label} - À vista" if sim_installments == 1
-            else f"{pt_label} - {sim_installments}x"
-        )
+
+# ──────────────────────────────────────────────────────────────────────
+# Standalone Simulation (sem orçamento)
+# ──────────────────────────────────────────────────────────────────────
+@login_required
+@require_http_methods(["GET", "POST"])
+def standalone_simulation(request: HttpRequest) -> HttpResponse:
+    """Simulação rápida de valores — sem precisar criar orçamento."""
+    from core.models import Customer
+
+    if request.method == "POST":
+        try:
+            subtotal = Decimal(request.POST.get('sim_subtotal', '0') or '0')
+        except Exception:
+            subtotal = Decimal('0')
+        try:
+            freight_value = Decimal(request.POST.get('sim_freight', '0') or '0')
+        except Exception:
+            freight_value = Decimal('0')
+        sim_payment_type  = request.POST.get('sim_payment_type', '') or ''
+        sim_has_architect = request.POST.get('sim_has_architect') == '1'
+        try:
+            sim_discount = Decimal(request.POST.get('discount_percent', '0') or '0')
+        except Exception:
+            sim_discount = Decimal('0')
+        try:
+            price_increase_pct = Decimal(request.POST.get('price_increase_percent', '0') or '0')
+        except Exception:
+            price_increase_pct = Decimal('0')
+        sim_installments = max(1, int(request.POST.get('sim_installments', '1') or 1))
+        customer_id = request.POST.get('sim_customer_id', '') or ''
     else:
-        sim_payment_description = "Não definido"
+        subtotal           = Decimal('0')
+        freight_value      = Decimal('0')
+        sim_payment_type   = ''
+        sim_has_architect  = False
+        sim_discount       = Decimal('0')
+        price_increase_pct = Decimal('0')
+        sim_installments   = 1
+        customer_id        = ''
 
-    context = {
-        'quote':                    quote,
-        # Subtotals
-        'subtotal':                 subtotal,
-        'adj_subtotal':             adj_subtotal,
-        'freight_value':            freight_value,
-        'price_increase_pct':       price_increase_pct,
-        'total_before_discount':    total_before_disc,
-        'discount_percent':         sim_discount,
-        'discount_value':           discount_value,
-        'total_after_discount':     total_after_disc,
-        'payment_fee_percent':      payment_fee_percent,
-        'payment_fee_value':        payment_fee_value,
-        'final_total':              final_total,
-        'installment_value':        installment_value,
-        # Commission
-        'seller_commission_percent': seller_commission_percent,
-        'seller_commission_value':   seller_commission_value,
-        'seller_commission_base':    seller_commission_base,
-        'comm_discount':             comm_discount,
-        'comm_installments':         comm_installments,
-        'is_penalty':                is_penalty,
-        'discount_penalty':          discount_penalty,
-        'installment_penalty':       installment_penalty,
-        # Architect
-        'architect_percent':          architect_percent,
-        'architect_commission_value': architect_commission_value,
-        # Limits
-        'max_discount_normal':       MAX_DISCOUNT_NORMAL,
-        'max_discount_absolute':     MAX_DISCOUNT_ABSOLUTE,
-        'max_installments_unlocked': max_installments_unlocked,
-        # Payment
-        'payment_type_choices':    payment_type_choices,
-        'sim_payment_type':        sim_payment_type,
-        'sim_installments':        sim_installments,
-        'tariffs_by_type_json':    json.dumps(tariffs_by_type),
-        'sim_payment_description': sim_payment_description,
-        'sim_has_architect':       sim_has_architect,
-        'is_cash_pix':             sim_payment_type in ('CASH', 'PIX'),
-        # Price increase options
-        'price_increase_options': [
-            {'value': '0',  'max_inst': 7,  'label': 'Sem aumento',   'desc': 'até 7x'},
-            {'value': '3',  'max_inst': 10, 'label': '+3% no valor',  'desc': 'até 10x'},
-            {'value': '5',  'max_inst': 14, 'label': '+5% no valor',  'desc': 'até 14x'},
-            {'value': '10', 'max_inst': 18, 'label': '+10% no valor', 'desc': 'até 18x'},
-        ],
-    }
+    subtotal      = max(Decimal('0'), subtotal)
+    freight_value = max(Decimal('0'), freight_value)
 
-    context['max_installments_range'] = range(1, max_installments_unlocked + 1)
+    if request.method == "POST" and not request.POST.get('_ajax'):
+        return redirect(request.path)
 
-    return render(request, 'sales/quote_simulation.html', context)
+    # Resolve customer
+    selected_customer = None
+    if customer_id:
+        try:
+            selected_customer = Customer.objects.get(pk=int(customer_id))
+        except (Customer.DoesNotExist, ValueError, TypeError):
+            pass
+
+    ctx = _build_simulation_context(
+        subtotal=subtotal,
+        freight_value=freight_value,
+        sim_payment_type=sim_payment_type,
+        sim_has_architect=sim_has_architect,
+        sim_discount=sim_discount,
+        price_increase_pct=price_increase_pct,
+        sim_installments=sim_installments,
+    )
+    ctx['standalone']         = True
+    ctx['sim_subtotal']       = subtotal
+    ctx['sim_freight']        = freight_value
+    ctx['selected_customer']  = selected_customer
+    ctx['sim_customer_id']    = customer_id
+
+    return render(request, 'sales/standalone_simulation.html', ctx)
 
 
 # ──────────────────────────────────────────────────────────────────────
