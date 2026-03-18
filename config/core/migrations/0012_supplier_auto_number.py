@@ -3,6 +3,35 @@
 from django.db import migrations, models
 
 
+def convert_supplier_number_to_int(apps, schema_editor):
+    """
+    Assign sequential integer codes to existing suppliers whose
+    supplier_number cannot be cast to integer (e.g. 'FORN-001').
+    """
+    Supplier = apps.get_model('core', 'Supplier')
+    counter = 1
+    for supplier in Supplier.objects.all().order_by('pk'):
+        # Try to keep the numeric part if possible
+        digits = ''.join(c for c in supplier.supplier_number if c.isdigit())
+        supplier.supplier_number = digits if digits else str(counter)
+        counter += 1
+        supplier.save(update_fields=['supplier_number'])
+
+    # Resolve any duplicates that arose from extracting digits
+    seen = set()
+    next_num = (max(
+        (int(s.supplier_number) for s in Supplier.objects.all()),
+        default=0,
+    ) + 1)
+    for supplier in Supplier.objects.all().order_by('pk'):
+        val = supplier.supplier_number
+        if val in seen:
+            supplier.supplier_number = str(next_num)
+            supplier.save(update_fields=['supplier_number'])
+            next_num += 1
+        seen.add(supplier.supplier_number)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -25,6 +54,18 @@ class Migration(migrations.Migration):
             name='phone',
             field=models.CharField(blank=True, max_length=30, verbose_name='Contato'),
         ),
+        # Step 1: Drop the unique constraint so we can safely update values
+        migrations.AlterField(
+            model_name='supplier',
+            name='supplier_number',
+            field=models.CharField(max_length=50, verbose_name='Código'),
+        ),
+        # Step 2: Convert text values like 'FORN-001' to plain integers
+        migrations.RunPython(
+            convert_supplier_number_to_int,
+            migrations.RunPython.noop,
+        ),
+        # Step 3: Now safely alter to PositiveIntegerField
         migrations.AlterField(
             model_name='supplier',
             name='supplier_number',
