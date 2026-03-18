@@ -56,21 +56,19 @@ class Customer(models.Model):
 
 class Supplier(models.Model):
     name = models.CharField(max_length=120, verbose_name="Nome")
-    supplier_number = models.CharField(
-        max_length=50,
+    supplier_number = models.PositiveIntegerField(
         unique=True,
+        editable=False,
         verbose_name="Código",
-        help_text="Número/código do fornecedor"
     )
 
     email = models.EmailField(
-        unique=True,
+        blank=True,
         verbose_name="E-mail",
-        help_text="E-mail único do fornecedor (identificador principal)"
     )
     
-    phone = models.CharField(max_length=30, blank=True, verbose_name="Telefone")
-    notes = models.TextField(blank=True, verbose_name="Observações", help_text="Informações adicionais sobre o fornecedor")
+    phone = models.CharField(max_length=30, blank=True, verbose_name="Contato")
+    notes = models.TextField(blank=True, verbose_name="Observações")
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Cadastrado em")
 
@@ -78,43 +76,14 @@ class Supplier(models.Model):
         verbose_name = "Fornecedor"
         verbose_name_plural = "Fornecedores"
 
+    def save(self, *args, **kwargs):
+        if not self.supplier_number:
+            last = Supplier.objects.order_by('-supplier_number').values_list('supplier_number', flat=True).first()
+            self.supplier_number = (last or 0) + 1
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return f"{self.name} ({self.supplier_number})"
-
-
-class SupplierPaymentOption(models.Model):
-    """Opções de pagamento personalizadas por fornecedor."""
-    supplier = models.ForeignKey(
-        Supplier,
-        on_delete=models.CASCADE,
-        related_name="payment_options"
-    )
-    
-    description = models.CharField(
-        max_length=200,
-        help_text="Ex: '30/60/90 dias', 'À vista com 5% desconto', etc."
-    )
-    
-    days_to_pay = models.PositiveIntegerField(
-        null=True,
-        blank=True,
-        help_text="Prazo em dias (opcional)"
-    )
-    
-    is_default = models.BooleanField(
-        default=False,
-        help_text="Marcar como opção padrão para este fornecedor"
-    )
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        ordering = ["-is_default", "days_to_pay"]
-        verbose_name = "Forma de Pagamento do Fornecedor"
-        verbose_name_plural = "Formas de Pagamento do Fornecedor"
-    
-    def __str__(self) -> str:
-        return f"{self.supplier.name} - {self.description}"
 
 
 class ShippingCompany(models.Model):

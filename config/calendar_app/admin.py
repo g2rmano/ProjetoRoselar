@@ -6,59 +6,31 @@ from core.admin_helpers import AdminOnly, SellerAccess
 class ReminderInline(admin.TabularInline):
     model = Reminder
     extra = 0
-    verbose_name = "Lembrete"
-    verbose_name_plural = "Lembretes"
-    readonly_fields = ("created_at",)
-    fields = ("remind_date", "message", "status", "read", "created_at")
-
-
-class EventAttachmentInline(admin.TabularInline):
-    model = EventAttachment
-    extra = 0
-    verbose_name = "Anexo"
-    verbose_name_plural = "Anexos"
-    readonly_fields = ("filename", "content_type", "file_size", "uploaded_by", "uploaded_at")
-    fields = ("filename", "content_type", "file_size", "uploaded_by", "uploaded_at")
+    fields = ("remind_date", "message", "status", "read")
 
 
 @admin.register(EventTag)
 class EventTagAdmin(SellerAccess, admin.ModelAdmin):
-    list_display = ("name", "color", "created_by", "created_at")
-    list_filter = ("color",)
-    search_fields = ("name",)
-    readonly_fields = ("created_at",)
+    list_display = ("name", "color")
+    fields = ("name", "color", "created_by")
 
 
 @admin.register(CalendarEvent)
 class CalendarEventAdmin(SellerAccess, admin.ModelAdmin):
-    list_display = ("title", "event_type", "event_date", "status", "assigned_to", "customer")
-    list_filter = ("event_type", "status", "assigned_to")
-    search_fields = ("title", "description", "customer__name", "assigned_to__username")
-    date_hierarchy = "event_date"
+    list_display = ("title", "event_type", "event_date", "status", "assigned_to")
+    list_filter = ("event_type", "status")
+    search_fields = ("title", "customer__name")
     filter_horizontal = ("tags",)
-    readonly_fields = ("created_at", "updated_at")
-    inlines = [ReminderInline, EventAttachmentInline]
-    fieldsets = (
-        ("Informações do Evento", {
-            "fields": ("title", "description", "event_type", "status", "assigned_to"),
-        }),
-        ("Data e Horário", {
-            "fields": ("event_date", "event_time"),
-        }),
-        ("Vínculos", {
-            "fields": ("customer", "quote", "order", "tags"),
-        }),
-        ("Datas do Sistema", {
-            "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",),
-        }),
+    inlines = [ReminderInline]
+    fields = (
+        "title", "description", "event_type", "status", "assigned_to",
+        "event_date", "event_time",
+        "customer", "quote", "order", "tags",
     )
 
 
 @admin.register(Reminder)
 class ReminderAdmin(AdminOnly, admin.ModelAdmin):
-    list_display = ("event", "remind_date", "status", "read", "message")
-    list_filter = ("status", "read", "remind_date")
-    search_fields = ("message", "event__title", "event__assigned_to__username")
-    readonly_fields = ("created_at", "read_at")
-    date_hierarchy = "remind_date"
+    list_display = ("event", "remind_date", "status", "read")
+    list_filter = ("status", "read")
+    fields = ("event", "remind_date", "message", "status", "read")

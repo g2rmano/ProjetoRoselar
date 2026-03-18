@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from accounts.models import User, Role
-from core.models import Customer, Supplier, SupplierPaymentOption, ShippingCompany
+from core.models import Customer, Supplier, ShippingCompany
 from sales.models import Quote, QuoteItem, QuoteStatus, FreightResponsible
 
 
@@ -154,20 +154,6 @@ class Command(BaseCommand):
             if not Supplier.objects.filter(email=supplier_data['email']).exists():
                 supplier = Supplier.objects.create(**supplier_data)
                 self.stdout.write(self.style.SUCCESS(f'✓ Created supplier: {supplier.name}'))
-
-                # Add payment options for each supplier
-                payment_options = [
-                    {'description': 'À vista', 'days_to_pay': 0, 'is_default': False},
-                    {'description': '30 dias', 'days_to_pay': 30, 'is_default': True},
-                    {'description': '30/60 dias', 'days_to_pay': 60, 'is_default': False},
-                    {'description': '30/60/90 dias', 'days_to_pay': 90, 'is_default': False},
-                ]
-
-                for option in payment_options:
-                    SupplierPaymentOption.objects.create(
-                        supplier=supplier,
-                        **option
-                    )
 
         # Create Shipping Companies
         shipping_companies = [

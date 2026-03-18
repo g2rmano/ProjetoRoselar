@@ -12,18 +12,24 @@ admin.site.index_title = "Painel de Controle"
 @admin.register(User)
 class UserAdmin(AdminOnly, DjangoUserAdmin):
     fieldsets = (
-        ("Dados de Acesso", {"fields": ("username", "password")}),
-        ("Informações Pessoais", {"fields": ("first_name", "last_name", "email")}),
-        ("Perfil", {"fields": ("role", "individual_target_value", "phone")}),
-        ("Permissões", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
-        ("Datas Importantes", {"fields": ("last_login", "date_joined")}),
+        (None, {"fields": ("username", "password")}),
+        ("Informações", {"fields": ("first_name", "last_name", "email", "phone")}),
+        ("Perfil", {"fields": ("role", "individual_target_value", "is_active")}),
     )
     add_fieldsets = (
-        ("Novo Usuário", {
+        (None, {
             "classes": ("wide",),
-            "fields": ("username", "email", "role", "password1", "password2"),
+            "fields": ("username", "role", "password1", "password2"),
         }),
     )
-    list_display = ("username", "email", "role", "is_staff", "is_active")
-    list_filter = ("role", "is_staff", "is_active")
-    search_fields = ("username", "email", "first_name", "last_name")
+    list_display = ("username", "first_name", "role", "is_active")
+    list_filter = ("role", "is_active")
+    search_fields = ("username", "first_name", "last_name")
+    actions = ["delete_selected"]
+
+    def save_model(self, request, obj, form, change):
+        # Auto-set is_staff so users can access admin panel
+        obj.is_staff = True
+        if obj.role in ("ADMIN", "OWNER"):
+            obj.is_superuser = True
+        super().save_model(request, obj, form, change)
