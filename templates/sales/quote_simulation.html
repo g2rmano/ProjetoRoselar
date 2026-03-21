@@ -5,8 +5,7 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Simulação - {{ quote.number }} | Roselar</title>
-  <!-- REWRITTEN TEMPLATE v4 (new pricing rules) -->
+  <title>Condições Financeiras - {{ quote.number }} | Roselar</title>
   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
@@ -14,90 +13,288 @@
   <meta name="theme-color" content="#ffffff">
 
   <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
   <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
   <style>
     :root {
-      --brand:  #0A2640;
-      --green:  #198754;
-      --orange: #fd7e14;
-      --red:    #dc3545;
-      --gray:   #6c757d;
-      --yellow: #ffc107;
+      --brand:       #0A2640;
+      --brand-light: #0e3358;
+      --brand-bg:    #f0f4f8;
+      --green:       #198754;
+      --green-light: #d1e7dd;
+      --orange:      #fd7e14;
+      --orange-light:#fff3e0;
+      --red:         #dc3545;
+      --red-light:   #f8d7da;
+      --gray:        #6c757d;
+      --gray-light:  #e9ecef;
+      --yellow:      #ffc107;
+      --yellow-light:#fff8e1;
+      --shadow-sm:   0 1px 3px rgba(0,0,0,.08);
+      --shadow-md:   0 4px 12px rgba(0,0,0,.1);
+      --shadow-lg:   0 8px 30px rgba(0,0,0,.12);
+      --radius:      12px;
+      --radius-sm:   8px;
     }
-    body { font-family: 'Manrope', sans-serif; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Manrope', sans-serif; background: var(--brand-bg); }
 
-    /* ── sim cards ── */
-    .sim-card { border: 1px solid #dee2e6; background: #fff; padding: 1.1rem; margin-bottom: .9rem; }
-    .sim-card .lbl { font-size: .76rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gray); font-weight: 600; margin-bottom: .15rem; }
-    .sim-card .val { font-size: 1.3rem; font-weight: 700; color: var(--brand); }
-    .sim-card .val.green  { color: var(--green); }
-    .sim-card .val.red    { color: var(--red); }
-    .sim-card .val.orange { color: var(--orange); }
+    /* ── Section blocks ── */
+    .sim-section {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,.05);
+      transition: box-shadow .2s ease;
+    }
+    .sim-section:hover { box-shadow: var(--shadow-md); }
 
-    /* ── highlight cards ── */
-    .hi-card { color: #fff; padding: 1.5rem; margin-bottom: .9rem; }
-    .hi-card .lbl { font-size: .76rem; text-transform: uppercase; letter-spacing: .05em; opacity: .8; margin-bottom: .2rem; }
-    .hi-card .val { font-size: 1.8rem; font-weight: 700; }
-    .hi-card.brand  { background: var(--brand); }
-    .hi-card.green  { background: var(--green); }
-    .hi-card.orange { background: var(--orange); }
-    .hi-card.red    { background: var(--red); }
-    .hi-card.gray   { background: var(--gray); }
+    .sim-section-hdr {
+      padding: .85rem 1.25rem;
+      display: flex; align-items: center; gap: .6rem;
+      font-weight: 700; font-size: .9rem;
+      border-bottom: 1px solid var(--gray-light);
+      color: var(--brand);
+      background: #fafbfc;
+    }
+    .sim-section-hdr .sec-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; color: #fff; flex-shrink: 0;
+    }
+    .sim-section-hdr .sec-icon.blue   { background: var(--brand); }
+    .sim-section-hdr .sec-icon.green  { background: var(--green); }
+    .sim-section-hdr .sec-icon.orange { background: var(--orange); }
+    .sim-section-hdr .sec-icon.gray   { background: var(--gray); }
+    .sim-section-hdr .sec-icon.red    { background: var(--red); }
 
-    /* ── section headers ── */
-    .sec-hdr { background: var(--brand); color: #fff; padding: .6rem 1rem; font-weight: 600; font-size: .88rem; display: flex; align-items: center; gap: .5rem; margin-bottom: 0; }
-    .sec-body { border: 1px solid #dee2e6; border-top: none; padding: 1.1rem; background: #fff; margin-bottom: 1.4rem; }
+    .sim-section-body { padding: 1.25rem; }
 
-    /* ── slider ── */
-    .slider-wrap { position: relative; padding: .5rem 0 1.5rem; }
-    .slider-wrap input[type=range] {
+    /* ── Mini stat cards ── */
+    .stat-card {
+      background: var(--brand-bg);
+      border-radius: var(--radius-sm);
+      padding: .85rem 1rem;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .stat-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    .stat-card .stat-lbl {
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--gray); font-weight: 700; margin-bottom: .2rem;
+    }
+    .stat-card .stat-val {
+      font-size: 1.2rem; font-weight: 800; color: var(--brand); line-height: 1.2;
+    }
+    .stat-card .stat-val.green  { color: var(--green); }
+    .stat-card .stat-val.red    { color: var(--red); }
+    .stat-card .stat-val.orange { color: var(--orange); }
+
+    /* ── Big highlight cards ── */
+    .hi-card {
+      color: #fff; padding: 1.4rem 1.5rem; border-radius: var(--radius);
+      position: relative; overflow: hidden;
+    }
+    .hi-card::before {
+      content: ''; position: absolute; top: -30%; right: -10%;
+      width: 140px; height: 140px; border-radius: 50%;
+      background: rgba(255,255,255,.06);
+    }
+    .hi-card .lbl {
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
+      opacity: .85; margin-bottom: .15rem; font-weight: 600;
+    }
+    .hi-card .val { font-size: 1.75rem; font-weight: 800; }
+    .hi-card.brand  { background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%); }
+    .hi-card.green  { background: linear-gradient(135deg, var(--green) 0%, #20a862 100%); }
+    .hi-card.orange { background: linear-gradient(135deg, var(--orange) 0%, #e8720c 100%); }
+    .hi-card.red    { background: linear-gradient(135deg, var(--red) 0%, #c82333 100%); }
+    .hi-card.gray   { background: linear-gradient(135deg, var(--gray) 0%, #5a6268 100%); }
+
+    /* ── Custom slider ── */
+    .slider-container { padding: .25rem 0 1rem; position: relative; }
+    .slider-labels {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: .4rem;
+    }
+    .slider-labels .slider-min,
+    .slider-labels .slider-max { font-size: .75rem; font-weight: 600; color: var(--gray); }
+    .slider-labels .slider-current {
+      font-size: 1rem; font-weight: 800; padding: .15rem .6rem;
+      border-radius: 6px; transition: all .2s ease;
+    }
+    input[type=range] {
       -webkit-appearance: none; appearance: none;
-      width: 100%; height: 8px; outline: none; border-radius: 4px; cursor: pointer;
-      background: linear-gradient(to right, var(--red) 0%, var(--brand) 100%);
+      width: 100%; height: 6px; outline: none; border-radius: 3px; cursor: pointer;
+      transition: opacity .15s ease;
     }
-    .slider-wrap input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 26px; height: 26px;
-      border-radius: 50%;
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 22px; height: 22px;
+      border-radius: 50%; cursor: pointer;
       background: #fff; border: 3px solid var(--brand);
-      box-shadow: 0 2px 6px rgba(0,0,0,.25); cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+      transition: transform .15s ease, box-shadow .15s ease;
     }
-    .slider-wrap input[type=range]::-moz-range-thumb {
-      width: 24px; height: 24px; border-radius: 50%;
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      box-shadow: 0 3px 12px rgba(0,0,0,.3);
+    }
+    input[type=range]::-moz-range-thumb {
+      width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
       background: #fff; border: 3px solid var(--brand);
-      box-shadow: 0 2px 6px rgba(0,0,0,.25); cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
     }
+    input[type=range].slider-discount {
+      background: linear-gradient(to right, var(--brand-bg) 0%, #ffcdd2 50%, #ef5350 100%);
+    }
+    input[type=range].slider-increase {
+      background: linear-gradient(to right, var(--brand-bg) 0%, #c8e6c9 50%, #43a047 100%);
+    }
+    input[type=range].slider-increase::-webkit-slider-thumb { border-color: var(--green); }
+    input[type=range].slider-increase::-moz-range-thumb { border-color: var(--green); }
 
-    /* ── margin warning ── */
-    .margin-warning { background: #fff3cd; border: 1px solid var(--yellow); padding: .85rem; margin-bottom: 1rem; font-size: .87rem; border-radius: 4px; }
-    .margin-ok { background: #e8f5e9; border: 1px solid var(--green); padding: .85rem; margin-bottom: 1rem; font-size: .87rem; border-radius: 4px; }
+    /* ── Alerts ── */
+    .sim-alert {
+      padding: .75rem 1rem; border-radius: var(--radius-sm);
+      font-size: .84rem; display: flex; align-items: flex-start; gap: .6rem;
+      margin-bottom: .75rem; line-height: 1.5;
+    }
+    .sim-alert-icon { flex-shrink: 0; margin-top: 2px; }
+    .sim-alert.warning { background: var(--yellow-light); border: 1px solid #ffe082; color: #6d5200; }
+    .sim-alert.success { background: var(--green-light); border: 1px solid #a3cfbb; color: #0f5132; }
+    .sim-alert.danger  { background: var(--red-light); border: 1px solid #f1aeb5; color: #842029; }
 
-    /* ── seller commission collapse ── */
-    .commission-toggle {
-      width: 100%; border: 0; background: transparent; color: #fff;
-      padding: 0; text-align: left;
+    /* ── Toggle collapse  ── */
+    .collapse-toggle {
+      width: 100%; border: 0; background: transparent;
+      padding: 0; text-align: left; cursor: pointer;
       display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+      color: inherit; font-weight: 700; font-size: .9rem;
     }
-    .commission-toggle .toggle-arrow { transition: transform .2s ease; opacity: .9; }
-    .commission-toggle[aria-expanded="true"] .toggle-arrow { transform: rotate(180deg); }
+    .collapse-toggle .toggle-arrow {
+      transition: transform .25s ease; opacity: .7; font-size: .75rem;
+    }
+    .collapse-toggle[aria-expanded="true"] .toggle-arrow { transform: rotate(180deg); }
 
-    /* ── misc ── */
-    .btn-brand  { background: var(--brand); color: #fff; border: none; padding: .55rem 1.4rem; font-weight: 600; cursor: pointer; }
-    .btn-brand:hover { background: #08203a; color: #fff; }
-    .btn-green  { background: var(--green); color: #fff; border: none; padding: .55rem 1.4rem; font-weight: 600; cursor: pointer; }
-    .btn-green:hover { background: #146c43; color: #fff; }
-    .btn-outline { background: transparent; border: 1px solid var(--gray); color: var(--gray); padding: .55rem 1.4rem; font-weight: 600; cursor: pointer; }
-    .btn-outline:hover { background: #f8f9fa; }
+    /* White version for hi-card */
+    .collapse-toggle-white { color: #fff; }
 
-    @keyframes flashUpdate { 0%{opacity:.4} 100%{opacity:1} }
-    .flash { animation: flashUpdate .3s ease; }
+    /* ── Buttons ── */
+    .btn-action {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .6rem 1.4rem; font-weight: 700; font-size: .88rem;
+      border: none; border-radius: var(--radius-sm); cursor: pointer;
+      text-decoration: none; transition: all .2s ease;
+    }
+    .btn-action:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .btn-action:active { transform: translateY(0); }
+    .btn-action.primary { background: var(--green); color: #fff; }
+    .btn-action.primary:hover { background: #146c43; color: #fff; }
+    .btn-action.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--gray-light); }
+    .btn-action.secondary:hover { background: var(--brand-bg); color: var(--brand); }
+    .btn-action.brand { background: var(--brand); color: #fff; }
+    .btn-action.brand:hover { background: var(--brand-light); color: #fff; }
+
+    /* ── Form controls ── */
+    .sim-select {
+      width: 100%; padding: .55rem .85rem; font-size: .9rem;
+      border: 1.5px solid var(--gray-light); border-radius: var(--radius-sm);
+      background: #fff; color: var(--brand); font-weight: 600;
+      transition: border-color .2s ease, box-shadow .2s ease;
+      -webkit-appearance: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+      background-repeat: no-repeat; background-position: right .7rem center; background-size: 14px;
+      padding-right: 2.2rem;
+    }
+    .sim-select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(10,38,64,.12); }
+
+    .sim-label {
+      display: block; font-size: .78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .04em;
+      color: var(--gray); margin-bottom: .35rem;
+    }
+
+    /* ── Switch ── */
+    .sim-switch {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .75rem 1rem; background: var(--brand-bg);
+      border-radius: var(--radius-sm); cursor: pointer;
+      transition: background .2s ease;
+    }
+    .sim-switch:hover { background: #e3e9f0; }
+    .sim-switch input[type=checkbox] { display: none; }
+    .sim-switch .switch-track {
+      width: 44px; height: 24px; border-radius: 12px;
+      background: var(--gray-light); position: relative;
+      transition: background .2s ease; flex-shrink: 0;
+    }
+    .sim-switch .switch-track::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2);
+      transition: transform .2s ease;
+    }
+    .sim-switch input:checked + .switch-track { background: var(--green); }
+    .sim-switch input:checked + .switch-track::after { transform: translateX(20px); }
+    .sim-switch .switch-label { font-weight: 600; color: var(--brand); font-size: .9rem; }
+    .sim-switch .switch-sub { font-size: .78rem; color: var(--gray); }
+
+    /* ── Quote info strip ── */
+    .quote-info-strip {
+      display: flex; gap: 1.5rem; flex-wrap: wrap;
+      padding: .55rem 0; font-size: .84rem; color: var(--gray);
+    }
+    .quote-info-strip .info-item {
+      display: flex; align-items: center; gap: .35rem;
+    }
+    .quote-info-strip .info-item i { font-size: .75rem; opacity: .6; }
+
+    /* ── Loading overlay ── */
+    .sim-loading {
+      position: fixed; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--brand); z-index: 9999;
+      transform: scaleX(0); transform-origin: left;
+      transition: transform .3s ease;
+    }
+    .sim-loading.active { transform: scaleX(1); }
+
+    /* ── Action bar (sticky) ── */
+    .action-bar {
+      position: sticky; bottom: 0; z-index: 100;
+      background: #fff; border-top: 1px solid var(--gray-light);
+      padding: .85rem 1.25rem; margin: 0 -12px;
+      box-shadow: 0 -4px 16px rgba(0,0,0,.08);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .hi-card .val { font-size: 1.4rem; }
+      .stat-card .stat-val { font-size: 1rem; }
+      .action-bar { padding: .75rem; }
+      .quote-info-strip { gap: .75rem; }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeInUp .4s ease both; }
+    .fade-in-d1 { animation-delay: .05s; }
+    .fade-in-d2 { animation-delay: .1s; }
+    .fade-in-d3 { animation-delay: .15s; }
+    .fade-in-d4 { animation-delay: .2s; }
   </style>
 </head>
 
 <body>
+  <!-- Loading bar -->
+  <div class="sim-loading" id="loading-bar"></div>
+
   <main class="main" id="top">
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
@@ -112,372 +309,414 @@
           <ul class="navbar-nav ms-auto">
             <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Início</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'sales:quote_detail' quote.id %}">Orçamento {{ quote.number }}</a></li>
+            <li class="nav-item"><a class="nav-link active" href="{% url 'sales:quote_detail' quote.id %}">{{ quote.number }}</a></li>
           </ul>
         </div>
       </div>
     </nav>
 
     <section class="py-5" style="min-height: 100vh;">
-      <div style="position: absolute; top: 0; left: 0; right: 0; height: 28vh; background: var(--brand); z-index: -1;"></div>
+      <div style="position: absolute; top: 0; left: 0; right: 0; height: 32vh; background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%); z-index: -1;"></div>
 
-      <div class="container" style="margin-top: 80px;">
-        <div class="row justify-content-center">
-          <div class="col-12 col-xl-11">
+      <div class="container" style="margin-top: 80px; max-width: 960px;">
 
-            <!-- Title bar -->
-            <div class="bg-white p-4 shadow-sm mb-4">
-              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div>
-                  <h4 class="fw-bold mb-1" style="color: var(--brand);">
-                    <i class="fa-solid fa-calculator me-2"></i>Simulador de Venda
-                  </h4>
-                  <span style="color: var(--gray);">
-                    {{ quote.number }} &middot; {{ quote.customer.name }}
-                    &middot; {{ quote.seller.username }} &middot; {{ quote.quote_date|date:"d/m/Y" }}
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- HEADER CARD                                               -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <div class="sim-section fade-in" style="border: none; box-shadow: var(--shadow-lg);">
+          <div style="padding: 1.5rem 1.5rem 1rem;">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+              <div>
+                <div style="display: flex; align-items: center; gap: .6rem; margin-bottom: .5rem;">
+                  <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--brand); color: #fff;
+                              display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                    <i class="fa-solid fa-sliders"></i>
+                  </div>
+                  <div>
+                    <h4 style="margin: 0; font-weight: 800; color: var(--brand); font-size: 1.25rem;">
+                      Condições Financeiras
+                    </h4>
+                    <div style="font-size: .78rem; color: var(--gray); font-weight: 500;">
+                      Defina as condições de venda
+                    </div>
+                  </div>
+                </div>
+                <div class="quote-info-strip">
+                  <span class="info-item"><i class="fa-solid fa-hashtag"></i><strong>{{ quote.number }}</strong></span>
+                  <span class="info-item"><i class="fa-solid fa-user"></i>{{ quote.customer.name }}</span>
+                  <span class="info-item"><i class="fa-solid fa-user-tie"></i>{{ quote.seller.username }}</span>
+                  <span class="info-item"><i class="fa-solid fa-calendar"></i>{{ quote.quote_date|date:"d/m/Y" }}</span>
+                  <span class="info-item">
+                    <i class="fa-solid fa-box"></i>
+                    <strong>Subtotal: R$ {{ subtotal|floatformat:2 }}</strong>
                   </span>
                 </div>
-                <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-outline" style="text-decoration: none;">
-                  <i class="fa-solid fa-arrow-left me-1"></i>Voltar
-                </a>
               </div>
+              <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-action secondary" style="flex-shrink: 0;">
+                <i class="fa-solid fa-arrow-left"></i>Voltar
+              </a>
             </div>
+          </div>
+        </div>
 
-            <!-- ═══════════════════════════════════════════════════════════ -->
-            <!-- MAIN FORM                                                  -->
-            <!-- ═══════════════════════════════════════════════════════════ -->
-            <form method="post" id="sim-form">
-              {% csrf_token %}
-              <input type="hidden" name="discount_percent"       id="h-discount">
-              <input type="hidden" name="price_increase_percent" id="h-price-inc">
-              <input type="hidden" name="sim_installments"       id="h-installments">
-              <input type="hidden" name="sim_payment_type"       id="h-ptype">
-              <input type="hidden" name="sim_has_architect"      id="h-architect">
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- MAIN FORM                                                  -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <form method="post" id="sim-form">
+          {% csrf_token %}
+          <input type="hidden" name="discount_percent"       id="h-discount">
+          <input type="hidden" name="price_increase_percent" id="h-price-inc">
+          <input type="hidden" name="sim_installments"       id="h-installments">
+          <input type="hidden" name="sim_payment_type"       id="h-ptype">
+          <input type="hidden" name="sim_has_architect"      id="h-architect">
 
-              <!-- ─────────────────────────────────────────────────────── -->
-              <!-- DESCONTO                                                -->
-              <!-- ─────────────────────────────────────────────────────── -->
-              <div class="sec-hdr">
-                <i class="fa-solid fa-tag"></i>
-                Desconto
-              </div>
-              <div class="sec-body">
-                <div class="d-flex justify-content-between mb-1 fw-bold" style="font-size: .88rem;">
-                  <span style="color: var(--gray);">0%</span>
-                  <span id="lbl-discount" style="color: var(--brand); font-size: 1.05rem; font-weight: 700;">
-                    {% if discount_percent > 0 %}-{{ discount_percent }}% desconto{% else %}Sem desconto{% endif %}
-                  </span>
-                  <span style="color: var(--red);" id="lbl-max-discount">{{ max_discount_allowed|floatformat:0 }}%</span>
+          <!-- Two-column layout for controls -->
+          <div class="row g-3">
+            <!-- LEFT COLUMN: Controls -->
+            <div class="col-lg-6">
+
+              <!-- ─── DESCONTO ─── -->
+              <div class="sim-section fade-in fade-in-d1">
+                <div class="sim-section-hdr">
+                  <div class="sec-icon red"><i class="fa-solid fa-tag"></i></div>
+                  Desconto
                 </div>
-                <div class="slider-wrap">
-                  <input type="range" id="discount-slider"
-                         min="0" max="{{ max_discount_allowed|floatformat:1 }}" step="0.5"
-                         value="{{ discount_percent }}"
-                         oninput="onDiscountChange(this.value); scheduleSubmit()">
-                </div>
-                {% if controls_blocked %}
-                <div class="alert alert-danger py-2 px-3 mb-2" style="font-size:.82rem;border-radius:0;">
-                  <i class="fa-solid fa-lock me-1"></i>
-                  <strong>Limite atingido!</strong> A margem chegou ao máximo de -5%. Desconto limitado a {{ max_discount_allowed|floatformat:1 }}%.
-                </div>
-                {% endif %}
-                <div class="row g-2">
-                  <div class="col-md-6">
-                    <div class="sim-card py-2 px-3 mb-0">
-                      <div class="lbl">Desconto aplicado</div>
-                      <div class="val red" id="live-discount-val">{{ discount_percent }}%</div>
+                <div class="sim-section-body">
+                  <div class="slider-container">
+                    <div class="slider-labels">
+                      <span class="slider-min">0%</span>
+                      <span class="slider-current" id="lbl-discount"
+                            style="{% if discount_percent > 0 %}color: var(--red); background: var(--red-light);{% else %}color: var(--brand); background: var(--brand-bg);{% endif %}">
+                        {% if discount_percent > 0 %}-{{ discount_percent }}%{% else %}Sem desconto{% endif %}
+                      </span>
+                      <span class="slider-max" id="lbl-max-discount">{{ max_discount_allowed|floatformat:0 }}%</span>
                     </div>
+                    <input type="range" class="slider-discount" id="discount-slider"
+                           min="0" max="{{ max_discount_allowed|floatformat:1 }}" step="0.5"
+                           value="{{ discount_percent }}"
+                           oninput="onDiscountChange(this.value); scheduleSubmit()">
                   </div>
-                  <div class="col-md-6">
-                    <div class="sim-card py-2 px-3 mb-0">
-                      <div class="lbl">Valor do desconto</div>
-                      <div class="val red" id="live-discount-amount">R$ {{ discount_value|floatformat:2 }}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- ─────────────────────────────────────────────────────── -->
-              <!-- AJUSTE DE VALOR                                         -->
-              <!-- ─────────────────────────────────────────────────────── -->
-              <div class="sec-hdr">
-                <button type="button"
-                        class="commission-toggle"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#increase-collapse"
-                        aria-expanded="false"
-                        aria-controls="increase-collapse">
-                  <span><i class="fa-solid fa-sliders me-2"></i>Ajuste de Valor</span>
-                  <i class="fa-solid fa-chevron-down toggle-arrow"></i>
-                </button>
-              </div>
-              <div class="sec-body collapse" id="increase-collapse">
-                <div id="increase-suggestion-zone">
-                {% if commission_reduced %}
-                <div class="{% if margin_exceeded %}margin-warning{% else %}margin-ok{% endif %}">
-                  <i class="fa-solid fa-{% if margin_exceeded %}triangle-exclamation text-warning{% else %}shield-check text-success{% endif %} me-1"></i>
-                  {% if margin_exceeded %}
-                  <strong>Passou da margem!</strong> Comissão no mínimo ({{ seller_commission_percent }}%),
-                  mas o custo total ({{ total_cost_pct }}%) ainda excede a margem ({{ effective_margin }}%).
-                  {% if suggested_increase > 0 %}Sugestão: aplicar {% if price_increase_pct > 0 %}mais {% endif %}<strong>+{{ suggested_increase }}%</strong> de ajuste no valor.{% endif %}
-                  {% else %}
-                  <strong>Comissão proporcional:</strong> {{ seller_commission_percent }}% (faixa: 3% a 5%, baseada na margem disponível).
-                  {% endif %}
-                </div>
-                {% elif margin_exceeded and suggested_increase > 0 %}
-                <div class="margin-warning">
-                  <i class="fa-solid fa-triangle-exclamation text-warning me-1"></i>
-                  <strong>Passou da margem!</strong> Taxa ({{ store_fee_percent }}%) + Comissão ({{ seller_commission_percent }}%)
-                  {% if sim_has_architect %}+ Arquiteto ({{ architect_percent }}%){% endif %}
-                  {% if discount_percent > 0 %}+ Desconto ({{ discount_percent }}%){% endif %}
-                  = <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%).
-                  Sugestão: aplicar {% if price_increase_pct > 0 %}mais {% endif %}<strong>+{{ suggested_increase }}%</strong> de ajuste no valor.
-                </div>
-                {% endif %}
-                </div>
-
-                <div class="d-flex justify-content-between mb-1 fw-bold" style="font-size: .88rem;">
-                  <span style="color: var(--gray);">0%</span>
-                  <span id="lbl-increase" style="color: var(--green); font-size: 1.05rem; font-weight: 700;">
-                    {% if price_increase_pct > 0 %}+{{ price_increase_pct }}% no valor{% else %}Sem ajuste{% endif %}
-                  </span>
-                  <span style="color: var(--green);">30%</span>
-                </div>
-                <div class="slider-wrap">
-                  <input type="range" id="increase-slider"
-                         min="0" max="30" step="0.5"
-                         value="{{ price_increase_pct }}"
-                         style="background: linear-gradient(to right, var(--brand) 0%, var(--green) 100%);"
-                         oninput="onIncreaseChange(this.value); scheduleSubmit()">
-                </div>
-                <div class="sim-card py-2 px-3 mb-0">
-                  <div class="lbl">Ajuste aplicado</div>
-                  <div class="val green" id="live-increase-val">{{ price_increase_pct }}%</div>
-                </div>
-
-                <!-- Controle de Margem (dentro do collapse) -->
-                <hr class="my-3">
-                <h6 class="fw-bold mb-3" style="color: var(--brand); font-size: .88rem;">
-                  <i class="fa-solid fa-gauge-high me-2"></i>Controle de Margem
-                </h6>
-                <div id="margin-zone">
-                {% if commission_reduced and not margin_exceeded %}
-                <div class="margin-ok">
-                  <i class="fa-solid fa-check-circle text-success me-1"></i>
-                  <strong>Margem OK!</strong>
-                  Comissão: {{ seller_commission_percent }}% (proporcional à margem disponível).
-                  Custo total: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%)
-                </div>
-                {% elif margin_exceeded %}
-                <div class="margin-warning">
-                  <i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>
-                  <strong>Passou da margem!</strong><br>
-                  Taxa: {{ store_fee_percent }}% + Comissão: {{ seller_commission_percent }}% (mín. 3%)
-                  {% if sim_has_architect %}+ Arquiteto: {{ architect_percent }}%{% endif %}
-                  {% if discount_percent > 0 %}+ Desconto: {{ discount_percent }}%{% endif %}
-                  = <strong>{{ total_cost_pct }}%</strong><br>
-                  Margem: <strong>{{ effective_margin }}%</strong>
-                  {% if price_increase_pct > 0 %}({{ margin_base }}% + {{ price_increase_pct }}% ajuste){% endif %}
-                  — Excesso: <strong>{{ margin_excess }}%</strong>
-                  {% if suggested_increase > 0 %}
-                  <br><i class="fa-solid fa-lightbulb text-warning me-1"></i>
-                  Sugestão: aplique {% if price_increase_pct > 0 %}mais {% endif %}<strong>+{{ suggested_increase }}%</strong> de ajuste no valor para compensar.
-                  {% endif %}
-                </div>
-                {% else %}
-                <div class="margin-ok">
-                  <i class="fa-solid fa-check-circle text-success me-1"></i>
-                  <strong>Margem OK!</strong>
-                  Custo total: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%)
-                </div>
-                {% endif %}
-
-                <div class="row g-2">
-                  <div class="col-md-3">
-                    <div class="sim-card py-2 px-3 mb-0">
-                      <div class="lbl">Margem{% if price_increase_pct > 0 %} Efetiva{% endif %}</div>
-                      <div class="val">{{ effective_margin }}%</div>
-                    </div>
-                  </div>
-                  <div class="col-md-3">
-                    <div class="sim-card py-2 px-3 mb-0">
-                      <div class="lbl">Taxa</div>
-                      <div class="val {% if store_fee_percent > 10 %}red{% endif %}">{{ store_fee_percent }}%</div>
-                    </div>
-                  </div>
-                  <div class="col-md-3">
-                    <div class="sim-card py-2 px-3 mb-0">
-                      <div class="lbl">Comissão</div>
-                      <div class="val">{{ seller_commission_percent }}%</div>
-                    </div>
-                  </div>
-                  <div class="col-md-3">
-                    <div class="sim-card py-2 px-3 mb-0">
-                      <div class="lbl">Custo Total</div>
-                      <div class="val {% if margin_exceeded %}red{% else %}green{% endif %}">{{ total_cost_pct }}%</div>
-                    </div>
-                  </div>
-                </div>
-                </div>
-              </div>
-
-              <!-- ─────────────────────────────────────────────────────── -->
-              <!-- FORMA DE PAGAMENTO + PARCELAS                           -->
-              <!-- ─────────────────────────────────────────────────────── -->
-              <div class="sec-hdr">
-                <i class="fa-solid fa-credit-card"></i>
-                Forma de Pagamento / Parcelas
-              </div>
-              <div class="sec-body">
-                <div class="row mb-3 align-items-end">
-                  <div class="col-md-5">
-                    <label class="fw-bold mb-1" style="color: var(--brand); font-size: .88rem;">
-                      <i class="fa-solid fa-credit-card me-1"></i>Forma de Pagamento
-                    </label>
-                    <select id="sel-ptype" class="form-select" onchange="onPaymentTypeChange()">
-                      <option value="">-- Selecione --</option>
-                      {% for value, label in payment_type_choices %}
-                        <option value="{{ value }}" {% if value == sim_payment_type %}selected{% endif %}>{{ label }}</option>
-                      {% endfor %}
-                    </select>
-                  </div>
-
-                  <div class="col-md-4" id="inst-dropdown-row">
-                    <label class="fw-bold mb-1" style="color: var(--brand); font-size: .88rem;">
-                      <i class="fa-solid fa-hashtag me-1"></i>Parcelas
-
-                    </label>
-                    <select id="inst-select" class="form-select" onchange="onInstChange(this.value); scheduleSubmit();"></select>
-                  </div>
-
-                  <div class="col-md-3">
-                    <div class="sim-card mb-0 py-2 px-3" style="border-left: 3px solid var(--brand);">
-                      <div class="lbl mb-0">Taxa do Pagamento</div>
-                      <div class="val" style="font-size: 1.05rem;" id="fee-display">{{ payment_fee_percent }}%</div>
-                    </div>
-                  </div>
-                </div>
-
-
-              </div>
-
-              <!-- ─────────────────────────────────────────────────────── -->
-              <!-- ARQUITETO                                               -->
-              <!-- ─────────────────────────────────────────────────────── -->
-              <div class="sec-hdr"><i class="fa-solid fa-drafting-compass"></i>Arquiteto</div>
-              <div class="sec-body">
-                <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="chk-architect"
-                         value="1"
-                         {% if sim_has_architect %}checked{% endif %}
-                         onchange="scheduleSubmit()">
-                  <label class="form-check-label fw-bold" for="chk-architect" style="color: var(--brand);">
-                    Cliente possui Arquiteto
-                    ({{ architect_percent }}% sobre valor à vista)
-                  </label>
-                </div>
-                {% if sim_has_architect %}
-                <div class="sim-card mt-2 py-2 px-3 mb-0">
-                  <div class="lbl">Valor base para cálculo do arquiteto</div>
-                  <div class="val">R$ {{ valor_avista|floatformat:2 }}</div>
-                </div>
-                {% endif %}
-              </div>
-
-
-
-              <!-- ─────────────────────────────────────────────────────── -->
-              <!-- RESULTADOS                                              -->
-              <!-- ─────────────────────────────────────────────────────── -->
-              <div id="sim-results">
-              <span id="sim-data"
-                    data-max-discount="{{ max_discount_allowed|floatformat:1 }}"
-
-                    data-controls-blocked="{{ controls_blocked|yesno:'1,0' }}"
-                    data-discount-clamped="{{ discount_percent|floatformat:1 }}"
-
-                    style="display:none;"></span>
-              <div class="sec-hdr"><i class="fa-solid fa-chart-bar"></i>Resumo dos Valores</div>
-              <div class="sec-body">
-                <div class="row g-2">
-                  <div class="col-md-4">
-                    <div class="sim-card">
-                      <div class="lbl">Frete ({{ quote.get_freight_responsible_display }})</div>
-                      <div class="val">R$ {{ freight_value|floatformat:2 }}</div>
-                    </div>
-                  </div>
-                  <div class="col-md-4">
-                    <div class="sim-card">
-                      <div class="lbl">Total antes do desconto</div>
-                      <div class="val">R$ {{ total_before_discount|floatformat:2 }}</div>
-                    </div>
-                  </div>
-                  {% if discount_percent > 0 %}
-                  <div class="col-md-4">
-                    <div class="sim-card">
-                      <div class="lbl">Desconto ({{ discount_percent }}%)</div>
-                      <div class="val red">– R$ {{ discount_value|floatformat:2 }}</div>
-                    </div>
+                  {% if controls_blocked %}
+                  <div class="sim-alert danger">
+                    <i class="fa-solid fa-lock sim-alert-icon"></i>
+                    <div><strong>Limite atingido!</strong> Margem no máximo de -5%. Desconto limitado a {{ max_discount_allowed|floatformat:1 }}%.</div>
                   </div>
                   {% endif %}
-                  {% if client_surcharge_value > 0 %}
-                  <div class="col-md-4">
-                    <div class="sim-card">
-                      <div class="lbl">Juros do parcelamento ({{ client_surcharge_percent }}%)</div>
-                      <div class="val red">+ R$ {{ client_surcharge_value|floatformat:2 }}</div>
-                      <div style="font-size:.72rem;color:var(--gray);">Cobrado do cliente</div>
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <div class="stat-card">
+                        <div class="stat-lbl">Desconto</div>
+                        <div class="stat-val red" id="live-discount-val">{{ discount_percent }}%</div>
+                      </div>
                     </div>
-                  </div>
-                  {% endif %}
-                </div>
-
-                <!-- Final total -->
-                <div class="hi-card brand mt-1">
-                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                      <div class="lbl">Total Final para o Cliente</div>
-                      <div class="val">R$ {{ final_total|floatformat:2 }}</div>
-                    </div>
-                    <div style="text-align: right;">
-                      <div class="lbl">Pagamento</div>
-                      <div style="font-size: 1rem;">{{ sim_payment_description }}</div>
-                      {% if sim_installments > 1 %}
-                      <div class="lbl mt-2">Valor da Parcela</div>
-                      <div style="font-size: 1.1rem; font-weight: 700;">{{ sim_installments }}x de R$ {{ installment_value|floatformat:2 }}</div>
-                      {% endif %}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Commission cards -->
-                <div class="row g-2 mt-1">
-                  {% if sim_has_architect %}
-                  <div class="col-md-6">
-                    <div class="hi-card gray">
-                      <div class="lbl">Comissão do Arquiteto ({{ architect_percent }}%)</div>
-                      <div class="val">R$ {{ architect_commission_value|floatformat:2 }}</div>
-                      <div style="font-size: .8rem; opacity: .85; margin-top: .4rem;">
-                        {{ architect_percent }}% sobre R$ {{ valor_avista|floatformat:2 }}
+                    <div class="col-6">
+                      <div class="stat-card">
+                        <div class="stat-lbl">Valor</div>
+                        <div class="stat-val red" id="live-discount-amount">R$ {{ discount_value|floatformat:2 }}</div>
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <!-- ─── FORMA DE PAGAMENTO ─── -->
+              <div class="sim-section fade-in fade-in-d2">
+                <div class="sim-section-hdr">
+                  <div class="sec-icon blue"><i class="fa-solid fa-credit-card"></i></div>
+                  Pagamento
+                </div>
+                <div class="sim-section-body">
+                  <div class="row g-3 mb-3">
+                    <div class="col-sm-7">
+                      <label class="sim-label"><i class="fa-solid fa-wallet me-1"></i>Forma</label>
+                      <select id="sel-ptype" class="sim-select" onchange="onPaymentTypeChange()">
+                        <option value="">-- Selecione --</option>
+                        {% for value, label in payment_type_choices %}
+                          <option value="{{ value }}" {% if value == sim_payment_type %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-sm-5" id="inst-dropdown-row">
+                      <label class="sim-label"><i class="fa-solid fa-hashtag me-1"></i>Parcelas</label>
+                      <select id="inst-select" class="sim-select" onchange="onInstChange(this.value); scheduleSubmit();"></select>
+                    </div>
+                  </div>
+                  <div class="stat-card" style="border-left: 3px solid var(--brand);">
+                    <div class="stat-lbl">Taxa do pagamento</div>
+                    <div class="stat-val" id="fee-display">{{ payment_fee_percent }}%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ─── ARQUITETO ─── -->
+              <div class="sim-section fade-in fade-in-d3">
+                <div class="sim-section-hdr">
+                  <div class="sec-icon gray"><i class="fa-solid fa-drafting-compass"></i></div>
+                  Arquiteto
+                </div>
+                <div class="sim-section-body" style="padding: .75rem 1.25rem;">
+                  <label class="sim-switch" for="chk-architect">
+                    <input type="checkbox" id="chk-architect"
+                           value="1"
+                           {% if sim_has_architect %}checked{% endif %}
+                           onchange="scheduleSubmit()">
+                    <span class="switch-track"></span>
+                    <span>
+                      <span class="switch-label">Cliente possui Arquiteto</span><br>
+                      <span class="switch-sub">{{ architect_percent }}% sobre valor à vista</span>
+                    </span>
+                  </label>
+                  {% if sim_has_architect %}
+                  <div class="stat-card mt-2">
+                    <div class="stat-lbl">Base do cálculo</div>
+                    <div class="stat-val">R$ {{ valor_avista|floatformat:2 }}</div>
+                  </div>
                   {% endif %}
-                  <div class="col-md-{% if sim_has_architect %}6{% else %}12{% endif %}">
-                    <div class="hi-card {% if margin_exceeded %}orange{% elif seller_commission_percent >= 4 %}green{% else %}brand{% endif %}">
-                      <button type="button"
-                              class="commission-toggle"
-                              data-bs-toggle="collapse"
-                              data-bs-target="#seller-commission-collapse"
-                              aria-expanded="false"
-                              aria-controls="seller-commission-collapse">
-                        <span class="lbl mb-0">Comissão do Vendedor</span>
-                        <i class="fa-solid fa-chevron-down toggle-arrow"></i>
-                      </button>
-                      <div id="seller-commission-collapse" class="collapse mt-2">
-                        <div class="val">R$ {{ seller_commission_value|floatformat:2 }}</div>
-                        <div style="font-size: .8rem; opacity: .85; margin-top: .4rem;">
-                          {{ seller_commission_percent }}% sobre R$ {{ seller_commission_base|floatformat:2 }}
-                          {% if sim_has_architect %} (após comissão arquiteto){% endif %}
+                </div>
+              </div>
+
+              <!-- ─── AJUSTE DE VALOR (collapsible) ─── -->
+              <div class="sim-section fade-in fade-in-d4">
+                <div class="sim-section-hdr" style="cursor: pointer;"
+                     onclick="this.querySelector('.collapse-toggle').click()">
+                  <div class="sec-icon green"><i class="fa-solid fa-chart-line"></i></div>
+                  <button type="button" class="collapse-toggle"
+                          data-bs-toggle="collapse" data-bs-target="#increase-collapse"
+                          aria-expanded="false" aria-controls="increase-collapse"
+                          onclick="event.stopPropagation();">
+                    <span>Ajuste de Valor &amp; Margem</span>
+                    <i class="fa-solid fa-chevron-down toggle-arrow"></i>
+                  </button>
+                </div>
+                <div class="collapse" id="increase-collapse">
+                  <div class="sim-section-body">
+                    <div id="increase-suggestion-zone">
+                    {% if commission_reduced %}
+                    <div class="sim-alert {% if margin_exceeded %}warning{% else %}success{% endif %}">
+                      <i class="fa-solid fa-{% if margin_exceeded %}triangle-exclamation{% else %}shield-halved{% endif %} sim-alert-icon"></i>
+                      <div>
+                      {% if margin_exceeded %}
+                      <strong>Passou da margem!</strong> Comissão no mínimo ({{ seller_commission_percent }}%),
+                      custo total ({{ total_cost_pct }}%) excede margem ({{ effective_margin }}%).
+                      {% if suggested_increase > 0 %}Sugestão: +<strong>{{ suggested_increase }}%</strong> de ajuste.{% endif %}
+                      {% else %}
+                      <strong>Comissão proporcional:</strong> {{ seller_commission_percent }}% (faixa: 3%-5%).
+                      {% endif %}
+                      </div>
+                    </div>
+                    {% elif margin_exceeded and suggested_increase > 0 %}
+                    <div class="sim-alert warning">
+                      <i class="fa-solid fa-triangle-exclamation sim-alert-icon"></i>
+                      <div>
+                      <strong>Passou da margem!</strong> Taxa ({{ store_fee_percent }}%) + Comissão ({{ seller_commission_percent }}%)
+                      {% if sim_has_architect %}+ Arq. ({{ architect_percent }}%){% endif %}
+                      {% if discount_percent > 0 %}+ Desc. ({{ discount_percent }}%){% endif %}
+                      = <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%).
+                      Sugestão: +<strong>{{ suggested_increase }}%</strong> de ajuste.
+                      </div>
+                    </div>
+                    {% endif %}
+                    </div>
+
+                    <div class="slider-container">
+                      <div class="slider-labels">
+                        <span class="slider-min">0%</span>
+                        <span class="slider-current" id="lbl-increase"
+                              style="{% if price_increase_pct > 0 %}color: var(--green); background: var(--green-light);{% else %}color: var(--brand); background: var(--brand-bg);{% endif %}">
+                          {% if price_increase_pct > 0 %}+{{ price_increase_pct }}%{% else %}Sem ajuste{% endif %}
+                        </span>
+                        <span class="slider-max">30%</span>
+                      </div>
+                      <input type="range" class="slider-increase" id="increase-slider"
+                             min="0" max="30" step="0.5"
+                             value="{{ price_increase_pct }}"
+                             oninput="onIncreaseChange(this.value); scheduleSubmit()">
+                    </div>
+
+                    <hr style="border-color: var(--gray-light); margin: 1rem 0;">
+                    <div style="font-size: .82rem; font-weight: 700; color: var(--brand); margin-bottom: .6rem;">
+                      <i class="fa-solid fa-gauge-high me-1"></i> Controle de Margem
+                    </div>
+                    <div id="margin-zone">
+                    {% if commission_reduced and not margin_exceeded %}
+                    <div class="sim-alert success">
+                      <i class="fa-solid fa-check-circle sim-alert-icon"></i>
+                      <div><strong>Margem OK!</strong> Comissão: {{ seller_commission_percent }}%. Custo: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%)</div>
+                    </div>
+                    {% elif margin_exceeded %}
+                    <div class="sim-alert warning">
+                      <i class="fa-solid fa-triangle-exclamation sim-alert-icon"></i>
+                      <div>
+                        <strong>Excesso de margem!</strong><br>
+                        Taxa: {{ store_fee_percent }}% + Comissão: {{ seller_commission_percent }}%
+                        {% if sim_has_architect %}+ Arq: {{ architect_percent }}%{% endif %}
+                        {% if discount_percent > 0 %}+ Desc: {{ discount_percent }}%{% endif %}
+                        = <strong>{{ total_cost_pct }}%</strong><br>
+                        Margem: <strong>{{ effective_margin }}%</strong>
+                        {% if price_increase_pct > 0 %}({{ margin_base }}% + {{ price_increase_pct }}%){% endif %}
+                        — Excesso: <strong>{{ margin_excess }}%</strong>
+                        {% if suggested_increase > 0 %}
+                        <br><i class="fa-solid fa-lightbulb me-1"></i>Sugestão: +<strong>{{ suggested_increase }}%</strong> de ajuste.
+                        {% endif %}
+                      </div>
+                    </div>
+                    {% else %}
+                    <div class="sim-alert success">
+                      <i class="fa-solid fa-check-circle sim-alert-icon"></i>
+                      <div><strong>Margem OK!</strong> Custo: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%)</div>
+                    </div>
+                    {% endif %}
+                    <div class="row g-2">
+                      <div class="col-6 col-md-3">
+                        <div class="stat-card text-center">
+                          <div class="stat-lbl">Margem</div>
+                          <div class="stat-val" style="font-size:1rem;">{{ effective_margin }}%</div>
+                        </div>
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <div class="stat-card text-center">
+                          <div class="stat-lbl">Taxa</div>
+                          <div class="stat-val {% if store_fee_percent > 10 %}red{% endif %}" style="font-size:1rem;">{{ store_fee_percent }}%</div>
+                        </div>
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <div class="stat-card text-center">
+                          <div class="stat-lbl">Comissão</div>
+                          <div class="stat-val" style="font-size:1rem;">{{ seller_commission_percent }}%</div>
+                        </div>
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <div class="stat-card text-center">
+                          <div class="stat-lbl">Custo Total</div>
+                          <div class="stat-val {% if margin_exceeded %}red{% else %}green{% endif %}" style="font-size:1rem;">{{ total_cost_pct }}%</div>
+                        </div>
+                      </div>
+                    </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div><!-- /LEFT COLUMN -->
+
+            <!-- RIGHT COLUMN: Results -->
+            <div class="col-lg-6">
+
+              <!-- ─── RESULTADOS ─── -->
+              <div id="sim-results">
+              <span id="sim-data"
+                    data-max-discount="{{ max_discount_allowed|floatformat:1 }}"
+                    data-controls-blocked="{{ controls_blocked|yesno:'1,0' }}"
+                    data-discount-clamped="{{ discount_percent|floatformat:1 }}"
+                    style="display:none;"></span>
+
+              <div class="sim-section fade-in fade-in-d1" style="border: none; box-shadow: var(--shadow-md);">
+                <div class="sim-section-hdr">
+                  <div class="sec-icon blue"><i class="fa-solid fa-receipt"></i></div>
+                  Resumo dos Valores
+                </div>
+                <div class="sim-section-body">
+                  <!-- Value breakdown -->
+                  <div style="font-size: .88rem; color: var(--brand);">
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--gray);">Subtotal dos itens</span>
+                      <strong>R$ {{ adj_subtotal|floatformat:2 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--gray);">
+                        <i class="fa-solid fa-truck me-1" style="font-size:.72rem;"></i>
+                        Frete ({{ quote.get_freight_responsible_display }})
+                      </span>
+                      <strong>R$ {{ freight_value|floatformat:2 }}</strong>
+                    </div>
+                    {% if price_increase_pct > 0 %}
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--green);">
+                        <i class="fa-solid fa-arrow-up me-1" style="font-size:.72rem;"></i>
+                        Ajuste +{{ price_increase_pct }}%
+                      </span>
+                      <strong style="color: var(--green);">incluído</strong>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--gray);">Total antes do desconto</span>
+                      <strong>R$ {{ total_before_discount|floatformat:2 }}</strong>
+                    </div>
+                    {% if discount_percent > 0 %}
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--red);">
+                        <i class="fa-solid fa-arrow-down me-1" style="font-size:.72rem;"></i>
+                        Desconto ({{ discount_percent }}%)
+                      </span>
+                      <strong style="color: var(--red);">– R$ {{ discount_value|floatformat:2 }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if client_surcharge_value > 0 %}
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--orange);">
+                        <i class="fa-solid fa-percent me-1" style="font-size:.72rem;"></i>
+                        Juros parcelamento ({{ client_surcharge_percent }}%)
+                      </span>
+                      <strong style="color: var(--orange);">+ R$ {{ client_surcharge_value|floatformat:2 }}</strong>
+                    </div>
+                    {% endif %}
+                  </div>
+
+                  <!-- TOTAL FINAL -->
+                  <div class="hi-card brand mt-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      <div>
+                        <div class="lbl">Total para o Cliente</div>
+                        <div class="val">R$ {{ final_total|floatformat:2 }}</div>
+                      </div>
+                      <div style="text-align: right;">
+                        <div class="lbl">{{ sim_payment_description }}</div>
+                        {% if sim_installments > 1 %}
+                        <div style="font-size: 1.15rem; font-weight: 800; margin-top: .15rem;">
+                          {{ sim_installments }}x de R$ {{ installment_value|floatformat:2 }}
+                        </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Commissions -->
+                  <div class="row g-2 mt-2">
+                    {% if sim_has_architect %}
+                    <div class="col-12">
+                      <div class="hi-card gray" style="padding: 1rem 1.2rem;">
+                        <div class="d-flex justify-content-between align-items-center">
+                          <div>
+                            <div class="lbl">Comissão Arquiteto ({{ architect_percent }}%)</div>
+                            <div class="val" style="font-size: 1.3rem;">R$ {{ architect_commission_value|floatformat:2 }}</div>
+                          </div>
+                          <div style="font-size: .78rem; opacity: .85; text-align: right;">
+                            sobre R$ {{ valor_avista|floatformat:2 }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {% endif %}
+                    <div class="col-12">
+                      <div class="hi-card {% if margin_exceeded %}orange{% elif seller_commission_percent >= 4 %}green{% else %}brand{% endif %}" style="padding: 1rem 1.2rem;">
+                        <button type="button"
+                                class="collapse-toggle collapse-toggle-white"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#seller-commission-collapse"
+                                aria-expanded="false"
+                                aria-controls="seller-commission-collapse">
+                          <span class="lbl mb-0" style="opacity:1;">
+                            <i class="fa-solid fa-user-tie me-1"></i>Comissão do Vendedor
+                          </span>
+                          <i class="fa-solid fa-chevron-down toggle-arrow"></i>
+                        </button>
+                        <div id="seller-commission-collapse" class="collapse mt-2">
+                          <div class="d-flex justify-content-between align-items-center">
+                            <div class="val" style="font-size: 1.3rem;">R$ {{ seller_commission_value|floatformat:2 }}</div>
+                            <div style="font-size: .78rem; opacity: .85; text-align: right;">
+                              {{ seller_commission_percent }}% sobre R$ {{ seller_commission_base|floatformat:2 }}
+                              {% if sim_has_architect %}<br>(após comissão arquiteto){% endif %}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -486,54 +725,58 @@
               </div>
               </div><!-- /sim-results -->
 
-              <!-- ─────────────────────────────────────────────────────── -->
-              <!-- ACTION BUTTONS                                          -->
-              <!-- ─────────────────────────────────────────────────────── -->
-              <div class="bg-white p-4 shadow-sm mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                  <div class="d-flex gap-2 flex-wrap">
-                    <button type="button" class="btn-green" onclick="saveConditions()">
-                      <i class="fa-solid fa-floppy-disk me-1"></i>Salvar Condições no Orçamento
-                    </button>
-                    <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-outline" style="text-decoration: none;" target="_blank">
-                      <i class="fa-solid fa-file-pdf me-1"></i>PDF Cliente
+              <!-- ─── QUICK ACTIONS (in right column) ─── -->
+              <div class="sim-section fade-in fade-in-d2" style="background: transparent; box-shadow: none; border: none;">
+                <div class="d-flex flex-column gap-2">
+                  <button type="button" class="btn-action primary w-100" onclick="saveConditions()" style="justify-content: center; padding: .85rem;">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Salvar Condições no Orçamento
+                  </button>
+                  <div class="d-flex gap-2">
+                    <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-action secondary flex-fill" target="_blank"
+                       style="justify-content: center; font-size: .82rem;">
+                      <i class="fa-solid fa-file-pdf"></i>PDF Cliente
                     </a>
-                    <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-outline" style="text-decoration: none;" target="_blank">
-                      <i class="fa-solid fa-file-pdf me-1"></i>PDF Fornecedor
+                    <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-action secondary flex-fill" target="_blank"
+                       style="justify-content: center; font-size: .82rem;">
+                      <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
                     </a>
                   </div>
                   <div class="d-flex gap-2">
-                    <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-outline" style="text-decoration: none;">
-                      <i class="fa-solid fa-pencil me-1"></i>Editar Orçamento
+                    <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-action secondary flex-fill"
+                       style="justify-content: center; font-size: .82rem;">
+                      <i class="fa-solid fa-pencil"></i>Editar
                     </a>
-                    <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-outline" style="text-decoration: none;">
-                      <i class="fa-solid fa-eye me-1"></i>Ver Orçamento
+                    <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-action secondary flex-fill"
+                       style="justify-content: center; font-size: .82rem;">
+                      <i class="fa-solid fa-eye"></i>Ver Orçamento
                     </a>
                   </div>
                 </div>
               </div>
 
-            </form><!-- /sim-form -->
+            </div><!-- /RIGHT COLUMN -->
+          </div><!-- /row -->
 
-            <!-- Hidden save form -->
-            <form method="post" id="save-form" style="display: none;">
-              {% csrf_token %}
-              <input type="hidden" name="action"                 value="save_conditions">
-              <input type="hidden" name="sim_payment_type"       id="save-ptype">
-              <input type="hidden" name="sim_installments"       id="save-inst">
-              <input type="hidden" name="sim_has_architect"      id="save-arch">
-              <input type="hidden" name="discount_percent"       id="save-disc">
-              <input type="hidden" name="price_increase_percent" id="save-pi">
-            </form>
+        </form><!-- /sim-form -->
 
-          </div>
-        </div>
+        <!-- Hidden save form -->
+        <form method="post" id="save-form" style="display: none;">
+          {% csrf_token %}
+          <input type="hidden" name="action"                 value="save_conditions">
+          <input type="hidden" name="sim_payment_type"       id="save-ptype">
+          <input type="hidden" name="sim_installments"       id="save-inst">
+          <input type="hidden" name="sim_has_architect"      id="save-arch">
+          <input type="hidden" name="discount_percent"       id="save-disc">
+          <input type="hidden" name="price_increase_percent" id="save-pi">
+        </form>
+
       </div>
     </section>
 
     <section class="pt-4 pb-3" style="background: var(--brand); color: #fff;">
       <div class="container text-center">
-        <p class="mb-0">&copy; 2026 Roselar. Todos os direitos reservados.</p>
+        <p class="mb-0" style="font-size: .85rem; opacity: .8;">&copy; 2026 Roselar. Todos os direitos reservados.</p>
       </div>
     </section>
   </main>
@@ -553,17 +796,25 @@
   var initPType          = '{{ sim_payment_type }}';
   var MARGIN_BASE        = parseFloat('{{ margin_base }}');
 
+  // ── Loading bar ──────────────────────────────────────────────────────────
+  var loadingBar = document.getElementById('loading-bar');
+  function showLoading() { loadingBar.classList.add('active'); }
+  function hideLoading() { loadingBar.classList.remove('active'); }
+
   // ── Discount slider ──────────────────────────────────────────────────────
   function onDiscountChange(val) {
     val = parseFloat(val);
     document.getElementById('h-discount').value = val.toFixed(1);
     document.getElementById('live-discount-val').textContent = val.toFixed(1) + '%';
+    var lbl = document.getElementById('lbl-discount');
     if (val > 0) {
-      document.getElementById('lbl-discount').textContent = '-' + val.toFixed(1) + '% desconto';
-      document.getElementById('lbl-discount').style.color = 'var(--red)';
+      lbl.textContent = '-' + val.toFixed(1) + '%';
+      lbl.style.color = 'var(--red)';
+      lbl.style.background = 'var(--red-light)';
     } else {
-      document.getElementById('lbl-discount').textContent = 'Sem desconto';
-      document.getElementById('lbl-discount').style.color = 'var(--brand)';
+      lbl.textContent = 'Sem desconto';
+      lbl.style.color = 'var(--brand)';
+      lbl.style.background = 'var(--brand-bg)';
     }
   }
 
@@ -571,13 +822,15 @@
   function onIncreaseChange(val) {
     val = parseFloat(val);
     document.getElementById('h-price-inc').value = val.toFixed(1);
-    document.getElementById('live-increase-val').textContent = val.toFixed(1) + '%';
+    var lbl = document.getElementById('lbl-increase');
     if (val > 0) {
-      document.getElementById('lbl-increase').textContent = '+' + val.toFixed(1) + '% no valor';
-      document.getElementById('lbl-increase').style.color = 'var(--green)';
+      lbl.textContent = '+' + val.toFixed(1) + '%';
+      lbl.style.color = 'var(--green)';
+      lbl.style.background = 'var(--green-light)';
     } else {
-      document.getElementById('lbl-increase').textContent = 'Sem ajuste';
-      document.getElementById('lbl-increase').style.color = 'var(--brand)';
+      lbl.textContent = 'Sem ajuste';
+      lbl.style.color = 'var(--brand)';
+      lbl.style.background = 'var(--brand-bg)';
     }
   }
 
@@ -640,6 +893,7 @@
   }
 
   function doSubmit() {
+    showLoading();
     var discount  = parseFloat(document.getElementById('discount-slider').value) || 0;
     var priceInc  = parseFloat(document.getElementById('increase-slider').value) || 0;
     document.getElementById('h-discount').value     = discount.toFixed(1);
@@ -659,8 +913,8 @@
 
     fetch(window.location.href, {method: 'POST', body: fd})
       .then(function(r) { return r.text(); })
-      .then(applyZones)
-      .catch(function(e) { console.error('Sim AJAX error:', e); });
+      .then(function(html) { applyZones(html); hideLoading(); })
+      .catch(function(e) { console.error('Sim AJAX error:', e); hideLoading(); });
   }
 
   function applyZones(html) {
@@ -670,12 +924,10 @@
       var curEl = document.getElementById(id);
       if (newEl && curEl) curEl.outerHTML = newEl.outerHTML;
     });
-    // Update discount R$ value (outside replaced zones)
     var newDA = doc.getElementById('live-discount-amount');
     var curDA = document.getElementById('live-discount-amount');
     if (newDA && curDA) curDA.textContent = newDA.textContent;
 
-    // Sync discount slider max from server response
     var simData = document.getElementById('sim-data');
     if (simData) {
       var maxDisc = parseFloat(simData.dataset.maxDiscount) || 30;
@@ -688,8 +940,6 @@
       }
       var lblMax = document.getElementById('lbl-max-discount');
       if (lblMax) lblMax.textContent = Math.round(maxDisc) + '%';
-
-
     }
   }
 
@@ -711,16 +961,13 @@
     document.getElementById('h-ptype').value         = initPType;
     document.getElementById('h-architect').value     = '{{ sim_has_architect|yesno:"1,0" }}';
 
-    // Init sliders
     document.getElementById('discount-slider').value = initDiscount;
     document.getElementById('increase-slider').value = initPriceInc;
 
-    // Init installment dropdown
     rebuildInstOptions();
     var instSel = document.getElementById('inst-select');
     instSel.value = initInstall;
 
-    // Show/hide installments dropdown
     var hasInstallments = (initPType === 'CREDIT_CARD' || initPType === 'BOLETO');
     document.getElementById('inst-dropdown-row').style.display = hasInstallments ? '' : 'none';
 

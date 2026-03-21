@@ -176,7 +176,7 @@ MESSAGE_TAGS = {
 # CSRF trusted origins (required for Railway deployment)
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     'CSRF_TRUSTED_ORIGINS',
-    'https://projetoroselar-production.up.railway.app,http://localhost'
+    'https://projetoroselar-production.up.railway.app,http://localhost,http://localhost:8000,http://127.0.0.1,http://127.0.0.1:8000'
 ).split(',')
 
 # Auto-detect Railway public domain
@@ -188,6 +188,12 @@ if _railway_domain:
 
 # Railway proxy terminates SSL – tell Django the real protocol
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Cookie security – Secure flag required for HTTPS (Railway)
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Logging – surface errors in Railway logs
 LOGGING = {

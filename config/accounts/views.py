@@ -2,7 +2,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib import messages
 from django.urls import reverse
+from django.views.decorators.csrf import ensure_csrf_cookie
 
+@ensure_csrf_cookie
 def login(request):
     # Redirect if already logged in
     if request.user.is_authenticated:
@@ -34,4 +36,4 @@ def login(request):
 def logout(request):
     auth_logout(request)
     messages.info(request, 'Você saiu da sua conta com sucesso.')
-    return redirect('core:index')
+    return redirect('accounts:login')
