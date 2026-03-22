@@ -127,6 +127,14 @@ class Quote(models.Model):
         verbose_name="Possui Arquiteto",
         help_text="Cliente possui arquiteto?"
     )
+    architect = models.ForeignKey(
+        "core.Architect",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="quotes",
+        verbose_name="Arquiteto",
+    )
 
     # condição/pagamento
     payment_type = models.CharField(

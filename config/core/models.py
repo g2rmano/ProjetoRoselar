@@ -186,6 +186,21 @@ class PaymentTariff(models.Model):
             return 0
 
 
+class Architect(models.Model):
+    """Cadastro de arquitetos."""
+    name = models.CharField(max_length=160, verbose_name="Nome Completo")
+    pix = models.CharField(max_length=120, verbose_name="Chave PIX")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Cadastrado em")
+
+    class Meta:
+        verbose_name = "Arquiteto"
+        verbose_name_plural = "Arquitetos"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class ArchitectCommission(models.Model):
     """Configuração global para comissão de arquiteto (singleton)."""
     commission_percent = models.DecimalField(
@@ -222,9 +237,9 @@ class SalesMarginConfig(models.Model):
     total_margin = models.DecimalField(
         max_digits=5,
         decimal_places=1,
-        default=10.0,
-        verbose_name="Margem Total (%)",
-        help_text="Margem da empresa (%)",
+        default=12.0,
+        verbose_name="Margem Ideal (%)",
+        help_text="Margem ideal da empresa (%). Abaixo disso a comissão sobe, acima desce.",
     )
     min_commission = models.DecimalField(
         max_digits=5,
@@ -239,6 +254,13 @@ class SalesMarginConfig(models.Model):
         default=5.0,
         verbose_name="Comissão Máxima (%)",
         help_text="Comissão máxima do vendedor (%) — quando desconto = 0",
+    )
+    margin_limit = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        default=18.0,
+        verbose_name="Limite de Margem (%)",
+        help_text="Custo total máximo permitido (%). Acima desse valor o orçamento é bloqueado.",
     )
 
     updated_at = models.DateTimeField(auto_now=True)
@@ -259,9 +281,9 @@ class SalesMarginConfig(models.Model):
 
     @classmethod
     def get_config(cls):
-        """Retorna (total_margin, min_commission, max_commission)."""
+        """Retorna (total_margin, min_commission, max_commission, margin_limit)."""
         obj, _ = cls.objects.get_or_create(pk=1)
-        return obj.total_margin, obj.min_commission, obj.max_commission
+        return obj.total_margin, obj.min_commission, obj.max_commission, obj.margin_limit
 
 
 # ──────────────────────────────────────────────────────────────────────

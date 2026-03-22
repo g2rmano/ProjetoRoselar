@@ -56,6 +56,7 @@ from .models import (
 from calendar_app.models import (
     create_quote_followup_events,
     create_delivery_events_for_quote,
+    create_architect_payment_event,
 )
 
 
@@ -535,6 +536,10 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                 create_delivery_events_for_quote(order)
             except Exception:
                 pass  # Não impede o fluxo principal
+            try:
+                create_architect_payment_event(order)
+            except Exception:
+                pass
 
         # 9) Gerar PDFs para cada fornecedor (fora da transação, após commit)
         pdf_count = 0
@@ -1348,6 +1353,51 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
 # ──────────────────────────────────────────────────────────────────────
 # Shared simulation logic
 # ──────────────────────────────────────────────────────────────────────
+def _reverse_calc_from_target(
+    target_final: Decimal,
+    subtotal: Decimal,
+    freight_value: Decimal,
+    client_surcharge_percent: Decimal,
+) -> tuple[Decimal, Decimal]:
+    """Given a desired final total, derive discount% and price_increase%.
+
+    Strategy:
+    1. Try discount (with price_increase=0). If discount >= 0, use it.
+    2. If discount < 0 (target > base total), use discount=0 and solve for
+       price_increase instead.
+
+    Returns (discount_percent, price_increase_percent).
+    """
+    surcharge_mult = (Decimal("100") + client_surcharge_percent) / Decimal("100")
+    base_total_before_disc = subtotal + freight_value
+
+    if base_total_before_disc <= 0 or target_final <= 0:
+        return Decimal("0"), Decimal("0")
+
+    # Case 1: solve for discount with pi=0
+    # target = base_total_before_disc × (1 - d/100) × surcharge_mult
+    # d = 100 × (1 - target / (surcharge_mult × base_total_before_disc))
+    discount = Decimal("100") * (
+        Decimal("1") - target_final / (surcharge_mult * base_total_before_disc)
+    )
+
+    if discount >= 0:
+        # Target is at or below base → use discount, no price increase
+        return max(Decimal("0"), discount), Decimal("0")
+
+    # Case 2: target > base total → need price increase, no discount
+    # target = (subtotal × (1 + pi/100) + freight) × surcharge_mult
+    # subtotal × (1 + pi/100) = target / surcharge_mult - freight
+    # pi = 100 × ((target / surcharge_mult - freight) / subtotal - 1)
+    if subtotal <= 0:
+        return Decimal("0"), Decimal("0")
+
+    pi = Decimal("100") * (
+        (target_final / surcharge_mult - freight_value) / subtotal - Decimal("1")
+    )
+    return Decimal("0"), max(Decimal("0"), pi)
+
+
 def _build_simulation_context(
     *,
     subtotal: Decimal,
@@ -1357,32 +1407,33 @@ def _build_simulation_context(
     sim_discount: Decimal,
     price_increase_pct: Decimal,
     sim_installments: int,
+    target_final: Decimal | None = None,
+    target_installment: Decimal | None = None,
 ) -> dict:
     """Pure calculation — no DB writes, no request handling."""
-    from core.models import PaymentTariff, PaymentMethodType, ArchitectCommission
+    from core.models import PaymentTariff, PaymentMethodType, ArchitectCommission, SalesMarginConfig
 
-    MARGIN_BASE = Decimal("10")
+    _tm, _mc_min, _mc_max, margin_limit = SalesMarginConfig.get_config()
+    margin_limit = Decimal(str(margin_limit))
+    MARGIN_BASE = Decimal(str(_tm))
 
-    COMMISSION_FLOOR = Decimal("2")   # when margin is exceeded
+    COMMISSION_FLOOR = Decimal("2")
     COMMISSION_MIN   = Decimal("3")
     COMMISSION_MAX   = Decimal("5")
     MAX_DISCOUNT_ABSOLUTE = Decimal("30")
-    MAX_MARGIN_EXCESS = Decimal("5")   # margin can go at most 5% below
-    FEE_STORE_MAX_INSTALLMENTS = 12  # store absorbs fee up to this many installments
+    FEE_STORE_MAX_INSTALLMENTS = 12
 
-    # Clamp
     price_increase_pct = max(Decimal('0'), min(price_increase_pct, Decimal('30')))
     sim_discount       = max(Decimal("0"), min(sim_discount, MAX_DISCOUNT_ABSOLUTE))
     sim_installments   = max(1, min(sim_installments, 18))
 
-    # Interest / fee
     payment_fee_percent = (
         Decimal(str(PaymentTariff.get_fee(sim_payment_type, sim_installments)))
         if sim_payment_type else Decimal("0")
     )
 
-    # For 13-18x: store absorbs up to the 12x fee; client pays the difference
-    store_fee_percent = payment_fee_percent  # store's cost (capped at 12x rate)
+    # 13-18x: loja absorve até 12x, cliente paga a diferença
+    store_fee_percent = payment_fee_percent
     client_surcharge_percent = Decimal("0")
     if sim_installments > FEE_STORE_MAX_INSTALLMENTS and sim_payment_type:
         fee_12x = Decimal(str(PaymentTariff.get_fee(sim_payment_type, FEE_STORE_MAX_INSTALLMENTS)))
@@ -1390,76 +1441,86 @@ def _build_simulation_context(
             client_surcharge_percent = payment_fee_percent - fee_12x
             store_fee_percent = fee_12x
 
-    # Architect — always loaded (immutable, non-negotiable when present)
+    # Parcela desejada: converte em target_final
+    target_installment_mode = False
+    if target_installment is not None and target_installment > 0 and sim_installments > 1 and subtotal > 0:
+        target_final = target_installment * Decimal(sim_installments)
+        target_installment_mode = True
+
+    # Valor final desejado: calcula desconto/ajuste reverso
+    target_mode = False
+    if target_final is not None and target_final > 0 and subtotal > 0:
+        sim_discount, price_increase_pct = _reverse_calc_from_target(
+            target_final, subtotal, freight_value, client_surcharge_percent,
+        )
+        price_increase_pct = min(price_increase_pct, Decimal("30")).quantize(Decimal("0.1"))
+        sim_discount = min(sim_discount, MAX_DISCOUNT_ABSOLUTE).quantize(Decimal("0.1"))
+        target_mode = True
+
     architect_percent = ArchitectCommission.get_commission()
     architect_commission_value = Decimal("0")
-    # Architect cost in margin: only when client has architect, but always at full rate
     architect_cost_pct = architect_percent if sim_has_architect else Decimal("0")
 
-    # Effective margin and max discount allowed
-    # Margin can go at most MAX_MARGIN_EXCESS below zero.
-    # With commission at COMMISSION_FLOOR (worst case):
-    #   total_cost = store_fee + architect + discount + COMMISSION_FLOOR
-    #   total_cost - effective_margin <= MAX_MARGIN_EXCESS
-    #   → discount <= effective_margin + MAX_MARGIN_EXCESS - store_fee - architect - COMMISSION_FLOOR
     effective_margin = MARGIN_BASE + price_increase_pct
-    allowance = effective_margin + MAX_MARGIN_EXCESS - store_fee_percent - architect_cost_pct - COMMISSION_FLOOR
-    max_discount_allowed = max(Decimal("0"), min(MAX_DISCOUNT_ABSOLUTE, allowance))
-
-    # Re-clamp discount to max_discount_allowed
-    sim_discount = min(sim_discount, max_discount_allowed)
-
-    # Dynamic commission based on margin room
-    # room = what's left in effective margin after fixed costs (fee, architect, discount)
-    # Commission = room/2 clamped to [3%, 5%]: splits available space evenly
-    # between commission and remaining profit margin
+    max_discount_allowed = MAX_DISCOUNT_ABSOLUTE
     fixed_costs = store_fee_percent + architect_cost_pct + sim_discount
-    room = effective_margin - fixed_costs
 
-    # Commission = half of room, clamped between 3% and 5%
-    # Then check: if margin is exceeded with that commission → drop to 2%
-    seller_commission_percent = min(COMMISSION_MAX, max(COMMISSION_MIN, room / 2))
-    total_cost_pct = fixed_costs + seller_commission_percent
-    if total_cost_pct > effective_margin:
+    # Comissão baseada no gap (margem - custos fixos, sem comissão)
+    # gap < 2  → custo alto → comissão = 2%
+    # gap 2–4  → custo ≈ margem (±1%) → comissão = 3%
+    # gap > 4  → margem folgada → comissão sobe 3%→5% (sqrt), chega em 5% com gap ≥ 6
+    from math import sqrt
+    gap = effective_margin - fixed_costs
+    if gap < Decimal("2"):
         seller_commission_percent = COMMISSION_FLOOR
-    original_commission_percent = COMMISSION_MAX  # for display: max possible
+    elif gap <= Decimal("4"):
+        seller_commission_percent = COMMISSION_MIN
+    else:
+        t = min(Decimal("1"), (gap - Decimal("4")) / Decimal("2"))
+        seller_commission_percent = COMMISSION_MIN + (COMMISSION_MAX - COMMISSION_MIN) * Decimal(str(sqrt(float(t))))
+    seller_commission_percent = min(COMMISSION_MAX, max(COMMISSION_FLOOR, seller_commission_percent)).quantize(Decimal("0.1"))
 
-    # Total cost and margin check
+    original_commission_percent = COMMISSION_MAX
+
     total_cost_pct  = fixed_costs + seller_commission_percent
     margin_exceeded = total_cost_pct > effective_margin
     commission_reduced = seller_commission_percent < COMMISSION_MAX
-
     margin_excess = total_cost_pct - effective_margin if margin_exceeded else Decimal("0")
-    controls_blocked = margin_excess >= MAX_MARGIN_EXCESS
 
-    # Suggested increase: how much MORE to increase price to eliminate the excess
+    # Bloqueio: custo > limite (18%) + ajuste
+    margin_limit_exceeded = total_cost_pct >= (margin_limit + price_increase_pct)
+    controls_blocked = margin_limit_exceeded
+
+    # Ajuste mínimo para desbloquear
+    min_increase_to_unblock = Decimal("0")
+    if margin_limit_exceeded:
+        needed = total_cost_pct - (margin_limit + price_increase_pct)
+        if needed > Decimal("0"):
+            min_increase_to_unblock = needed.quantize(Decimal("1"), rounding=ROUND_CEILING)
+
     suggested_increase = Decimal("0")
     if margin_exceeded:
         suggested_increase = (margin_excess * 2).quantize(Decimal("1"), rounding=ROUND_CEILING) / 2
 
-    # Price-adjusted subtotal
     price_multiplier  = (Decimal("100") + price_increase_pct) / Decimal("100")
     adj_subtotal      = subtotal * price_multiplier
     total_before_disc = adj_subtotal + freight_value
     discount_value    = total_before_disc * sim_discount / Decimal("100")
     total_after_disc  = total_before_disc - discount_value
 
-    # Card fee: store absorbs store_fee_percent; client pays client_surcharge_percent
     payment_fee_value = total_after_disc * store_fee_percent / Decimal("100")
     client_surcharge_value = total_after_disc * client_surcharge_percent / Decimal("100")
 
-    # Client pays total_after_disc + surcharge for 13-18x
     final_total       = total_after_disc + client_surcharge_value
     installment_value = (final_total / Decimal(sim_installments)) if sim_installments else final_total
 
-    # valor_avista: what the store actually receives (client total minus ALL card fees)
+    # Valor à vista: o que a loja recebe (sem taxas)
     valor_avista = final_total - payment_fee_value - client_surcharge_value
 
-    # Architect commission (based on what the store actually receives)
     if sim_has_architect:
         architect_commission_value = valor_avista * architect_percent / Decimal("100")
 
-    # Seller commission base
+    # Base da comissão do vendedor
     seller_commission_base = adj_subtotal
     seller_discount_value  = seller_commission_base * sim_discount / Decimal("100")
     seller_commission_base = seller_commission_base - seller_discount_value
@@ -1529,6 +1590,9 @@ def _build_simulation_context(
         'margin_exceeded':           margin_exceeded,
         'margin_excess':             margin_excess,
         'controls_blocked':          controls_blocked,
+        'margin_limit':              margin_limit,
+        'margin_limit_exceeded':     margin_limit_exceeded,
+        'min_increase_to_unblock':   min_increase_to_unblock,
         'max_discount_allowed':      max_discount_allowed,
 
         'suggested_increase':        suggested_increase,
@@ -1542,6 +1606,10 @@ def _build_simulation_context(
         'tariffs_by_type_json':      json.dumps(tariffs_by_type),
         'sim_payment_description':   sim_payment_description,
         'sim_has_architect':         sim_has_architect,
+        'target_mode':               target_mode,
+        'target_final_input':        target_final if target_final else Decimal("0"),
+        'target_installment_mode':   target_installment_mode,
+        'target_installment_input':  target_installment if target_installment else Decimal("0"),
     }
 
 
@@ -1558,18 +1626,45 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
     if request.method == "POST":
         sim_payment_type    = request.POST.get('sim_payment_type', '') or ''
         sim_has_architect   = request.POST.get('sim_has_architect') == '1'
+        sim_architect_id    = request.POST.get('sim_architect_id', '') or ''
         sim_discount        = Decimal(request.POST.get('discount_percent', '0') or '0')
         try:
             price_increase_pct = Decimal(request.POST.get('price_increase_percent', '0') or '0')
         except Exception:
             price_increase_pct = Decimal('0')
         sim_installments    = max(1, int(request.POST.get('sim_installments', '1') or 1))
+        # Target final: reverse calculation mode
+        try:
+            target_final = Decimal(request.POST.get('target_final', '') or '0')
+            if target_final <= 0:
+                target_final = None
+        except Exception:
+            target_final = None
+        # Target installment: parcela desejada
+        try:
+            target_installment = Decimal(request.POST.get('target_installment', '') or '0')
+            if target_installment <= 0:
+                target_installment = None
+        except Exception:
+            target_installment = None
     else:
         sim_payment_type    = quote.payment_type or ''
         sim_has_architect   = quote.has_architect
+        sim_architect_id    = str(quote.architect_id or '')
         sim_discount        = quote.discount_percent or Decimal("0")
         price_increase_pct  = Decimal('0')
         sim_installments    = quote.payment_installments or 1
+        target_final        = None
+        target_installment  = None
+
+    # Resolve architect
+    from core.models import Architect
+    selected_architect = None
+    if sim_architect_id:
+        try:
+            selected_architect = Architect.objects.get(pk=int(sim_architect_id))
+        except (Architect.DoesNotExist, ValueError, TypeError):
+            pass
 
     ctx = _build_simulation_context(
         subtotal=subtotal,
@@ -1579,15 +1674,22 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
         sim_discount=sim_discount,
         price_increase_pct=price_increase_pct,
         sim_installments=sim_installments,
+        target_final=target_final,
+        target_installment=target_installment,
     )
 
     if request.method == "POST" and request.POST.get('action') == 'save_conditions':
+        if ctx['margin_limit_exceeded']:
+            messages.error(request, f"Custo total ({ctx['total_cost_pct']}%) ultrapassou o limite de margem ({ctx['margin_limit']}%). Ajuste as condições antes de salvar.")
+            ctx['quote'] = quote
+            return render(request, 'sales/quote_simulation.html', ctx)
         with transaction.atomic():
             quote.discount_percent     = ctx['discount_percent']
             quote.payment_type         = ctx['sim_payment_type']
             quote.payment_installments = ctx['sim_installments']
             quote.payment_fee_percent  = ctx['payment_fee_percent']
             quote.has_architect        = ctx['sim_has_architect']
+            quote.architect            = selected_architect
             quote.save()
         messages.success(request, f"Condições do orçamento {quote.number} salvas com sucesso.")
         return redirect("sales:quote_detail", quote_id=quote.id)
@@ -1596,6 +1698,8 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
         return redirect(request.path)
 
     ctx['quote'] = quote
+    ctx['selected_architect'] = selected_architect
+    ctx['sim_architect_id']   = sim_architect_id
     return render(request, 'sales/quote_simulation.html', ctx)
 
 
@@ -1606,7 +1710,7 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
 @require_http_methods(["GET", "POST"])
 def standalone_simulation(request: HttpRequest) -> HttpResponse:
     """Simulação rápida de valores — sem precisar criar orçamento."""
-    from core.models import Customer
+    from core.models import Customer, Architect
 
     if request.method == "POST":
         try:
@@ -1629,6 +1733,21 @@ def standalone_simulation(request: HttpRequest) -> HttpResponse:
             price_increase_pct = Decimal('0')
         sim_installments = max(1, int(request.POST.get('sim_installments', '1') or 1))
         customer_id = request.POST.get('sim_customer_id', '') or ''
+        sim_architect_id = request.POST.get('sim_architect_id', '') or ''
+        # Target final: reverse calculation mode
+        try:
+            target_final = Decimal(request.POST.get('target_final', '') or '0')
+            if target_final <= 0:
+                target_final = None
+        except Exception:
+            target_final = None
+        # Target installment: parcela desejada
+        try:
+            target_installment = Decimal(request.POST.get('target_installment', '') or '0')
+            if target_installment <= 0:
+                target_installment = None
+        except Exception:
+            target_installment = None
     else:
         subtotal           = Decimal('0')
         freight_value      = Decimal('0')
@@ -1638,6 +1757,9 @@ def standalone_simulation(request: HttpRequest) -> HttpResponse:
         price_increase_pct = Decimal('0')
         sim_installments   = 1
         customer_id        = ''
+        sim_architect_id   = ''
+        target_final       = None
+        target_installment = None
 
     subtotal      = max(Decimal('0'), subtotal)
     freight_value = max(Decimal('0'), freight_value)
@@ -1653,6 +1775,14 @@ def standalone_simulation(request: HttpRequest) -> HttpResponse:
         except (Customer.DoesNotExist, ValueError, TypeError):
             pass
 
+    # Resolve architect
+    selected_architect = None
+    if sim_architect_id:
+        try:
+            selected_architect = Architect.objects.get(pk=int(sim_architect_id))
+        except (Architect.DoesNotExist, ValueError, TypeError):
+            pass
+
     ctx = _build_simulation_context(
         subtotal=subtotal,
         freight_value=freight_value,
@@ -1661,12 +1791,16 @@ def standalone_simulation(request: HttpRequest) -> HttpResponse:
         sim_discount=sim_discount,
         price_increase_pct=price_increase_pct,
         sim_installments=sim_installments,
+        target_final=target_final,
+        target_installment=target_installment,
     )
     ctx['standalone']         = True
     ctx['sim_subtotal']       = subtotal
     ctx['sim_freight']        = freight_value
     ctx['selected_customer']  = selected_customer
     ctx['sim_customer_id']    = customer_id
+    ctx['selected_architect'] = selected_architect
+    ctx['sim_architect_id']   = sim_architect_id
 
     return render(request, 'sales/standalone_simulation.html', ctx)
 

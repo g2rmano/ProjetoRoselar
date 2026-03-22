@@ -1,0 +1,1072 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Condições Financeiras - {{ quote.number }} | Roselar</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
+  <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+  <meta name="theme-color" content="#ffffff">
+
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    :root {
+      --brand:       #0A2640;
+      --brand-light: #0e3358;
+      --brand-bg:    #f0f4f8;
+      --green:       #198754;
+      --green-light: #d1e7dd;
+      --orange:      #fd7e14;
+      --orange-light:#fff3e0;
+      --red:         #dc3545;
+      --red-light:   #f8d7da;
+      --gray:        #6c757d;
+      --gray-light:  #e9ecef;
+      --yellow:      #ffc107;
+      --yellow-light:#fff8e1;
+      --shadow-sm:   0 1px 3px rgba(0,0,0,.08);
+      --shadow-md:   0 4px 12px rgba(0,0,0,.1);
+      --shadow-lg:   0 8px 30px rgba(0,0,0,.12);
+      --radius:      12px;
+      --radius-sm:   8px;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Manrope', sans-serif; background: var(--brand-bg); }
+
+    /* ── Section blocks ── */
+    .sim-section {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,.05);
+      transition: box-shadow .2s ease;
+    }
+    .sim-section:hover { box-shadow: var(--shadow-md); }
+
+    .sim-section-hdr {
+      padding: .85rem 1.25rem;
+      display: flex; align-items: center; gap: .6rem;
+      font-weight: 700; font-size: .9rem;
+      border-bottom: 1px solid var(--gray-light);
+      color: var(--brand);
+      background: #fafbfc;
+    }
+    .sim-section-hdr .sec-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; color: #fff; flex-shrink: 0;
+    }
+    .sim-section-hdr .sec-icon.blue   { background: var(--brand); }
+    .sim-section-hdr .sec-icon.green  { background: var(--green); }
+    .sim-section-hdr .sec-icon.orange { background: var(--orange); }
+    .sim-section-hdr .sec-icon.gray   { background: var(--gray); }
+    .sim-section-hdr .sec-icon.red    { background: var(--red); }
+
+    .sim-section-body { padding: 1.25rem; }
+
+    /* ── Mini stat cards ── */
+    .stat-card {
+      background: var(--brand-bg);
+      border-radius: var(--radius-sm);
+      padding: .85rem 1rem;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .stat-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    .stat-card .stat-lbl {
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--gray); font-weight: 700; margin-bottom: .2rem;
+    }
+    .stat-card .stat-val {
+      font-size: 1.2rem; font-weight: 800; color: var(--brand); line-height: 1.2;
+    }
+    .stat-card .stat-val.green  { color: var(--green); }
+    .stat-card .stat-val.red    { color: var(--red); }
+    .stat-card .stat-val.orange { color: var(--orange); }
+
+    /* ── Big highlight cards ── */
+    .hi-card {
+      color: #fff; padding: 1.4rem 1.5rem; border-radius: var(--radius);
+      position: relative; overflow: hidden;
+    }
+    .hi-card::before {
+      content: ''; position: absolute; top: -30%; right: -10%;
+      width: 140px; height: 140px; border-radius: 50%;
+      background: rgba(255,255,255,.06);
+    }
+    .hi-card .lbl {
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
+      opacity: .85; margin-bottom: .15rem; font-weight: 600;
+    }
+    .hi-card .val { font-size: 1.75rem; font-weight: 800; }
+    .hi-card.brand  { background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%); }
+    .hi-card.green  { background: linear-gradient(135deg, var(--green) 0%, #20a862 100%); }
+    .hi-card.orange { background: linear-gradient(135deg, var(--orange) 0%, #e8720c 100%); }
+    .hi-card.red    { background: linear-gradient(135deg, var(--red) 0%, #c82333 100%); }
+    .hi-card.gray   { background: linear-gradient(135deg, var(--gray) 0%, #5a6268 100%); }
+
+    /* ── Custom slider ── */
+    .slider-container { padding: .25rem 0 1rem; position: relative; }
+    .slider-labels {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: .4rem;
+    }
+    .slider-labels .slider-min,
+    .slider-labels .slider-max { font-size: .75rem; font-weight: 600; color: var(--gray); }
+    .slider-labels .slider-current {
+      font-size: 1rem; font-weight: 800; padding: .15rem .6rem;
+      border-radius: 6px; transition: all .2s ease;
+    }
+    input[type=range] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 6px; outline: none; border-radius: 3px; cursor: pointer;
+      transition: opacity .15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 22px; height: 22px;
+      border-radius: 50%; cursor: pointer;
+      background: #fff; border: 3px solid var(--brand);
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      box-shadow: 0 3px 12px rgba(0,0,0,.3);
+    }
+    input[type=range]::-moz-range-thumb {
+      width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+      background: #fff; border: 3px solid var(--brand);
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    input[type=range].slider-discount {
+      background: linear-gradient(to right, var(--brand-bg) 0%, #ffcdd2 50%, #ef5350 100%);
+    }
+    input[type=range].slider-increase {
+      background: linear-gradient(to right, var(--brand-bg) 0%, #c8e6c9 50%, #43a047 100%);
+    }
+    input[type=range].slider-increase::-webkit-slider-thumb { border-color: var(--green); }
+    input[type=range].slider-increase::-moz-range-thumb { border-color: var(--green); }
+
+    /* ── Alerts ── */
+    .sim-alert {
+      padding: .75rem 1rem; border-radius: var(--radius-sm);
+      font-size: .84rem; display: flex; align-items: flex-start; gap: .6rem;
+      margin-bottom: .75rem; line-height: 1.5;
+    }
+    .sim-alert-icon { flex-shrink: 0; margin-top: 2px; }
+    .sim-alert.warning { background: var(--yellow-light); border: 1px solid #ffe082; color: #6d5200; }
+    .sim-alert.success { background: var(--green-light); border: 1px solid #a3cfbb; color: #0f5132; }
+    .sim-alert.danger  { background: var(--red-light); border: 1px solid #f1aeb5; color: #842029; }
+
+    /* ── Toggle collapse  ── */
+    .collapse-toggle {
+      width: 100%; border: 0; background: transparent;
+      padding: 0; text-align: left; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+      color: inherit; font-weight: 700; font-size: .9rem;
+    }
+    .collapse-toggle .toggle-arrow {
+      transition: transform .25s ease; opacity: .7; font-size: .75rem;
+    }
+    .collapse-toggle[aria-expanded="true"] .toggle-arrow { transform: rotate(180deg); }
+
+    /* White version for hi-card */
+    .collapse-toggle-white { color: #fff; }
+
+    /* ── Buttons ── */
+    .btn-action {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .6rem 1.4rem; font-weight: 700; font-size: .88rem;
+      border: none; border-radius: var(--radius-sm); cursor: pointer;
+      text-decoration: none; transition: all .2s ease;
+    }
+    .btn-action:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .btn-action:active { transform: translateY(0); }
+    .btn-action.primary { background: var(--green); color: #fff; }
+    .btn-action.primary:hover { background: #146c43; color: #fff; }
+    .btn-action.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--gray-light); }
+    .btn-action.secondary:hover { background: var(--brand-bg); color: var(--brand); }
+    .btn-action.brand { background: var(--brand); color: #fff; }
+    .btn-action.brand:hover { background: var(--brand-light); color: #fff; }
+
+    /* ── Form controls ── */
+    .sim-select {
+      width: 100%; padding: .55rem .85rem; font-size: .9rem;
+      border: 1.5px solid var(--gray-light); border-radius: var(--radius-sm);
+      background: #fff; color: var(--brand); font-weight: 600;
+      transition: border-color .2s ease, box-shadow .2s ease;
+      -webkit-appearance: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+      background-repeat: no-repeat; background-position: right .7rem center; background-size: 14px;
+      padding-right: 2.2rem;
+    }
+    .sim-select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(10,38,64,.12); }
+
+    .sim-label {
+      display: block; font-size: .78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .04em;
+      color: var(--gray); margin-bottom: .35rem;
+    }
+
+    /* ── Switch ── */
+    .sim-switch {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .75rem 1rem; background: var(--brand-bg);
+      border-radius: var(--radius-sm); cursor: pointer;
+      transition: background .2s ease;
+    }
+    .sim-switch:hover { background: #e3e9f0; }
+    .sim-switch input[type=checkbox] { display: none; }
+    .sim-switch .switch-track {
+      width: 44px; height: 24px; border-radius: 12px;
+      background: var(--gray-light); position: relative;
+      transition: background .2s ease; flex-shrink: 0;
+    }
+    .sim-switch .switch-track::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2);
+      transition: transform .2s ease;
+    }
+    .sim-switch input:checked + .switch-track { background: var(--green); }
+    .sim-switch input:checked + .switch-track::after { transform: translateX(20px); }
+    .sim-switch .switch-label { font-weight: 600; color: var(--brand); font-size: .9rem; }
+    .sim-switch .switch-sub { font-size: .78rem; color: var(--gray); }
+
+    /* ── Quote info strip ── */
+    .quote-info-strip {
+      display: flex; gap: 1.5rem; flex-wrap: wrap;
+      padding: .55rem 0; font-size: .84rem; color: var(--gray);
+    }
+    .quote-info-strip .info-item {
+      display: flex; align-items: center; gap: .35rem;
+    }
+    .quote-info-strip .info-item i { font-size: .75rem; opacity: .6; }
+
+    /* ── Loading overlay ── */
+    .sim-loading {
+      position: fixed; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--brand); z-index: 9999;
+      transform: scaleX(0); transform-origin: left;
+      transition: transform .3s ease;
+    }
+    .sim-loading.active { transform: scaleX(1); }
+
+    /* ── Action bar (sticky) ── */
+    .action-bar {
+      position: sticky; bottom: 0; z-index: 100;
+      background: #fff; border-top: 1px solid var(--gray-light);
+      padding: .85rem 1.25rem; margin: 0 -12px;
+      box-shadow: 0 -4px 16px rgba(0,0,0,.08);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .hi-card .val { font-size: 1.4rem; }
+      .stat-card .stat-val { font-size: 1rem; }
+      .action-bar { padding: .75rem; }
+      .quote-info-strip { gap: .75rem; }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeInUp .4s ease both; }
+    .fade-in-d1 { animation-delay: .05s; }
+    .fade-in-d2 { animation-delay: .1s; }
+    .fade-in-d3 { animation-delay: .15s; }
+    .fade-in-d4 { animation-delay: .2s; }
+  </style>
+</head>
+
+<body>
+  <!-- Loading bar -->
+  <div class="sim-loading" id="loading-bar"></div>
+
+  <main class="main" id="top">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+      <div class="container">
+        <a class="navbar-brand" href="{% url 'core:index' %}">
+          <img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+          <i class="fa-solid fa-bars text-white fs-3"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Início</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
+            <li class="nav-item"><a class="nav-link active" href="{% url 'sales:quote_detail' quote.id %}">{{ quote.number }}</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <section class="py-5" style="min-height: 100vh;">
+      <div style="position: absolute; top: 0; left: 0; right: 0; height: 32vh; background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%); z-index: -1;"></div>
+
+      <div class="container" style="margin-top: 80px; max-width: 960px;">
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- HEADER CARD                                               -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <div class="sim-section fade-in" style="border: none; box-shadow: var(--shadow-lg);">
+          <div style="padding: 1.5rem 1.5rem 1rem;">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+              <div>
+                <div style="display: flex; align-items: center; gap: .6rem; margin-bottom: .5rem;">
+                  <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--brand); color: #fff;
+                              display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                    <i class="fa-solid fa-sliders"></i>
+                  </div>
+                  <div>
+                    <h4 style="margin: 0; font-weight: 800; color: var(--brand); font-size: 1.25rem;">
+                      Condições Financeiras
+                    </h4>
+                    <div style="font-size: .78rem; color: var(--gray); font-weight: 500;">
+                      Defina as condições de venda
+                    </div>
+                  </div>
+                </div>
+                <div class="quote-info-strip">
+                  <span class="info-item"><i class="fa-solid fa-hashtag"></i><strong>{{ quote.number }}</strong></span>
+                  <span class="info-item"><i class="fa-solid fa-user"></i>{{ quote.customer.name }}</span>
+                  <span class="info-item"><i class="fa-solid fa-user-tie"></i>{{ quote.seller.username }}</span>
+                  <span class="info-item"><i class="fa-solid fa-calendar"></i>{{ quote.quote_date|date:"d/m/Y" }}</span>
+                  <span class="info-item">
+                    <i class="fa-solid fa-box"></i>
+                    <strong>Subtotal: R$ {{ subtotal|floatformat:2 }}</strong>
+                  </span>
+                </div>
+              </div>
+              <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-action secondary" style="flex-shrink: 0;">
+                <i class="fa-solid fa-arrow-left"></i>Voltar
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- MAIN FORM                                                  -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <form method="post" id="sim-form">
+          {% csrf_token %}
+          <input type="hidden" name="discount_percent"       id="h-discount">
+          <input type="hidden" name="price_increase_percent" id="h-price-inc">
+          <input type="hidden" name="sim_installments"       id="h-installments">
+          <input type="hidden" name="sim_payment_type"       id="h-ptype">
+          <input type="hidden" name="sim_has_architect"      id="h-architect">
+          <input type="hidden" name="target_final"           id="h-target-final">
+
+          <!-- Two-column layout for controls -->
+          <div class="row g-3">
+            <!-- LEFT COLUMN: Controls -->
+            <div class="col-lg-6">
+
+              <!-- ─── DESCONTO ─── -->
+              <div class="sim-section fade-in fade-in-d1">
+                <div class="sim-section-hdr">
+                  <div class="sec-icon red"><i class="fa-solid fa-tag"></i></div>
+                  Desconto
+                </div>
+                <div class="sim-section-body">
+                  <div class="slider-container">
+                    <div class="slider-labels">
+                      <span class="slider-min">0%</span>
+                      <span class="slider-current" id="lbl-discount"
+                            style="{% if discount_percent > 0 %}color: var(--red); background: var(--red-light);{% else %}color: var(--brand); background: var(--brand-bg);{% endif %}">
+                        {% if discount_percent > 0 %}-{{ discount_percent }}%{% else %}Sem desconto{% endif %}
+                      </span>
+                      <span class="slider-max" id="lbl-max-discount">{{ max_discount_allowed|floatformat:0 }}%</span>
+                    </div>
+                    <input type="range" class="slider-discount" id="discount-slider"
+                           min="0" max="{{ max_discount_allowed|floatformat:1 }}" step="0.5"
+                           value="{{ discount_percent }}"
+                           oninput="onDiscountChange(this.value); scheduleSubmit()">
+                  </div>
+                  {% if controls_blocked %}
+                  <div class="sim-alert danger">
+                    <i class="fa-solid fa-lock sim-alert-icon"></i>
+                    <div><strong>Limite atingido!</strong> Margem no máximo de -5%. Desconto limitado a {{ max_discount_allowed|floatformat:1 }}%.</div>
+                  </div>
+                  {% endif %}
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <div class="stat-card">
+                        <div class="stat-lbl">Desconto</div>
+                        <div class="stat-val red" id="live-discount-val">{{ discount_percent }}%</div>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="stat-card">
+                        <div class="stat-lbl">Valor</div>
+                        <div class="stat-val red" id="live-discount-amount">R$ {{ discount_value|floatformat:2 }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ─── FORMA DE PAGAMENTO ─── -->
+              <div class="sim-section fade-in fade-in-d2">
+                <div class="sim-section-hdr">
+                  <div class="sec-icon blue"><i class="fa-solid fa-credit-card"></i></div>
+                  Pagamento
+                </div>
+                <div class="sim-section-body">
+                  <div class="row g-3 mb-3">
+                    <div class="col-sm-7">
+                      <label class="sim-label"><i class="fa-solid fa-wallet me-1"></i>Forma</label>
+                      <select id="sel-ptype" class="sim-select" onchange="onPaymentTypeChange()">
+                        <option value="">-- Selecione --</option>
+                        {% for value, label in payment_type_choices %}
+                          <option value="{{ value }}" {% if value == sim_payment_type %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-sm-5" id="inst-dropdown-row">
+                      <label class="sim-label"><i class="fa-solid fa-hashtag me-1"></i>Parcelas</label>
+                      <select id="inst-select" class="sim-select" onchange="onInstChange(this.value); scheduleSubmit();"></select>
+                    </div>
+                  </div>
+                  <div class="stat-card" style="border-left: 3px solid var(--brand);">
+                    <div class="stat-lbl">Taxa do pagamento</div>
+                    <div class="stat-val" id="fee-display">{{ payment_fee_percent }}%</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ─── ARQUITETO ─── -->
+              <div class="sim-section fade-in fade-in-d3">
+                <div class="sim-section-hdr">
+                  <div class="sec-icon gray"><i class="fa-solid fa-drafting-compass"></i></div>
+                  Arquiteto
+                </div>
+                <div class="sim-section-body" style="padding: .75rem 1.25rem;">
+                  <label class="sim-switch" for="chk-architect">
+                    <input type="checkbox" id="chk-architect"
+                           value="1"
+                           {% if sim_has_architect %}checked{% endif %}
+                           onchange="scheduleSubmit()">
+                    <span class="switch-track"></span>
+                    <span>
+                      <span class="switch-label">Cliente possui Arquiteto</span><br>
+                      <span class="switch-sub">{{ architect_percent }}% sobre valor à vista</span>
+                    </span>
+                  </label>
+                  {% if sim_has_architect %}
+                  <div class="stat-card mt-2">
+                    <div class="stat-lbl">Base do cálculo</div>
+                    <div class="stat-val">R$ {{ valor_avista|floatformat:2 }}</div>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- ─── AJUSTE DE VALOR (collapsible) ─── -->
+              <div class="sim-section fade-in fade-in-d4">
+                <div class="sim-section-hdr" style="cursor: pointer;"
+                     onclick="this.querySelector('.collapse-toggle').click()">
+                  <div class="sec-icon green"><i class="fa-solid fa-chart-line"></i></div>
+                  <button type="button" class="collapse-toggle"
+                          data-bs-toggle="collapse" data-bs-target="#increase-collapse"
+                          aria-expanded="false" aria-controls="increase-collapse"
+                          onclick="event.stopPropagation();">
+                    <span>Ajuste de Valor &amp; Margem</span>
+                    <i class="fa-solid fa-chevron-down toggle-arrow"></i>
+                  </button>
+                </div>
+                <div class="collapse" id="increase-collapse">
+                  <div class="sim-section-body">
+                    <div id="increase-suggestion-zone">
+                    {% if commission_reduced %}
+                    <div class="sim-alert {% if margin_exceeded %}warning{% else %}success{% endif %}">
+                      <i class="fa-solid fa-{% if margin_exceeded %}triangle-exclamation{% else %}shield-halved{% endif %} sim-alert-icon"></i>
+                      <div>
+                      {% if margin_exceeded %}
+                      <strong>Passou da margem!</strong> Comissão no mínimo ({{ seller_commission_percent }}%),
+                      custo total ({{ total_cost_pct }}%) excede margem ({{ effective_margin }}%).
+                      {% if suggested_increase > 0 %}Sugestão: +<strong>{{ suggested_increase }}%</strong> de ajuste.{% endif %}
+                      {% else %}
+                      <strong>Comissão proporcional:</strong> {{ seller_commission_percent }}% (faixa: 3%-5%).
+                      {% endif %}
+                      </div>
+                    </div>
+                    {% elif margin_exceeded and suggested_increase > 0 %}
+                    <div class="sim-alert warning">
+                      <i class="fa-solid fa-triangle-exclamation sim-alert-icon"></i>
+                      <div>
+                      <strong>Passou da margem!</strong> Taxa ({{ store_fee_percent }}%) + Comissão ({{ seller_commission_percent }}%)
+                      {% if sim_has_architect %}+ Arq. ({{ architect_percent }}%){% endif %}
+                      {% if discount_percent > 0 %}+ Desc. ({{ discount_percent }}%){% endif %}
+                      = <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%).
+                      Sugestão: +<strong>{{ suggested_increase }}%</strong> de ajuste.
+                      </div>
+                    </div>
+                    {% endif %}
+                    </div>
+
+                    <div class="slider-container">
+                      <div class="slider-labels">
+                        <span class="slider-min">0%</span>
+                        <span class="slider-current" id="lbl-increase"
+                              style="{% if price_increase_pct > 0 %}color: var(--green); background: var(--green-light);{% else %}color: var(--brand); background: var(--brand-bg);{% endif %}">
+                          {% if price_increase_pct > 0 %}+{{ price_increase_pct }}%{% else %}Sem ajuste{% endif %}
+                        </span>
+                        <span class="slider-max">30%</span>
+                      </div>
+                      <input type="range" class="slider-increase" id="increase-slider"
+                             min="0" max="30" step="0.5"
+                             value="{{ price_increase_pct }}"
+                             oninput="onIncreaseChange(this.value); scheduleSubmit()">
+                    </div>
+
+                    <hr style="border-color: var(--gray-light); margin: 1rem 0;">
+                    <div style="font-size: .82rem; font-weight: 700; color: var(--brand); margin-bottom: .6rem;">
+                      <i class="fa-solid fa-gauge-high me-1"></i> Controle de Margem
+                    </div>
+                    <div id="margin-zone">
+                    {% if commission_reduced and not margin_exceeded %}
+                    <div class="sim-alert success">
+                      <i class="fa-solid fa-check-circle sim-alert-icon"></i>
+                      <div><strong>Margem OK!</strong> Comissão: {{ seller_commission_percent }}%. Custo: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%)</div>
+                    </div>
+                    {% elif margin_exceeded %}
+                    <div class="sim-alert warning">
+                      <i class="fa-solid fa-triangle-exclamation sim-alert-icon"></i>
+                      <div>
+                        <strong>Excesso de margem!</strong><br>
+                        Taxa: {{ store_fee_percent }}% + Comissão: {{ seller_commission_percent }}%
+                        {% if sim_has_architect %}+ Arq: {{ architect_percent }}%{% endif %}
+                        {% if discount_percent > 0 %}+ Desc: {{ discount_percent }}%{% endif %}
+                        = <strong>{{ total_cost_pct }}%</strong><br>
+                        Margem: <strong>{{ effective_margin }}%</strong>
+                        {% if price_increase_pct > 0 %}({{ margin_base }}% + {{ price_increase_pct }}%){% endif %}
+                        — Excesso: <strong>{{ margin_excess }}%</strong>
+                        {% if suggested_increase > 0 %}
+                        <br><i class="fa-solid fa-lightbulb me-1"></i>Sugestão: +<strong>{{ suggested_increase }}%</strong> de ajuste.
+                        {% endif %}
+                      </div>
+                    </div>
+                    {% else %}
+                    <div class="sim-alert success">
+                      <i class="fa-solid fa-check-circle sim-alert-icon"></i>
+                      <div><strong>Margem OK!</strong> Custo: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%)</div>
+                    </div>
+                    {% endif %}
+                    {% if margin_limit_exceeded %}
+                    <div class="sim-alert danger">
+                      <i class="fa-solid fa-ban sim-alert-icon"></i>
+                      <div>
+                        <strong>Bloqueado!</strong> O custo total (<strong>{{ total_cost_pct }}%</strong>) atingiu ou ultrapassou o limite de margem permitido (<strong>{{ margin_limit }}%</strong>).
+                        Não é possível salvar estas condições. Reduza o desconto, remova o arquiteto ou aumente o preço.
+                      </div>
+                    </div>
+                    {% endif %}
+                    <div class="row g-2">
+                      <div class="col-6 col-md-3">
+                        <div class="stat-card text-center">
+                          <div class="stat-lbl">Margem</div>
+                          <div class="stat-val" style="font-size:1rem;">{{ effective_margin }}%</div>
+                        </div>
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <div class="stat-card text-center">
+                          <div class="stat-lbl">Taxa</div>
+                          <div class="stat-val {% if store_fee_percent > 10 %}red{% endif %}" style="font-size:1rem;">{{ store_fee_percent }}%</div>
+                        </div>
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <div class="stat-card text-center">
+                          <div class="stat-lbl">Comissão</div>
+                          <div class="stat-val" style="font-size:1rem;">{{ seller_commission_percent }}%</div>
+                        </div>
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <div class="stat-card text-center">
+                          <div class="stat-lbl">Custo Total</div>
+                          <div class="stat-val {% if margin_exceeded %}red{% else %}green{% endif %}" style="font-size:1rem;">{{ total_cost_pct }}%</div>
+                        </div>
+                      </div>
+                    </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div><!-- /LEFT COLUMN -->
+
+            <!-- RIGHT COLUMN: Results -->
+            <div class="col-lg-6">
+
+              <!-- ─── RESULTADOS ─── -->
+              <div id="sim-results">
+              <span id="sim-data"
+                    data-max-discount="{{ max_discount_allowed|floatformat:1 }}"
+                    data-controls-blocked="{{ controls_blocked|yesno:'1,0' }}"
+                    data-discount-clamped="{{ discount_percent|floatformat:1 }}"
+                    data-price-increase="{{ price_increase_pct|floatformat:1 }}"
+                    data-target-mode="{{ target_mode|yesno:'1,0' }}"
+                    style="display:none;"></span>
+
+              <div class="sim-section fade-in fade-in-d1" style="border: none; box-shadow: var(--shadow-md);">
+                <div class="sim-section-hdr">
+                  <div class="sec-icon blue"><i class="fa-solid fa-receipt"></i></div>
+                  Resumo dos Valores
+                </div>
+                <div class="sim-section-body">
+                  <!-- Value breakdown -->
+                  <div style="font-size: .88rem; color: var(--brand);">
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--gray);">Subtotal dos itens</span>
+                      <strong>R$ {{ adj_subtotal|floatformat:2 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--gray);">
+                        <i class="fa-solid fa-truck me-1" style="font-size:.72rem;"></i>
+                        Frete ({{ quote.get_freight_responsible_display }})
+                      </span>
+                      <strong>R$ {{ freight_value|floatformat:2 }}</strong>
+                    </div>
+                    {% if price_increase_pct > 0 %}
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--green);">
+                        <i class="fa-solid fa-arrow-up me-1" style="font-size:.72rem;"></i>
+                        Ajuste +{{ price_increase_pct }}%
+                      </span>
+                      <strong style="color: var(--green);">incluído</strong>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--gray);">Total antes do desconto</span>
+                      <strong>R$ {{ total_before_discount|floatformat:2 }}</strong>
+                    </div>
+                    {% if discount_percent > 0 %}
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--red);">
+                        <i class="fa-solid fa-arrow-down me-1" style="font-size:.72rem;"></i>
+                        Desconto ({{ discount_percent }}%)
+                      </span>
+                      <strong style="color: var(--red);">– R$ {{ discount_value|floatformat:2 }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if client_surcharge_value > 0 %}
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
+                      <span style="color: var(--orange);">
+                        <i class="fa-solid fa-percent me-1" style="font-size:.72rem;"></i>
+                        Juros parcelamento ({{ client_surcharge_percent }}%)
+                      </span>
+                      <strong style="color: var(--orange);">+ R$ {{ client_surcharge_value|floatformat:2 }}</strong>
+                    </div>
+                    {% endif %}
+                  </div>
+
+                  <!-- TOTAL FINAL -->
+                  <div class="hi-card brand mt-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      <div>
+                        <div class="lbl">Total para o Cliente</div>
+                        <div class="val">R$ {{ final_total|floatformat:2 }}</div>
+                      </div>
+                      <div style="text-align: right;">
+                        <div class="lbl">{{ sim_payment_description }}</div>
+                        {% if sim_installments > 1 %}
+                        <div style="font-size: 1.15rem; font-weight: 800; margin-top: .15rem;">
+                          {{ sim_installments }}x de R$ {{ installment_value|floatformat:2 }}
+                        </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- TARGET FINAL INPUT -->
+                  <div class="mt-3" style="background: var(--brand-bg); border: 1px dashed var(--brand); border-radius: var(--radius-sm); padding: .85rem 1rem;">
+                    <label for="target-final-input" style="font-size: .82rem; font-weight: 700; color: var(--brand); display: block; margin-bottom: .4rem;">
+                      <i class="fa-solid fa-bullseye me-1"></i>Valor Final Desejado
+                    </label>
+                    <div class="d-flex gap-2 align-items-center">
+                      <span style="font-weight:700; color: var(--brand);">R$</span>
+                      <input type="text" id="target-final-input" class="form-control form-control-sm"
+                             placeholder="Digitar valor desejado..."
+                             value="{% if target_mode %}{{ target_final_input|floatformat:2 }}{% endif %}"
+                             style="max-width: 200px; font-weight: 700; font-size: 1rem;"
+                             inputmode="decimal">
+                      <button type="button" class="btn btn-sm"
+                              style="background: var(--brand); color: #fff; font-weight: 600; white-space: nowrap;"
+                              onclick="applyTargetFinal()">
+                        <i class="fa-solid fa-calculator me-1"></i>Calcular
+                      </button>
+                      {% if target_mode %}
+                      <button type="button" class="btn btn-sm btn-outline-secondary"
+                              onclick="clearTargetFinal()" title="Limpar">
+                        <i class="fa-solid fa-xmark"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                    {% if target_mode %}
+                    <div style="font-size: .78rem; color: var(--brand); margin-top: .4rem;">
+                      <i class="fa-solid fa-check-circle me-1"></i>
+                      Condições ajustadas automaticamente para atingir R$ {{ target_final_input|floatformat:2 }}
+                    </div>
+                    {% endif %}
+                  </div>
+
+                  <!-- Commissions -->
+                  <div class="row g-2 mt-2">
+                    {% if sim_has_architect %}
+                    <div class="col-12">
+                      <div class="hi-card gray" style="padding: 1rem 1.2rem;">
+                        <div class="d-flex justify-content-between align-items-center">
+                          <div>
+                            <div class="lbl">Comissão Arquiteto ({{ architect_percent }}%)</div>
+                            <div class="val" style="font-size: 1.3rem;">R$ {{ architect_commission_value|floatformat:2 }}</div>
+                          </div>
+                          <div style="font-size: .78rem; opacity: .85; text-align: right;">
+                            sobre R$ {{ valor_avista|floatformat:2 }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {% endif %}
+                    <div class="col-12">
+                      <div class="hi-card {% if margin_exceeded %}orange{% elif seller_commission_percent >= 4 %}green{% else %}brand{% endif %}" style="padding: 1rem 1.2rem;">
+                        <button type="button"
+                                class="collapse-toggle collapse-toggle-white"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#seller-commission-collapse"
+                                aria-expanded="false"
+                                aria-controls="seller-commission-collapse">
+                          <span class="lbl mb-0" style="opacity:1;">
+                            <i class="fa-solid fa-user-tie me-1"></i>Comissão do Vendedor
+                          </span>
+                          <i class="fa-solid fa-chevron-down toggle-arrow"></i>
+                        </button>
+                        <div id="seller-commission-collapse" class="collapse mt-2">
+                          <div class="d-flex justify-content-between align-items-center">
+                            <div class="val" style="font-size: 1.3rem;">R$ {{ seller_commission_value|floatformat:2 }}</div>
+                            <div style="font-size: .78rem; opacity: .85; text-align: right;">
+                              {{ seller_commission_percent }}% sobre R$ {{ seller_commission_base|floatformat:2 }}
+                              {% if sim_has_architect %}<br>(após comissão arquiteto){% endif %}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              </div><!-- /sim-results -->
+
+              <!-- ─── QUICK ACTIONS (in right column) ─── -->
+              <div class="sim-section fade-in fade-in-d2" style="background: transparent; box-shadow: none; border: none;">
+                <div class="d-flex flex-column gap-2">
+                  {% if margin_limit_exceeded %}
+                  <button type="button" class="btn-action primary w-100" disabled
+                          style="justify-content: center; padding: .85rem; opacity: .5; cursor: not-allowed;"
+                          title="Custo total ({{ total_cost_pct }}%) ultrapassou o limite ({{ margin_limit }}%)">
+                    <i class="fa-solid fa-ban"></i>
+                    Condições Bloqueadas (limite {{ margin_limit }}%)
+                  </button>
+                  {% else %}
+                  <button type="button" class="btn-action primary w-100" onclick="saveConditions()" style="justify-content: center; padding: .85rem;">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Salvar Condições no Orçamento
+                  </button>
+                  {% endif %}
+                  <div class="d-flex gap-2">
+                    <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-action secondary flex-fill" target="_blank"
+                       style="justify-content: center; font-size: .82rem;">
+                      <i class="fa-solid fa-file-pdf"></i>PDF Cliente
+                    </a>
+                    <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-action secondary flex-fill" target="_blank"
+                       style="justify-content: center; font-size: .82rem;">
+                      <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
+                    </a>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-action secondary flex-fill"
+                       style="justify-content: center; font-size: .82rem;">
+                      <i class="fa-solid fa-pencil"></i>Editar
+                    </a>
+                    <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-action secondary flex-fill"
+                       style="justify-content: center; font-size: .82rem;">
+                      <i class="fa-solid fa-eye"></i>Ver Orçamento
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /RIGHT COLUMN -->
+          </div><!-- /row -->
+
+        </form><!-- /sim-form -->
+
+        <!-- Hidden save form -->
+        <form method="post" id="save-form" style="display: none;">
+          {% csrf_token %}
+          <input type="hidden" name="action"                 value="save_conditions">
+          <input type="hidden" name="sim_payment_type"       id="save-ptype">
+          <input type="hidden" name="sim_installments"       id="save-inst">
+          <input type="hidden" name="sim_has_architect"      id="save-arch">
+          <input type="hidden" name="discount_percent"       id="save-disc">
+          <input type="hidden" name="price_increase_percent" id="save-pi">
+        </form>
+
+      </div>
+    </section>
+
+    <section class="pt-4 pb-3" style="background: var(--brand); color: #fff;">
+      <div class="container text-center">
+        <p class="mb-0" style="font-size: .85rem; opacity: .8;">&copy; 2026 Roselar. Todos os direitos reservados.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+  <script src="{% static 'assets/js/theme.js' %}"></script>
+
+  <script>
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+  // ── Server data ───────────────────────────────────────────────────────────
+  var tariffsByType      = JSON.parse('{{ tariffs_by_type_json|escapejs }}');
+  var initDiscount       = parseFloat('{{ discount_percent }}');
+  var initPriceInc       = parseFloat('{{ price_increase_pct }}');
+  var initInstall        = parseInt('{{ sim_installments }}');
+  var initPType          = '{{ sim_payment_type }}';
+  var MARGIN_BASE        = parseFloat('{{ margin_base }}');
+
+  // ── Loading bar ──────────────────────────────────────────────────────────
+  var loadingBar = document.getElementById('loading-bar');
+  function showLoading() { loadingBar.classList.add('active'); }
+  function hideLoading() { loadingBar.classList.remove('active'); }
+
+  // ── Discount slider ──────────────────────────────────────────────────────
+  function onDiscountChange(val) {
+    val = parseFloat(val);
+    document.getElementById('h-discount').value = val.toFixed(1);
+    document.getElementById('live-discount-val').textContent = val.toFixed(1) + '%';
+    var lbl = document.getElementById('lbl-discount');
+    if (val > 0) {
+      lbl.textContent = '-' + val.toFixed(1) + '%';
+      lbl.style.color = 'var(--red)';
+      lbl.style.background = 'var(--red-light)';
+    } else {
+      lbl.textContent = 'Sem desconto';
+      lbl.style.color = 'var(--brand)';
+      lbl.style.background = 'var(--brand-bg)';
+    }
+  }
+
+  // ── Price increase slider ────────────────────────────────────────────────
+  function onIncreaseChange(val) {
+    val = parseFloat(val);
+    document.getElementById('h-price-inc').value = val.toFixed(1);
+    var lbl = document.getElementById('lbl-increase');
+    if (val > 0) {
+      lbl.textContent = '+' + val.toFixed(1) + '%';
+      lbl.style.color = 'var(--green)';
+      lbl.style.background = 'var(--green-light)';
+    } else {
+      lbl.textContent = 'Sem ajuste';
+      lbl.style.color = 'var(--brand)';
+      lbl.style.background = 'var(--brand-bg)';
+    }
+  }
+
+  // ── Installments change ───────────────────────────────────────────────────
+  function onInstChange(val) {
+    val = parseInt(val);
+    document.getElementById('h-installments').value = val;
+    updateFeeDisplay(val);
+  }
+
+  // ── Payment type change ───────────────────────────────────────────────────
+  function onPaymentTypeChange() {
+    var pt = document.getElementById('sel-ptype').value;
+    document.getElementById('h-ptype').value = pt;
+    var hasInstallments = (pt === 'CREDIT_CARD' || pt === 'BOLETO');
+    var instRow = document.getElementById('inst-dropdown-row');
+    instRow.style.display = hasInstallments ? '' : 'none';
+    if (!hasInstallments) {
+      document.getElementById('inst-select').value = 1;
+      document.getElementById('h-installments').value = 1;
+    }
+    rebuildInstOptions();
+    updateFeeDisplay(parseInt(document.getElementById('inst-select').value) || 1);
+    scheduleSubmit();
+  }
+
+  function rebuildInstOptions() {
+    var pt = document.getElementById('sel-ptype').value;
+    var options = tariffsByType[pt] || [];
+    var instSel = document.getElementById('inst-select');
+    var curVal  = parseInt(instSel.value) || 1;
+    instSel.innerHTML = '';
+    options.forEach(function(o) {
+      var opt = document.createElement('option');
+      opt.value = o.installments;
+      opt.textContent = o.label;
+      if (o.installments === curVal) opt.selected = true;
+      instSel.appendChild(opt);
+    });
+    if (!instSel.value) {
+      instSel.value = 1;
+    }
+  }
+
+  function updateFeeDisplay(installments) {
+    var ptype   = document.getElementById('sel-ptype').value;
+    var options = tariffsByType[ptype] || [];
+    var fee     = 0;
+    options.forEach(function(o) {
+      if (o.installments === installments) fee = o.fee;
+    });
+    document.getElementById('fee-display').textContent = fee.toFixed(2) + '%';
+  }
+
+  // ── Auto-submit (debounced AJAX) ──────────────────────────────────────────
+  var submitTimer = null;
+  var pendingTargetFinal = '';  // set when user clicks "Calcular"
+
+  function scheduleSubmit() {
+    pendingTargetFinal = '';  // slider/control change clears target mode
+    clearTimeout(submitTimer);
+    submitTimer = setTimeout(doSubmit, 400);
+  }
+
+  function doSubmit() {
+    showLoading();
+    var discount  = parseFloat(document.getElementById('discount-slider').value) || 0;
+    var priceInc  = parseFloat(document.getElementById('increase-slider').value) || 0;
+    document.getElementById('h-discount').value     = discount.toFixed(1);
+    document.getElementById('h-price-inc').value    = priceInc.toFixed(1);
+    document.getElementById('h-installments').value = document.getElementById('inst-select').value;
+    document.getElementById('h-ptype').value        = document.getElementById('sel-ptype').value;
+    document.getElementById('h-architect').value    = document.getElementById('chk-architect').checked ? '1' : '0';
+
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    fd.append('_ajax', '1');
+    fd.append('discount_percent',       discount.toFixed(1));
+    fd.append('price_increase_percent', priceInc.toFixed(1));
+    fd.append('sim_installments',       document.getElementById('inst-select').value);
+    fd.append('sim_payment_type',       document.getElementById('sel-ptype').value);
+    fd.append('sim_has_architect',      document.getElementById('chk-architect').checked ? '1' : '0');
+    if (pendingTargetFinal) {
+      fd.append('target_final', pendingTargetFinal);
+    }
+
+    fetch(window.location.href, {method: 'POST', body: fd})
+      .then(function(r) { return r.text(); })
+      .then(function(html) { applyZones(html); hideLoading(); })
+      .catch(function(e) { console.error('Sim AJAX error:', e); hideLoading(); });
+  }
+
+  function applyZones(html) {
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    ['sim-results', 'margin-zone', 'increase-suggestion-zone'].forEach(function(id) {
+      var newEl = doc.getElementById(id);
+      var curEl = document.getElementById(id);
+      if (newEl && curEl) curEl.outerHTML = newEl.outerHTML;
+    });
+    var newDA = doc.getElementById('live-discount-amount');
+    var curDA = document.getElementById('live-discount-amount');
+    if (newDA && curDA) curDA.textContent = newDA.textContent;
+
+    var simData = document.getElementById('sim-data');
+    if (simData) {
+      var maxDisc = parseFloat(simData.dataset.maxDiscount) || 30;
+      var clampedDisc = parseFloat(simData.dataset.discountClamped) || 0;
+      var slider = document.getElementById('discount-slider');
+      slider.max = maxDisc;
+      if (parseFloat(slider.value) > maxDisc) {
+        slider.value = clampedDisc;
+        onDiscountChange(clampedDisc);
+      }
+      var lblMax = document.getElementById('lbl-max-discount');
+      if (lblMax) lblMax.textContent = Math.round(maxDisc) + '%';
+
+      // Target mode: sync sliders to server-calculated values
+      if (simData.dataset.targetMode === '1') {
+        var newDisc = parseFloat(simData.dataset.discountClamped) || 0;
+        var newPI   = parseFloat(simData.dataset.priceIncrease) || 0;
+        slider.max   = maxDisc;
+        slider.value = newDisc;
+        onDiscountChange(newDisc);
+        var incSlider = document.getElementById('increase-slider');
+        incSlider.value = newPI;
+        onIncreaseChange(newPI);
+      }
+    }
+  }
+
+  // ── Target final (reverse calculation) ─────────────────────────────────────
+  function applyTargetFinal() {
+    var input = document.getElementById('target-final-input');
+    var val = input.value.replace(/\./g, '').replace(',', '.').trim();
+    if (!val || isNaN(parseFloat(val)) || parseFloat(val) <= 0) {
+      input.focus();
+      return;
+    }
+    pendingTargetFinal = val;
+    doSubmit();
+  }
+
+  function clearTargetFinal() {
+    document.getElementById('target-final-input').value = '';
+    pendingTargetFinal = '';
+    scheduleSubmit();
+  }
+
+  // ── Save conditions ───────────────────────────────────────────────────────
+  function saveConditions() {
+    document.getElementById('save-ptype').value = document.getElementById('sel-ptype').value;
+    document.getElementById('save-inst').value  = document.getElementById('inst-select').value;
+    document.getElementById('save-arch').value  = document.getElementById('chk-architect').checked ? '1' : '0';
+    document.getElementById('save-disc').value  = document.getElementById('h-discount').value;
+    document.getElementById('save-pi').value    = document.getElementById('h-price-inc').value;
+    document.getElementById('save-form').submit();
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  (function init() {
+    document.getElementById('h-discount').value     = initDiscount.toFixed(1);
+    document.getElementById('h-price-inc').value     = initPriceInc.toFixed(1);
+    document.getElementById('h-installments').value  = initInstall;
+    document.getElementById('h-ptype').value         = initPType;
+    document.getElementById('h-architect').value     = '{{ sim_has_architect|yesno:"1,0" }}';
+
+    document.getElementById('discount-slider').value = initDiscount;
+    document.getElementById('increase-slider').value = initPriceInc;
+
+    rebuildInstOptions();
+    var instSel = document.getElementById('inst-select');
+    instSel.value = initInstall;
+
+    var hasInstallments = (initPType === 'CREDIT_CARD' || initPType === 'BOLETO');
+    document.getElementById('inst-dropdown-row').style.display = hasInstallments ? '' : 'none';
+
+    updateFeeDisplay(initInstall);
+
+    // Enter key on target input triggers calculate
+    document.getElementById('target-final-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); applyTargetFinal(); }
+    });
+  })();
+  </script>
+</body>
+</html>

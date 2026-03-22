@@ -9,6 +9,7 @@ class EventType(models.TextChoices):
     """Tipos de evento no calendário."""
     DELIVERY = "DELIVERY", "Entrega"
     QUOTE_FOLLOWUP = "QUOTE_FOLLOWUP", "Follow-up de Orçamento"
+    ARCHITECT_PAYMENT = "ARCHITECT_PAYMENT", "Pagamento Arquiteto"
     CUSTOM = "CUSTOM", "Personalizado"
 
 
@@ -328,6 +329,56 @@ def create_delivery_events_for_quote(order) -> CalendarEvent | None:
                     remind_date=remind_date,
                     defaults={
                         "message": f"{msg}: {quote.customer.name} - {quote.number}",
+                    },
+                )
+
+    return event
+
+
+def create_architect_payment_event(order) -> CalendarEvent | None:
+    """
+    Cria evento de pagamento do arquiteto quando o pedido tem entrega prevista.
+    O lembrete é criado na data de entrega para lembrar de pagar o arquiteto via PIX.
+    """
+    quote = order.quote
+    if not quote.architect or not order.delivery_deadline:
+        return None
+
+    architect = quote.architect
+
+    event, created = CalendarEvent.objects.update_or_create(
+        quote=quote,
+        event_type=EventType.ARCHITECT_PAYMENT,
+        defaults={
+            "title": f"Pagar Arquiteto - {architect.name}",
+            "description": (
+                f"Pagar comissão do arquiteto {architect.name}\n"
+                f"Chave PIX: {architect.pix}\n"
+                f"Pedido: {quote.number} — Cliente: {quote.customer.name}"
+            ),
+            "event_date": order.delivery_deadline,
+            "assigned_to": quote.seller,
+            "customer": quote.customer,
+            "status": EventStatus.PENDING,
+        },
+    )
+
+    if created:
+        from datetime import timedelta
+
+        reminders_config = [
+            (1, "Pagar arquiteto AMANHÃ"),
+            (0, "Pagar arquiteto HOJE"),
+        ]
+
+        for days_before, msg in reminders_config:
+            remind_date = order.delivery_deadline - timedelta(days=days_before)
+            if remind_date >= timezone.localdate():
+                Reminder.objects.get_or_create(
+                    event=event,
+                    remind_date=remind_date,
+                    defaults={
+                        "message": f"{msg}: {architect.name} — PIX: {architect.pix}",
                     },
                 )
 

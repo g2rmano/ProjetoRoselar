@@ -11,7 +11,6 @@
   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
   <meta name="theme-color" content="#ffffff">
-
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
@@ -20,959 +19,1131 @@
 
   <style>
     :root {
-      --brand:       #0A2640;
-      --brand-light: #0e3358;
-      --brand-bg:    #f0f4f8;
-      --green:       #198754;
-      --green-light: #d1e7dd;
-      --orange:      #fd7e14;
-      --orange-light:#fff3e0;
-      --red:         #dc3545;
-      --red-light:   #f8d7da;
-      --gray:        #6c757d;
-      --gray-light:  #e9ecef;
-      --yellow:      #ffc107;
-      --yellow-light:#fff8e1;
-      --shadow-sm:   0 1px 3px rgba(0,0,0,.08);
-      --shadow-md:   0 4px 12px rgba(0,0,0,.1);
-      --shadow-lg:   0 8px 30px rgba(0,0,0,.12);
-      --radius:      12px;
-      --radius-sm:   8px;
+      --brand:   #0A2640;
+      --brand-l: #163a5a;
+      --bg:      #f4f6f9;
+      --surface: #fff;
+      --green:   #198754;
+      --red:     #dc3545;
+      --muted:   #6c757d;
+      --border:  #dee2e6;
+      --radius:  10px;
+      --shadow:  0 1px 4px rgba(0,0,0,.06);
+      --shadow-h:0 4px 14px rgba(0,0,0,.09);
     }
     * { box-sizing: border-box; }
-    body { font-family: 'Manrope', sans-serif; background: var(--brand-bg); }
+    body { font-family: 'Manrope', sans-serif; background: var(--bg); }
 
-    /* ── Section blocks ── */
-    .sim-section {
-      background: #fff;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-sm);
-      margin-bottom: 1.25rem;
-      overflow: hidden;
-      border: 1px solid rgba(0,0,0,.05);
-      transition: box-shadow .2s ease;
+    /* ── Sections ── */
+    .s-card {
+      background: var(--surface); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 1rem;
+      overflow: hidden; border: 1px solid rgba(0,0,0,.04);
+      transition: box-shadow .2s;
     }
-    .sim-section:hover { box-shadow: var(--shadow-md); }
-
-    .sim-section-hdr {
-      padding: .85rem 1.25rem;
-      display: flex; align-items: center; gap: .6rem;
-      font-weight: 700; font-size: .9rem;
-      border-bottom: 1px solid var(--gray-light);
-      color: var(--brand);
-      background: #fafbfc;
+    .s-card:hover { box-shadow: var(--shadow-h); }
+    .s-hdr {
+      padding: .7rem 1.1rem; display: flex; align-items: center; gap: .55rem;
+      font-weight: 700; font-size: .88rem; color: var(--brand);
+      background: #fafbfc; border-bottom: 1px solid var(--border);
     }
-    .sim-section-hdr .sec-icon {
-      width: 32px; height: 32px; border-radius: 8px;
+    .s-icon {
+      width: 30px; height: 30px; border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      font-size: .85rem; color: #fff; flex-shrink: 0;
+      font-size: .78rem; color: #fff; flex-shrink: 0;
     }
-    .sim-section-hdr .sec-icon.blue   { background: var(--brand); }
-    .sim-section-hdr .sec-icon.green  { background: var(--green); }
-    .sim-section-hdr .sec-icon.orange { background: var(--orange); }
-    .sim-section-hdr .sec-icon.gray   { background: var(--gray); }
-    .sim-section-hdr .sec-icon.red    { background: var(--red); }
+    .s-icon.brand { background: var(--brand); }
+    .s-icon.green { background: var(--green); }
+    .s-icon.red   { background: var(--red); }
+    .s-icon.muted { background: var(--muted); }
+    .s-body { padding: 1.1rem; }
 
-    .sim-section-body { padding: 1.25rem; }
+    /* ── Stats ── */
+    .stat {
+      background: var(--bg); border-radius: 8px;
+      padding: .7rem .85rem; text-align: center;
+    }
+    .stat-l { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; margin-bottom: .15rem; }
+    .stat-v { font-size: 1.1rem; font-weight: 800; color: var(--brand); line-height: 1.2; }
+    .stat-v.green { color: var(--green); }
+    .stat-v.red   { color: var(--red); }
 
-    /* ── Mini stat cards ── */
-    .stat-card {
-      background: var(--brand-bg);
-      border-radius: var(--radius-sm);
-      padding: .85rem 1rem;
-      transition: transform .15s ease, box-shadow .15s ease;
-    }
-    .stat-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
-    .stat-card .stat-lbl {
-      font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
-      color: var(--gray); font-weight: 700; margin-bottom: .2rem;
-    }
-    .stat-card .stat-val {
-      font-size: 1.2rem; font-weight: 800; color: var(--brand); line-height: 1.2;
-    }
-    .stat-card .stat-val.green  { color: var(--green); }
-    .stat-card .stat-val.red    { color: var(--red); }
-    .stat-card .stat-val.orange { color: var(--orange); }
-
-    /* ── Big highlight cards ── */
-    .hi-card {
-      color: #fff; padding: 1.4rem 1.5rem; border-radius: var(--radius);
+    /* ── Highlight card ── */
+    .hi {
+      color: #fff; padding: 1.2rem 1.3rem; border-radius: var(--radius);
       position: relative; overflow: hidden;
     }
-    .hi-card::before {
-      content: ''; position: absolute; top: -30%; right: -10%;
-      width: 140px; height: 140px; border-radius: 50%;
-      background: rgba(255,255,255,.06);
+    .hi::before {
+      content:''; position:absolute; top:-30%; right:-10%;
+      width:120px; height:120px; border-radius:50%;
+      background:rgba(255,255,255,.06);
     }
-    .hi-card .lbl {
-      font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
-      opacity: .85; margin-bottom: .15rem; font-weight: 600;
-    }
-    .hi-card .val { font-size: 1.75rem; font-weight: 800; }
-    .hi-card.brand  { background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%); }
-    .hi-card.green  { background: linear-gradient(135deg, var(--green) 0%, #20a862 100%); }
-    .hi-card.orange { background: linear-gradient(135deg, var(--orange) 0%, #e8720c 100%); }
-    .hi-card.red    { background: linear-gradient(135deg, var(--red) 0%, #c82333 100%); }
-    .hi-card.gray   { background: linear-gradient(135deg, var(--gray) 0%, #5a6268 100%); }
+    .hi .hi-l { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; opacity: .85; margin-bottom: .1rem; font-weight: 600; }
+    .hi .hi-v { font-size: 1.6rem; font-weight: 800; }
+    .hi.brand { background: linear-gradient(135deg, var(--brand), var(--brand-l)); }
+    .hi.green { background: linear-gradient(135deg, var(--green), #20a862); }
+    .hi.muted { background: linear-gradient(135deg, var(--muted), #5a6268); }
 
-    /* ── Custom slider ── */
-    .slider-container { padding: .25rem 0 1rem; position: relative; }
-    .slider-labels {
-      display: flex; justify-content: space-between; align-items: baseline;
-      margin-bottom: .4rem;
-    }
-    .slider-labels .slider-min,
-    .slider-labels .slider-max { font-size: .75rem; font-weight: 600; color: var(--gray); }
-    .slider-labels .slider-current {
-      font-size: 1rem; font-weight: 800; padding: .15rem .6rem;
-      border-radius: 6px; transition: all .2s ease;
+    /* ── Sliders ── */
+    .slider-box { padding: .2rem 0 .8rem; }
+    .slider-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .35rem; }
+    .slider-row .s-min, .slider-row .s-max { font-size: .72rem; font-weight: 600; color: var(--muted); }
+    .slider-row .s-cur {
+      font-size: .95rem; font-weight: 800; padding: .1rem .5rem;
+      border-radius: 6px; transition: .2s;
     }
     input[type=range] {
       -webkit-appearance: none; appearance: none;
       width: 100%; height: 6px; outline: none; border-radius: 3px; cursor: pointer;
-      transition: opacity .15s ease;
     }
     input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 22px; height: 22px;
-      border-radius: 50%; cursor: pointer;
+      -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
       background: #fff; border: 3px solid var(--brand);
-      box-shadow: 0 2px 8px rgba(0,0,0,.2);
-      transition: transform .15s ease, box-shadow .15s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18); cursor: pointer;
+      transition: transform .15s;
     }
-    input[type=range]::-webkit-slider-thumb:hover {
-      transform: scale(1.15);
-      box-shadow: 0 3px 12px rgba(0,0,0,.3);
-    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.12); }
     input[type=range]::-moz-range-thumb {
-      width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+      width: 22px; height: 22px; border-radius: 50%;
       background: #fff; border: 3px solid var(--brand);
-      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+      box-shadow: 0 2px 8px rgba(0,0,0,.18); cursor: pointer;
     }
-    input[type=range].slider-discount {
-      background: linear-gradient(to right, var(--brand-bg) 0%, #ffcdd2 50%, #ef5350 100%);
-    }
-    input[type=range].slider-increase {
-      background: linear-gradient(to right, var(--brand-bg) 0%, #c8e6c9 50%, #43a047 100%);
-    }
-    input[type=range].slider-increase::-webkit-slider-thumb { border-color: var(--green); }
-    input[type=range].slider-increase::-moz-range-thumb { border-color: var(--green); }
+    input[type=range].sl-disc { background: linear-gradient(to right, var(--bg) 0%, #ffcdd2 50%, #ef5350 100%); }
+    input[type=range].sl-inc  { background: linear-gradient(to right, var(--bg) 0%, #c8e6c9 50%, #43a047 100%); }
+    input[type=range].sl-inc::-webkit-slider-thumb { border-color: var(--green); }
+    input[type=range].sl-inc::-moz-range-thumb { border-color: var(--green); }
 
     /* ── Alerts ── */
-    .sim-alert {
-      padding: .75rem 1rem; border-radius: var(--radius-sm);
-      font-size: .84rem; display: flex; align-items: flex-start; gap: .6rem;
-      margin-bottom: .75rem; line-height: 1.5;
+    .sim-msg {
+      padding: .65rem .9rem; border-radius: 8px; font-size: .82rem;
+      display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .6rem; line-height: 1.45;
     }
-    .sim-alert-icon { flex-shrink: 0; margin-top: 2px; }
-    .sim-alert.warning { background: var(--yellow-light); border: 1px solid #ffe082; color: #6d5200; }
-    .sim-alert.success { background: var(--green-light); border: 1px solid #a3cfbb; color: #0f5132; }
-    .sim-alert.danger  { background: var(--red-light); border: 1px solid #f1aeb5; color: #842029; }
+    .sim-msg i:first-child { flex-shrink: 0; margin-top: 2px; }
+    .sim-msg.ok   { background: #e8f5e9; border: 1px solid #a3cfbb; color: #0f5132; }
+    .sim-msg.warn { background: #fff8e1; border: 1px solid #ffe082; color: #6d5200; }
+    .sim-msg.bad  { background: #fce4ec; border: 1px solid #f1aeb5; color: #842029; }
 
-    /* ── Toggle collapse  ── */
-    .collapse-toggle {
-      width: 100%; border: 0; background: transparent;
-      padding: 0; text-align: left; cursor: pointer;
-      display: flex; align-items: center; justify-content: space-between; gap: .6rem;
-      color: inherit; font-weight: 700; font-size: .9rem;
+    /* ── Collapse toggle ── */
+    .col-toggle {
+      width: 100%; border: 0; background: transparent; padding: 0; text-align: left;
+      cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+      gap: .5rem; color: inherit; font-weight: 700; font-size: .88rem;
     }
-    .collapse-toggle .toggle-arrow {
-      transition: transform .25s ease; opacity: .7; font-size: .75rem;
-    }
-    .collapse-toggle[aria-expanded="true"] .toggle-arrow { transform: rotate(180deg); }
-
-    /* White version for hi-card */
-    .collapse-toggle-white { color: #fff; }
-
-    /* ── Buttons ── */
-    .btn-action {
-      display: inline-flex; align-items: center; gap: .4rem;
-      padding: .6rem 1.4rem; font-weight: 700; font-size: .88rem;
-      border: none; border-radius: var(--radius-sm); cursor: pointer;
-      text-decoration: none; transition: all .2s ease;
-    }
-    .btn-action:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
-    .btn-action:active { transform: translateY(0); }
-    .btn-action.primary { background: var(--green); color: #fff; }
-    .btn-action.primary:hover { background: #146c43; color: #fff; }
-    .btn-action.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--gray-light); }
-    .btn-action.secondary:hover { background: var(--brand-bg); color: var(--brand); }
-    .btn-action.brand { background: var(--brand); color: #fff; }
-    .btn-action.brand:hover { background: var(--brand-light); color: #fff; }
+    .col-toggle .arr { transition: transform .2s; opacity: .65; font-size: .7rem; }
+    .col-toggle[aria-expanded="true"] .arr { transform: rotate(180deg); }
+    .col-toggle-w { color: #fff; }
 
     /* ── Form controls ── */
-    .sim-select {
-      width: 100%; padding: .55rem .85rem; font-size: .9rem;
-      border: 1.5px solid var(--gray-light); border-radius: var(--radius-sm);
+    .f-select {
+      width: 100%; padding: .5rem .8rem; font-size: .88rem;
+      border: 1.5px solid var(--border); border-radius: 8px;
       background: #fff; color: var(--brand); font-weight: 600;
-      transition: border-color .2s ease, box-shadow .2s ease;
       -webkit-appearance: none; appearance: none;
       background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-      background-repeat: no-repeat; background-position: right .7rem center; background-size: 14px;
-      padding-right: 2.2rem;
+      background-repeat: no-repeat; background-position: right .65rem center; background-size: 13px;
+      padding-right: 2rem; transition: border-color .2s;
     }
-    .sim-select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(10,38,64,.12); }
-
-    .sim-label {
-      display: block; font-size: .78rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .04em;
-      color: var(--gray); margin-bottom: .35rem;
-    }
+    .f-select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(10,38,64,.1); }
+    .f-label { display: block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: .3rem; }
 
     /* ── Switch ── */
-    .sim-switch {
-      display: flex; align-items: center; gap: .75rem;
-      padding: .75rem 1rem; background: var(--brand-bg);
-      border-radius: var(--radius-sm); cursor: pointer;
-      transition: background .2s ease;
+    .sw {
+      display: flex; align-items: center; gap: .65rem;
+      padding: .65rem .9rem; background: var(--bg); border-radius: 8px; cursor: pointer;
     }
-    .sim-switch:hover { background: #e3e9f0; }
-    .sim-switch input[type=checkbox] { display: none; }
-    .sim-switch .switch-track {
-      width: 44px; height: 24px; border-radius: 12px;
-      background: var(--gray-light); position: relative;
-      transition: background .2s ease; flex-shrink: 0;
+    .sw:hover { background: #e6eaf0; }
+    .sw input { display: none; }
+    .sw .track {
+      width: 40px; height: 22px; border-radius: 11px;
+      background: var(--border); position: relative; flex-shrink: 0; transition: .2s;
     }
-    .sim-switch .switch-track::after {
-      content: ''; position: absolute; top: 2px; left: 2px;
-      width: 20px; height: 20px; border-radius: 50%;
+    .sw .track::after {
+      content:''; position: absolute; top: 2px; left: 2px;
+      width: 18px; height: 18px; border-radius: 50%;
       background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2);
-      transition: transform .2s ease;
+      transition: transform .2s;
     }
-    .sim-switch input:checked + .switch-track { background: var(--green); }
-    .sim-switch input:checked + .switch-track::after { transform: translateX(20px); }
-    .sim-switch .switch-label { font-weight: 600; color: var(--brand); font-size: .9rem; }
-    .sim-switch .switch-sub { font-size: .78rem; color: var(--gray); }
+    .sw input:checked + .track { background: var(--green); }
+    .sw input:checked + .track::after { transform: translateX(18px); }
+    .sw .sw-t { font-weight: 600; color: var(--brand); font-size: .88rem; }
+    .sw .sw-s { font-size: .75rem; color: var(--muted); }
+
+    /* ── Buttons ── */
+    .btn-a {
+      display: inline-flex; align-items: center; gap: .35rem;
+      padding: .55rem 1.2rem; font-weight: 700; font-size: .85rem;
+      border: none; border-radius: 8px; cursor: pointer;
+      text-decoration: none; transition: all .2s;
+    }
+    .btn-a:hover { transform: translateY(-1px); box-shadow: var(--shadow-h); }
+    .btn-a.primary { background: var(--green); color: #fff; }
+    .btn-a.primary:hover { background: #146c43; color: #fff; }
+    .btn-a.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--border); }
+    .btn-a.secondary:hover { background: var(--bg); color: var(--brand); }
+    .btn-a.dark { background: var(--brand); color: #fff; }
+    .btn-a.dark:hover { background: var(--brand-l); color: #fff; }
 
     /* ── Quote info strip ── */
-    .quote-info-strip {
-      display: flex; gap: 1.5rem; flex-wrap: wrap;
-      padding: .55rem 0; font-size: .84rem; color: var(--gray);
+    .q-info {
+      display: flex; gap: 1.2rem; flex-wrap: wrap;
+      padding: .4rem 0; font-size: .82rem; color: var(--muted);
     }
-    .quote-info-strip .info-item {
-      display: flex; align-items: center; gap: .35rem;
-    }
-    .quote-info-strip .info-item i { font-size: .75rem; opacity: .6; }
+    .q-info span { display: flex; align-items: center; gap: .3rem; }
+    .q-info span i { font-size: .72rem; opacity: .6; }
 
-    /* ── Loading overlay ── */
-    .sim-loading {
+    /* ── Loading bar ── */
+    .loading-bar {
       position: fixed; top: 0; left: 0; right: 0; height: 3px;
-      background: var(--brand); z-index: 9999;
-      transform: scaleX(0); transform-origin: left;
-      transition: transform .3s ease;
+      background: var(--green); z-index: 9999;
+      transform: scaleX(0); transform-origin: left; transition: transform .3s;
     }
-    .sim-loading.active { transform: scaleX(1); }
+    .loading-bar.on { transform: scaleX(1); }
 
-    /* ── Action bar (sticky) ── */
-    .action-bar {
-      position: sticky; bottom: 0; z-index: 100;
-      background: #fff; border-top: 1px solid var(--gray-light);
-      padding: .85rem 1.25rem; margin: 0 -12px;
-      box-shadow: 0 -4px 16px rgba(0,0,0,.08);
-      border-radius: var(--radius) var(--radius) 0 0;
+    /* ── Receipt line ── */
+    .r-line {
+      display: flex; justify-content: space-between; padding: .5rem 0;
+      border-bottom: 1px dashed var(--border); font-size: .86rem; color: var(--brand);
     }
+    .r-line:last-child { border: none; }
+    .r-line .r-l { color: var(--muted); }
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
-      .hi-card .val { font-size: 1.4rem; }
-      .stat-card .stat-val { font-size: 1rem; }
-      .action-bar { padding: .75rem; }
-      .quote-info-strip { gap: .75rem; }
+      .hi .hi-v { font-size: 1.3rem; }
+      .stat-v { font-size: .95rem; }
+      .q-info { gap: .75rem; }
     }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .fi { animation: fadeIn .35s ease both; }
+    .fi-1 { animation-delay:.05s } .fi-2 { animation-delay:.1s }
+    .fi-3 { animation-delay:.15s } .fi-4 { animation-delay:.2s }
 
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
+    /* ── Margin Toast ── */
+    .margin-toast {
+      position:fixed; top:20px; right:20px; z-index:10000;
+      background:#fff; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.18);
+      border-left:4px solid var(--red); padding:1rem 1.2rem;
+      max-width:360px; transform:translateX(120%); transition:transform .35s ease;
+      display:flex; align-items:flex-start; gap:.7rem;
     }
-    .fade-in { animation: fadeInUp .4s ease both; }
-    .fade-in-d1 { animation-delay: .05s; }
-    .fade-in-d2 { animation-delay: .1s; }
-    .fade-in-d3 { animation-delay: .15s; }
-    .fade-in-d4 { animation-delay: .2s; }
+    .margin-toast.show { transform:translateX(0); }
+    .margin-toast .mt-icon { color:var(--red); font-size:1.2rem; flex-shrink:0; margin-top:2px; }
+    .margin-toast .mt-title { font-weight:800; color:var(--brand); font-size:.88rem; margin-bottom:.15rem; }
+    .margin-toast .mt-body { font-size:.8rem; color:var(--muted); line-height:1.4; }
+    .margin-toast .mt-close {
+      position:absolute; top:6px; right:8px; background:none; border:none;
+      color:var(--muted); cursor:pointer; font-size:.85rem; padding:2px;
+    }
+    .margin-toast .mt-close:hover { color:var(--brand); }
   </style>
 </head>
-
 <body>
-  <!-- Loading bar -->
-  <div class="sim-loading" id="loading-bar"></div>
 
-  <main class="main" id="top">
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
-      <div class="container">
-        <a class="navbar-brand" href="{% url 'core:index' %}">
-          <img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;">
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
-          <i class="fa-solid fa-bars text-white fs-3"></i>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav ms-auto">
-            <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Início</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
-            <li class="nav-item"><a class="nav-link active" href="{% url 'sales:quote_detail' quote.id %}">{{ quote.number }}</a></li>
-          </ul>
-        </div>
+<div class="loading-bar" id="loading-bar"></div>
+
+<!-- Margin exceeded toast -->
+<div class="margin-toast" id="margin-toast">
+  <i class="fa-solid fa-triangle-exclamation mt-icon"></i>
+  <div>
+    <div class="mt-title">Margem Excedida!</div>
+    <div class="mt-body" id="margin-toast-msg">O custo total ultrapassou a margem permitida.</div>
+  </div>
+  <button class="mt-close" onclick="hideMarginToast()">&times;</button>
+</div>
+
+<main class="main" id="top">
+  <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+    <div class="container">
+      <a class="navbar-brand" href="{% url 'core:index' %}">
+        <img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;">
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+        <i class="fa-solid fa-bars text-white fs-3"></i>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Início</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
+          <li class="nav-item"><a class="nav-link active" href="{% url 'sales:quote_detail' quote.id %}">{{ quote.number }}</a></li>
+        </ul>
       </div>
-    </nav>
+    </div>
+  </nav>
 
-    <section class="py-5" style="min-height: 100vh;">
-      <div style="position: absolute; top: 0; left: 0; right: 0; height: 32vh; background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%); z-index: -1;"></div>
+  <section class="py-5" style="min-height:100vh;">
+    <div style="position:absolute;top:0;left:0;right:0;height:30vh;
+                background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
 
-      <div class="container" style="margin-top: 80px; max-width: 960px;">
+    <div class="container" style="margin-top:80px;max-width:960px;">
 
-        <!-- ══════════════════════════════════════════════════════════ -->
-        <!-- HEADER CARD                                               -->
-        <!-- ══════════════════════════════════════════════════════════ -->
-        <div class="sim-section fade-in" style="border: none; box-shadow: var(--shadow-lg);">
-          <div style="padding: 1.5rem 1.5rem 1rem;">
-            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-              <div>
-                <div style="display: flex; align-items: center; gap: .6rem; margin-bottom: .5rem;">
-                  <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--brand); color: #fff;
-                              display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
-                    <i class="fa-solid fa-sliders"></i>
-                  </div>
-                  <div>
-                    <h4 style="margin: 0; font-weight: 800; color: var(--brand); font-size: 1.25rem;">
-                      Condições Financeiras
-                    </h4>
-                    <div style="font-size: .78rem; color: var(--gray); font-weight: 500;">
-                      Defina as condições de venda
-                    </div>
-                  </div>
+      <!-- ═══ HEADER ═══ -->
+      <div class="s-card fi" style="border:none;box-shadow:var(--shadow-h);">
+        <div style="padding:1.3rem 1.4rem;">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+              <div class="d-flex align-items-center gap-3 mb-2">
+                <div style="width:40px;height:40px;border-radius:10px;background:var(--brand);color:#fff;
+                            display:flex;align-items:center;justify-content:center;font-size:1.1rem;">
+                  <i class="fa-solid fa-sliders"></i>
                 </div>
-                <div class="quote-info-strip">
-                  <span class="info-item"><i class="fa-solid fa-hashtag"></i><strong>{{ quote.number }}</strong></span>
-                  <span class="info-item"><i class="fa-solid fa-user"></i>{{ quote.customer.name }}</span>
-                  <span class="info-item"><i class="fa-solid fa-user-tie"></i>{{ quote.seller.username }}</span>
-                  <span class="info-item"><i class="fa-solid fa-calendar"></i>{{ quote.quote_date|date:"d/m/Y" }}</span>
-                  <span class="info-item">
-                    <i class="fa-solid fa-box"></i>
-                    <strong>Subtotal: R$ {{ subtotal|floatformat:2 }}</strong>
-                  </span>
+                <div>
+                  <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">Condições Financeiras</h4>
+                  <div style="font-size:.78rem;color:var(--muted);">Defina as condições de venda</div>
                 </div>
               </div>
-              <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-action secondary" style="flex-shrink: 0;">
-                <i class="fa-solid fa-arrow-left"></i>Voltar
-              </a>
+              <div class="q-info">
+                <span><i class="fa-solid fa-hashtag"></i><strong>{{ quote.number }}</strong></span>
+                <span><i class="fa-solid fa-user"></i>{{ quote.customer.name }}</span>
+                <span><i class="fa-solid fa-user-tie"></i>{{ quote.seller.username }}</span>
+                <span><i class="fa-solid fa-calendar"></i>{{ quote.quote_date|date:"d/m/Y" }}</span>
+                <span><i class="fa-solid fa-box"></i><strong>R$ {{ subtotal|floatformat:2 }}</strong></span>
+              </div>
             </div>
+            <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-a secondary" style="flex-shrink:0;">
+              <i class="fa-solid fa-arrow-left"></i>Voltar
+            </a>
           </div>
         </div>
+      </div>
 
-        <!-- ══════════════════════════════════════════════════════════ -->
-        <!-- MAIN FORM                                                  -->
-        <!-- ══════════════════════════════════════════════════════════ -->
-        <form method="post" id="sim-form">
-          {% csrf_token %}
-          <input type="hidden" name="discount_percent"       id="h-discount">
-          <input type="hidden" name="price_increase_percent" id="h-price-inc">
-          <input type="hidden" name="sim_installments"       id="h-installments">
-          <input type="hidden" name="sim_payment_type"       id="h-ptype">
-          <input type="hidden" name="sim_has_architect"      id="h-architect">
+      <!-- ═══ FORM ═══ -->
+      <form method="post" id="sim-form">
+        {% csrf_token %}
+        <input type="hidden" name="discount_percent"       id="h-discount">
+        <input type="hidden" name="price_increase_percent" id="h-price-inc">
+        <input type="hidden" name="sim_installments"       id="h-installments">
+        <input type="hidden" name="sim_payment_type"       id="h-ptype">
+        <input type="hidden" name="sim_has_architect"      id="h-architect">
+        <input type="hidden" name="sim_architect_id"       id="h-architect-id">
+        <input type="hidden" name="target_final"           id="h-target-final">
 
-          <!-- Two-column layout for controls -->
-          <div class="row g-3">
-            <!-- LEFT COLUMN: Controls -->
-            <div class="col-lg-6">
+        <div class="row g-3">
+          <!-- ═══ LEFT COLUMN ═══ -->
+          <div class="col-lg-6">
 
-              <!-- ─── DESCONTO ─── -->
-              <div class="sim-section fade-in fade-in-d1">
-                <div class="sim-section-hdr">
-                  <div class="sec-icon red"><i class="fa-solid fa-tag"></i></div>
-                  Desconto
-                </div>
-                <div class="sim-section-body">
-                  <div class="slider-container">
-                    <div class="slider-labels">
-                      <span class="slider-min">0%</span>
-                      <span class="slider-current" id="lbl-discount"
-                            style="{% if discount_percent > 0 %}color: var(--red); background: var(--red-light);{% else %}color: var(--brand); background: var(--brand-bg);{% endif %}">
-                        {% if discount_percent > 0 %}-{{ discount_percent }}%{% else %}Sem desconto{% endif %}
-                      </span>
-                      <span class="slider-max" id="lbl-max-discount">{{ max_discount_allowed|floatformat:0 }}%</span>
-                    </div>
-                    <input type="range" class="slider-discount" id="discount-slider"
-                           min="0" max="{{ max_discount_allowed|floatformat:1 }}" step="0.5"
-                           value="{{ discount_percent }}"
-                           oninput="onDiscountChange(this.value); scheduleSubmit()">
-                  </div>
-                  {% if controls_blocked %}
-                  <div class="sim-alert danger">
-                    <i class="fa-solid fa-lock sim-alert-icon"></i>
-                    <div><strong>Limite atingido!</strong> Margem no máximo de -5%. Desconto limitado a {{ max_discount_allowed|floatformat:1 }}%.</div>
-                  </div>
-                  {% endif %}
-                  <div class="row g-2">
-                    <div class="col-6">
-                      <div class="stat-card">
-                        <div class="stat-lbl">Desconto</div>
-                        <div class="stat-val red" id="live-discount-val">{{ discount_percent }}%</div>
-                      </div>
-                    </div>
-                    <div class="col-6">
-                      <div class="stat-card">
-                        <div class="stat-lbl">Valor</div>
-                        <div class="stat-val red" id="live-discount-amount">R$ {{ discount_value|floatformat:2 }}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <!-- Desconto -->
+            <div class="s-card fi fi-1">
+              <div class="s-hdr">
+                <div class="s-icon red"><i class="fa-solid fa-tag"></i></div>
+                Desconto
               </div>
-
-              <!-- ─── FORMA DE PAGAMENTO ─── -->
-              <div class="sim-section fade-in fade-in-d2">
-                <div class="sim-section-hdr">
-                  <div class="sec-icon blue"><i class="fa-solid fa-credit-card"></i></div>
-                  Pagamento
-                </div>
-                <div class="sim-section-body">
-                  <div class="row g-3 mb-3">
-                    <div class="col-sm-7">
-                      <label class="sim-label"><i class="fa-solid fa-wallet me-1"></i>Forma</label>
-                      <select id="sel-ptype" class="sim-select" onchange="onPaymentTypeChange()">
-                        <option value="">-- Selecione --</option>
-                        {% for value, label in payment_type_choices %}
-                          <option value="{{ value }}" {% if value == sim_payment_type %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
-                    <div class="col-sm-5" id="inst-dropdown-row">
-                      <label class="sim-label"><i class="fa-solid fa-hashtag me-1"></i>Parcelas</label>
-                      <select id="inst-select" class="sim-select" onchange="onInstChange(this.value); scheduleSubmit();"></select>
-                    </div>
-                  </div>
-                  <div class="stat-card" style="border-left: 3px solid var(--brand);">
-                    <div class="stat-lbl">Taxa do pagamento</div>
-                    <div class="stat-val" id="fee-display">{{ payment_fee_percent }}%</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- ─── ARQUITETO ─── -->
-              <div class="sim-section fade-in fade-in-d3">
-                <div class="sim-section-hdr">
-                  <div class="sec-icon gray"><i class="fa-solid fa-drafting-compass"></i></div>
-                  Arquiteto
-                </div>
-                <div class="sim-section-body" style="padding: .75rem 1.25rem;">
-                  <label class="sim-switch" for="chk-architect">
-                    <input type="checkbox" id="chk-architect"
-                           value="1"
-                           {% if sim_has_architect %}checked{% endif %}
-                           onchange="scheduleSubmit()">
-                    <span class="switch-track"></span>
-                    <span>
-                      <span class="switch-label">Cliente possui Arquiteto</span><br>
-                      <span class="switch-sub">{{ architect_percent }}% sobre valor à vista</span>
+              <div class="s-body">
+                <div class="slider-box">
+                  <div class="slider-row">
+                    <span class="s-min">0%</span>
+                    <span class="s-cur" id="lbl-discount"
+                          style="{% if discount_percent > 0 %}color:var(--red);background:#fce4ec;{% else %}color:var(--brand);background:var(--bg);{% endif %}">
+                      {% if discount_percent > 0 %}-{{ discount_percent }}%{% else %}Sem desconto{% endif %}
                     </span>
-                  </label>
-                  {% if sim_has_architect %}
-                  <div class="stat-card mt-2">
-                    <div class="stat-lbl">Base do cálculo</div>
-                    <div class="stat-val">R$ {{ valor_avista|floatformat:2 }}</div>
+                    <span class="s-max" id="lbl-max-discount">{{ max_discount_allowed|floatformat:0 }}%</span>
+                  </div>
+                  <input type="range" class="sl-disc" id="discount-slider"
+                         min="0" max="{{ max_discount_allowed|floatformat:1 }}" step="0.5"
+                         value="{{ discount_percent }}"
+                         oninput="onDiscountChange(this.value); scheduleSubmit()">
+                </div>
+                {% if controls_blocked %}
+                <div class="sim-msg bad">
+                  <i class="fa-solid fa-lock"></i>
+                  <div><strong>Limite atingido!</strong> Desconto limitado a {{ max_discount_allowed|floatformat:1 }}%.</div>
+                </div>
+                {% endif %}
+                <div class="row g-2">
+                  <div class="col-6">
+                    <div class="stat"><div class="stat-l">Desconto</div><div class="stat-v red" id="live-discount-val">{{ discount_percent }}%</div></div>
+                  </div>
+                  <div class="col-6">
+                    <div class="stat"><div class="stat-l">Valor</div><div class="stat-v red" id="live-discount-amount">R$ {{ discount_value|floatformat:2 }}</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ajuste de Valor & Margem -->
+            <div class="s-card fi fi-4">
+              <div class="s-hdr" style="cursor:pointer;" onclick="this.querySelector('.col-toggle').click()">
+                <div class="s-icon green"><i class="fa-solid fa-chart-line"></i></div>
+                <button type="button" class="col-toggle"
+                        data-bs-toggle="collapse" data-bs-target="#increase-collapse"
+                        aria-expanded="false" aria-controls="increase-collapse"
+                        onclick="event.stopPropagation();">
+                  <span>Ajuste de Valor &amp; Margem</span>
+                  <i class="fa-solid fa-chevron-down arr"></i>
+                </button>
+              </div>
+              <div class="collapse" id="increase-collapse">
+                <div class="s-body">
+                  <div class="slider-box">
+                    <div class="slider-row">
+                      <span class="s-min">0%</span>
+                      <span class="s-cur" id="lbl-increase"
+                            style="{% if price_increase_pct > 0 %}color:var(--green);background:#e8f5e9;{% else %}color:var(--brand);background:var(--bg);{% endif %}">
+                        {% if price_increase_pct > 0 %}+{{ price_increase_pct }}%{% else %}Sem ajuste{% endif %}
+                      </span>
+                      <span class="s-max">30%</span>
+                    </div>
+                    <input type="range" class="sl-inc" id="increase-slider"
+                           min="0" max="30" step="0.5"
+                           value="{{ price_increase_pct }}"
+                           oninput="onIncreaseChange(this.value); scheduleSubmit()">
+                  </div>
+
+                  <hr style="border-color:var(--border);margin:.8rem 0;">
+                  <div id="margin-zone">
+                  {% if margin_exceeded %}
+                  <div class="sim-msg warn">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div>
+                      <strong>Margem Excedida!</strong>
+                      Custo total: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%).
+                      {% if commission_reduced %}Comissão reduzida para {{ seller_commission_percent }}%.{% endif %}
+                      {% if suggested_increase > 0 %}Sugestão: +<strong>{{ suggested_increase }}%</strong> de ajuste.{% endif %}
+                    </div>
+                  </div>
+                  {% elif commission_reduced %}
+                  <div class="sim-msg ok">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <div><strong>Comissão proporcional:</strong> {{ seller_commission_percent }}% (faixa: 3%-5%). Custo: <strong>{{ total_cost_pct }}%</strong></div>
+                  </div>
+                  {% else %}
+                  <div class="sim-msg ok">
+                    <i class="fa-solid fa-check-circle"></i>
+                    <div><strong>Margem OK!</strong> Custo: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%)</div>
+                  </div>
+                  {% endif %}
+
+                  {% if margin_limit_exceeded %}
+                  <div class="sim-msg bad">
+                    <i class="fa-solid fa-ban"></i>
+                    <div>
+                      <strong>Bloqueado!</strong> O custo total (<strong>{{ total_cost_pct }}%</strong>) atingiu o limite de margem (<strong>{{ margin_limit }}%</strong>).
+                      {% if min_increase_to_unblock > 0 %}Adicione no mínimo <strong>+{{ min_increase_to_unblock }}%</strong> de ajuste para desbloquear.{% else %}Reduza o desconto, remova o arquiteto ou aumente o preço.{% endif %}
+                    </div>
+                  </div>
+                  {% endif %}
+
+                  <div class="row g-2">
+                    <div class="col-6 col-md-3"><div class="stat"><div class="stat-l">Margem</div><div class="stat-v" style="font-size:.95rem;">{{ effective_margin }}%</div></div></div>
+                    <div class="col-6 col-md-3"><div class="stat"><div class="stat-l">Taxa</div><div class="stat-v {% if store_fee_percent > 10 %}red{% endif %}" style="font-size:.95rem;">{{ store_fee_percent }}%</div></div></div>
+                    <div class="col-6 col-md-3"><div class="stat"><div class="stat-l">Comissão</div><div class="stat-v" style="font-size:.95rem;">{{ seller_commission_percent }}%</div></div></div>
+                    <div class="col-6 col-md-3"><div class="stat"><div class="stat-l">Custo Total</div><div class="stat-v {% if margin_exceeded %}red{% else %}green{% endif %}" style="font-size:.95rem;">{{ total_cost_pct }}%</div></div></div>
+                  </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /LEFT -->
+
+          <!-- ═══ RIGHT COLUMN ═══ -->
+          <div class="col-lg-6">
+
+            <!-- Pagamento -->
+            <div class="s-card fi fi-1">
+              <div class="s-hdr">
+                <div class="s-icon brand"><i class="fa-solid fa-credit-card"></i></div>
+                Pagamento
+              </div>
+              <div class="s-body">
+                <div class="row g-3 mb-3">
+                  <div class="col-sm-7">
+                    <label class="f-label"><i class="fa-solid fa-wallet me-1"></i>Forma</label>
+                    <select id="sel-ptype" class="f-select" onchange="onPaymentTypeChange()">
+                      <option value="">-- Selecione --</option>
+                      {% for value, label in payment_type_choices %}
+                        <option value="{{ value }}" {% if value == sim_payment_type %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-sm-5" id="inst-dropdown-row">
+                    <label class="f-label"><i class="fa-solid fa-hashtag me-1"></i>Parcelas</label>
+                    <select id="inst-select" class="f-select" onchange="onInstChange(this.value); scheduleSubmit();"></select>
+                  </div>
+                </div>
+                <div class="stat" style="border-left:3px solid var(--brand);text-align:left;">
+                  <div class="stat-l">Taxa do pagamento</div>
+                  <div class="stat-v" id="fee-display">{{ payment_fee_percent }}%</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Arquiteto -->
+            <div class="s-card fi fi-2">
+              <div class="s-hdr">
+                <div class="s-icon muted"><i class="fa-solid fa-drafting-compass"></i></div>
+                Arquiteto
+              </div>
+              <div class="s-body" style="padding:.65rem 1.1rem;">
+                <label class="sw" for="chk-architect">
+                  <input type="checkbox" id="chk-architect" value="1"
+                         {% if sim_has_architect %}checked{% endif %}
+                         onchange="toggleArchitectPanel(); scheduleSubmit()">
+                  <span class="track"></span>
+                  <span>
+                    <span class="sw-t">Cliente possui Arquiteto</span><br>
+                    <span class="sw-s">{{ architect_percent }}% sobre valor à vista</span>
+                  </span>
+                </label>
+
+                <!-- Architect search / select / register -->
+                <div id="architect-panel" style="display:{% if sim_has_architect %}block{% else %}none{% endif %}; margin-top:.6rem;">
+                  <!-- Selected architect -->
+                  <div id="arch-selected" class="{% if not selected_architect %}d-none{% endif %}" style="background:#e8f5e9;border-radius:8px;padding:.5rem .7rem;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between;">
+                    <span>
+                      <i class="fa-solid fa-check-circle" style="color:#388e3c;margin-right:.3rem;"></i>
+                      <strong id="arch-selected-name">{% if selected_architect %}{{ selected_architect.name }}{% endif %}</strong>
+                      <small id="arch-selected-pix" style="display:block;color:#666;margin-left:1.3rem;">{% if selected_architect %}PIX: {{ selected_architect.pix }}{% endif %}</small>
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deselectArchitect()" style="font-size:.75rem;">
+                      <i class="fa-solid fa-xmark"></i> Trocar
+                    </button>
+                  </div>
+
+                  <!-- Search input -->
+                  <div id="arch-search-box" class="{% if selected_architect %}d-none{% endif %}">
+                    <input type="text" id="arch-search-input" class="form-control form-control-sm" placeholder="Buscar arquiteto por nome..." autocomplete="off" oninput="searchArchitectDebounce()">
+                  </div>
+
+                  <!-- Search results -->
+                  <div id="arch-results" class="d-none" style="margin-top:.4rem;">
+                    <div id="arch-results-list" style="display:flex;flex-direction:column;gap:.25rem;"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-1 w-100" onclick="showArchitectRegister()">
+                      <i class="fa-solid fa-plus me-1"></i>Cadastrar novo arquiteto
+                    </button>
+                  </div>
+
+                  <!-- Register form -->
+                  <div id="arch-register" class="d-none" style="margin-top:.5rem;padding:.5rem;background:#f5f5f5;border-radius:8px;">
+                    <div class="mb-2">
+                      <label class="form-label mb-0" style="font-size:.82rem;font-weight:600;">Nome <span class="text-danger">*</span></label>
+                      <input type="text" id="arch-new-name" class="form-control form-control-sm" placeholder="Nome completo">
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label mb-0" style="font-size:.82rem;font-weight:600;">Chave PIX <span class="text-danger">*</span></label>
+                      <input type="text" id="arch-new-pix" class="form-control form-control-sm" placeholder="CPF, e-mail, telefone ou chave aleatória">
+                    </div>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="btn btn-sm btn-success" onclick="createArchitect()">
+                        <i class="fa-solid fa-check me-1"></i>Cadastrar
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideArchitectRegister()">Cancelar</button>
+                    </div>
+                  </div>
+                </div>
+
+                {% if sim_has_architect and not margin_limit_exceeded %}
+                <div class="stat mt-2" style="text-align:left;">
+                  <div class="stat-l">Base do cálculo</div>
+                  <div class="stat-v">R$ {{ valor_avista|floatformat:2 }}</div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div id="sim-results">
+            <span id="sim-data"
+                  data-max-discount="{{ max_discount_allowed|floatformat:1 }}"
+                  data-controls-blocked="{{ controls_blocked|yesno:'1,0' }}"
+                  data-discount-clamped="{{ discount_percent|floatformat:1 }}"
+                  data-price-increase="{{ price_increase_pct|floatformat:1 }}"
+                  data-target-mode="{{ target_mode|yesno:'1,0' }}"
+                  data-margin-exceeded="{{ margin_exceeded|yesno:'1,0' }}"
+                  data-margin-limit-exceeded="{{ margin_limit_exceeded|yesno:'1,0' }}"
+                  style="display:none;"></span>
+
+            <div class="s-card fi fi-1" style="border:none;box-shadow:var(--shadow-h);">
+              <div class="s-hdr">
+                <div class="s-icon brand"><i class="fa-solid fa-receipt"></i></div>
+                Resumo dos Valores
+              </div>
+              <div class="s-body">
+                <div class="r-line">
+                  <span class="r-l">Subtotal dos itens</span>
+                  <strong>R$ {{ adj_subtotal|floatformat:2 }}</strong>
+                </div>
+                <div class="r-line">
+                  <span class="r-l">
+                    <i class="fa-solid fa-truck me-1" style="font-size:.7rem;"></i>
+                    Frete ({{ quote.get_freight_responsible_display }})
+                  </span>
+                  <strong>R$ {{ freight_value|floatformat:2 }}</strong>
+                </div>
+                <div class="r-line">
+                  <span class="r-l">Total antes do desconto</span>
+                  <strong>R$ {{ total_before_discount|floatformat:2 }}</strong>
+                </div>
+                {% if discount_percent > 0 %}
+                <div class="r-line">
+                  <span style="color:var(--red);"><i class="fa-solid fa-arrow-down me-1" style="font-size:.7rem;"></i>Desconto ({{ discount_percent }}%)</span>
+                  <strong style="color:var(--red);">– R$ {{ discount_value|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
+                {% if client_surcharge_value > 0 %}
+                <div class="r-line">
+                  <span class="r-l"><i class="fa-solid fa-percent me-1" style="font-size:.7rem;"></i>Juros parcela ({{ client_surcharge_percent }}%)</span>
+                  <strong>+ R$ {{ client_surcharge_value|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
+
+                {% if margin_limit_exceeded %}
+                <!-- Blocked: hide values -->
+                <div class="hi mt-3" style="background:#fff3f3;border:2px dashed var(--red);padding:1.2rem;text-align:center;border-radius:10px;">
+                  <i class="fa-solid fa-lock" style="font-size:1.5rem;color:var(--red);margin-bottom:.4rem;"></i>
+                  <div style="font-weight:700;color:var(--red);font-size:1rem;">Condições Bloqueadas</div>
+                  <div style="font-size:.82rem;color:var(--muted);margin-top:.3rem;">Valores ocultos enquanto o limite de margem estiver excedido.</div>
+                  {% if min_increase_to_unblock > 0 %}
+                  <div style="font-size:.85rem;margin-top:.5rem;color:var(--brand);font-weight:600;">
+                    <i class="fa-solid fa-lightbulb me-1"></i>Adicione no mínimo <strong>+{{ min_increase_to_unblock }}%</strong> de ajuste para desbloquear.
                   </div>
                   {% endif %}
                 </div>
-              </div>
-
-              <!-- ─── AJUSTE DE VALOR (collapsible) ─── -->
-              <div class="sim-section fade-in fade-in-d4">
-                <div class="sim-section-hdr" style="cursor: pointer;"
-                     onclick="this.querySelector('.collapse-toggle').click()">
-                  <div class="sec-icon green"><i class="fa-solid fa-chart-line"></i></div>
-                  <button type="button" class="collapse-toggle"
-                          data-bs-toggle="collapse" data-bs-target="#increase-collapse"
-                          aria-expanded="false" aria-controls="increase-collapse"
-                          onclick="event.stopPropagation();">
-                    <span>Ajuste de Valor &amp; Margem</span>
-                    <i class="fa-solid fa-chevron-down toggle-arrow"></i>
-                  </button>
-                </div>
-                <div class="collapse" id="increase-collapse">
-                  <div class="sim-section-body">
-                    <div id="increase-suggestion-zone">
-                    {% if commission_reduced %}
-                    <div class="sim-alert {% if margin_exceeded %}warning{% else %}success{% endif %}">
-                      <i class="fa-solid fa-{% if margin_exceeded %}triangle-exclamation{% else %}shield-halved{% endif %} sim-alert-icon"></i>
-                      <div>
-                      {% if margin_exceeded %}
-                      <strong>Passou da margem!</strong> Comissão no mínimo ({{ seller_commission_percent }}%),
-                      custo total ({{ total_cost_pct }}%) excede margem ({{ effective_margin }}%).
-                      {% if suggested_increase > 0 %}Sugestão: +<strong>{{ suggested_increase }}%</strong> de ajuste.{% endif %}
-                      {% else %}
-                      <strong>Comissão proporcional:</strong> {{ seller_commission_percent }}% (faixa: 3%-5%).
+                {% else %}
+                <!-- Total Final -->
+                <div class="hi brand mt-3">
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                      <div class="hi-l">Total para o Cliente</div>
+                      <div class="hi-v">R$ {{ final_total|floatformat:2 }}</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="hi-l">{{ sim_payment_description }}</div>
+                      {% if sim_installments > 1 %}
+                      <div style="font-size:1.1rem;font-weight:800;margin-top:.1rem;">
+                        {{ sim_installments }}x de R$ {{ installment_value|floatformat:2 }}
+                      </div>
                       {% endif %}
-                      </div>
-                    </div>
-                    {% elif margin_exceeded and suggested_increase > 0 %}
-                    <div class="sim-alert warning">
-                      <i class="fa-solid fa-triangle-exclamation sim-alert-icon"></i>
-                      <div>
-                      <strong>Passou da margem!</strong> Taxa ({{ store_fee_percent }}%) + Comissão ({{ seller_commission_percent }}%)
-                      {% if sim_has_architect %}+ Arq. ({{ architect_percent }}%){% endif %}
-                      {% if discount_percent > 0 %}+ Desc. ({{ discount_percent }}%){% endif %}
-                      = <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%).
-                      Sugestão: +<strong>{{ suggested_increase }}%</strong> de ajuste.
-                      </div>
-                    </div>
-                    {% endif %}
-                    </div>
-
-                    <div class="slider-container">
-                      <div class="slider-labels">
-                        <span class="slider-min">0%</span>
-                        <span class="slider-current" id="lbl-increase"
-                              style="{% if price_increase_pct > 0 %}color: var(--green); background: var(--green-light);{% else %}color: var(--brand); background: var(--brand-bg);{% endif %}">
-                          {% if price_increase_pct > 0 %}+{{ price_increase_pct }}%{% else %}Sem ajuste{% endif %}
-                        </span>
-                        <span class="slider-max">30%</span>
-                      </div>
-                      <input type="range" class="slider-increase" id="increase-slider"
-                             min="0" max="30" step="0.5"
-                             value="{{ price_increase_pct }}"
-                             oninput="onIncreaseChange(this.value); scheduleSubmit()">
-                    </div>
-
-                    <hr style="border-color: var(--gray-light); margin: 1rem 0;">
-                    <div style="font-size: .82rem; font-weight: 700; color: var(--brand); margin-bottom: .6rem;">
-                      <i class="fa-solid fa-gauge-high me-1"></i> Controle de Margem
-                    </div>
-                    <div id="margin-zone">
-                    {% if commission_reduced and not margin_exceeded %}
-                    <div class="sim-alert success">
-                      <i class="fa-solid fa-check-circle sim-alert-icon"></i>
-                      <div><strong>Margem OK!</strong> Comissão: {{ seller_commission_percent }}%. Custo: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%)</div>
-                    </div>
-                    {% elif margin_exceeded %}
-                    <div class="sim-alert warning">
-                      <i class="fa-solid fa-triangle-exclamation sim-alert-icon"></i>
-                      <div>
-                        <strong>Excesso de margem!</strong><br>
-                        Taxa: {{ store_fee_percent }}% + Comissão: {{ seller_commission_percent }}%
-                        {% if sim_has_architect %}+ Arq: {{ architect_percent }}%{% endif %}
-                        {% if discount_percent > 0 %}+ Desc: {{ discount_percent }}%{% endif %}
-                        = <strong>{{ total_cost_pct }}%</strong><br>
-                        Margem: <strong>{{ effective_margin }}%</strong>
-                        {% if price_increase_pct > 0 %}({{ margin_base }}% + {{ price_increase_pct }}%){% endif %}
-                        — Excesso: <strong>{{ margin_excess }}%</strong>
-                        {% if suggested_increase > 0 %}
-                        <br><i class="fa-solid fa-lightbulb me-1"></i>Sugestão: +<strong>{{ suggested_increase }}%</strong> de ajuste.
-                        {% endif %}
-                      </div>
-                    </div>
-                    {% else %}
-                    <div class="sim-alert success">
-                      <i class="fa-solid fa-check-circle sim-alert-icon"></i>
-                      <div><strong>Margem OK!</strong> Custo: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%)</div>
-                    </div>
-                    {% endif %}
-                    <div class="row g-2">
-                      <div class="col-6 col-md-3">
-                        <div class="stat-card text-center">
-                          <div class="stat-lbl">Margem</div>
-                          <div class="stat-val" style="font-size:1rem;">{{ effective_margin }}%</div>
-                        </div>
-                      </div>
-                      <div class="col-6 col-md-3">
-                        <div class="stat-card text-center">
-                          <div class="stat-lbl">Taxa</div>
-                          <div class="stat-val {% if store_fee_percent > 10 %}red{% endif %}" style="font-size:1rem;">{{ store_fee_percent }}%</div>
-                        </div>
-                      </div>
-                      <div class="col-6 col-md-3">
-                        <div class="stat-card text-center">
-                          <div class="stat-lbl">Comissão</div>
-                          <div class="stat-val" style="font-size:1rem;">{{ seller_commission_percent }}%</div>
-                        </div>
-                      </div>
-                      <div class="col-6 col-md-3">
-                        <div class="stat-card text-center">
-                          <div class="stat-lbl">Custo Total</div>
-                          <div class="stat-val {% if margin_exceeded %}red{% else %}green{% endif %}" style="font-size:1rem;">{{ total_cost_pct }}%</div>
-                        </div>
-                      </div>
-                    </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div><!-- /LEFT COLUMN -->
 
-            <!-- RIGHT COLUMN: Results -->
-            <div class="col-lg-6">
-
-              <!-- ─── RESULTADOS ─── -->
-              <div id="sim-results">
-              <span id="sim-data"
-                    data-max-discount="{{ max_discount_allowed|floatformat:1 }}"
-                    data-controls-blocked="{{ controls_blocked|yesno:'1,0' }}"
-                    data-discount-clamped="{{ discount_percent|floatformat:1 }}"
-                    style="display:none;"></span>
-
-              <div class="sim-section fade-in fade-in-d1" style="border: none; box-shadow: var(--shadow-md);">
-                <div class="sim-section-hdr">
-                  <div class="sec-icon blue"><i class="fa-solid fa-receipt"></i></div>
-                  Resumo dos Valores
-                </div>
-                <div class="sim-section-body">
-                  <!-- Value breakdown -->
-                  <div style="font-size: .88rem; color: var(--brand);">
-                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
-                      <span style="color: var(--gray);">Subtotal dos itens</span>
-                      <strong>R$ {{ adj_subtotal|floatformat:2 }}</strong>
-                    </div>
-                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
-                      <span style="color: var(--gray);">
-                        <i class="fa-solid fa-truck me-1" style="font-size:.72rem;"></i>
-                        Frete ({{ quote.get_freight_responsible_display }})
+                <!-- Target Final (collapsible) -->
+                <div class="mt-3" style="background:var(--bg);border-radius:8px;overflow:hidden;">
+                  <div style="padding:.55rem .9rem;cursor:pointer;" onclick="this.querySelector('.col-toggle').click()">
+                    <button type="button" class="col-toggle"
+                            data-bs-toggle="collapse" data-bs-target="#target-final-collapse"
+                            aria-expanded="false" aria-controls="target-final-collapse"
+                            onclick="event.stopPropagation();">
+                      <span style="display:flex;align-items:center;gap:.4rem;">
+                        <i class="fa-solid fa-bullseye" style="font-size:.75rem;color:var(--brand);"></i>
+                        Valor Final Desejado
                       </span>
-                      <strong>R$ {{ freight_value|floatformat:2 }}</strong>
-                    </div>
-                    {% if price_increase_pct > 0 %}
-                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
-                      <span style="color: var(--green);">
-                        <i class="fa-solid fa-arrow-up me-1" style="font-size:.72rem;"></i>
-                        Ajuste +{{ price_increase_pct }}%
-                      </span>
-                      <strong style="color: var(--green);">incluído</strong>
-                    </div>
-                    {% endif %}
-                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
-                      <span style="color: var(--gray);">Total antes do desconto</span>
-                      <strong>R$ {{ total_before_discount|floatformat:2 }}</strong>
-                    </div>
-                    {% if discount_percent > 0 %}
-                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
-                      <span style="color: var(--red);">
-                        <i class="fa-solid fa-arrow-down me-1" style="font-size:.72rem;"></i>
-                        Desconto ({{ discount_percent }}%)
-                      </span>
-                      <strong style="color: var(--red);">– R$ {{ discount_value|floatformat:2 }}</strong>
-                    </div>
-                    {% endif %}
-                    {% if client_surcharge_value > 0 %}
-                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px dashed var(--gray-light);">
-                      <span style="color: var(--orange);">
-                        <i class="fa-solid fa-percent me-1" style="font-size:.72rem;"></i>
-                        Juros parcelamento ({{ client_surcharge_percent }}%)
-                      </span>
-                      <strong style="color: var(--orange);">+ R$ {{ client_surcharge_value|floatformat:2 }}</strong>
-                    </div>
-                    {% endif %}
+                      <i class="fa-solid fa-chevron-down arr"></i>
+                    </button>
                   </div>
-
-                  <!-- TOTAL FINAL -->
-                  <div class="hi-card brand mt-3">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                      <div>
-                        <div class="lbl">Total para o Cliente</div>
-                        <div class="val">R$ {{ final_total|floatformat:2 }}</div>
-                      </div>
-                      <div style="text-align: right;">
-                        <div class="lbl">{{ sim_payment_description }}</div>
-                        {% if sim_installments > 1 %}
-                        <div style="font-size: 1.15rem; font-weight: 800; margin-top: .15rem;">
-                          {{ sim_installments }}x de R$ {{ installment_value|floatformat:2 }}
-                        </div>
-                        {% endif %}
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Commissions -->
-                  <div class="row g-2 mt-2">
-                    {% if sim_has_architect %}
-                    <div class="col-12">
-                      <div class="hi-card gray" style="padding: 1rem 1.2rem;">
-                        <div class="d-flex justify-content-between align-items-center">
-                          <div>
-                            <div class="lbl">Comissão Arquiteto ({{ architect_percent }}%)</div>
-                            <div class="val" style="font-size: 1.3rem;">R$ {{ architect_commission_value|floatformat:2 }}</div>
-                          </div>
-                          <div style="font-size: .78rem; opacity: .85; text-align: right;">
-                            sobre R$ {{ valor_avista|floatformat:2 }}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {% endif %}
-                    <div class="col-12">
-                      <div class="hi-card {% if margin_exceeded %}orange{% elif seller_commission_percent >= 4 %}green{% else %}brand{% endif %}" style="padding: 1rem 1.2rem;">
-                        <button type="button"
-                                class="collapse-toggle collapse-toggle-white"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#seller-commission-collapse"
-                                aria-expanded="false"
-                                aria-controls="seller-commission-collapse">
-                          <span class="lbl mb-0" style="opacity:1;">
-                            <i class="fa-solid fa-user-tie me-1"></i>Comissão do Vendedor
-                          </span>
-                          <i class="fa-solid fa-chevron-down toggle-arrow"></i>
+                  <div class="collapse" id="target-final-collapse">
+                    <div style="padding:0 .9rem .75rem;">
+                      <div class="d-flex gap-2 align-items-center">
+                        <span style="font-weight:700;color:var(--brand);">R$</span>
+                        <input type="text" id="target-final-input" class="form-control form-control-sm"
+                               placeholder="Digitar valor desejado..."
+                               value="{% if target_mode %}{{ target_final_input|floatformat:2 }}{% endif %}"
+                               style="max-width:200px;font-weight:700;font-size:1rem;border-radius:8px;"
+                               inputmode="decimal" oninput="maskCurrency(this)">
+                        <button type="button" class="btn-a dark" style="padding:.35rem .8rem;font-size:.8rem;" onclick="applyTargetFinal()">
+                          <i class="fa-solid fa-calculator"></i>Calcular
                         </button>
-                        <div id="seller-commission-collapse" class="collapse mt-2">
-                          <div class="d-flex justify-content-between align-items-center">
-                            <div class="val" style="font-size: 1.3rem;">R$ {{ seller_commission_value|floatformat:2 }}</div>
-                            <div style="font-size: .78rem; opacity: .85; text-align: right;">
-                              {{ seller_commission_percent }}% sobre R$ {{ seller_commission_base|floatformat:2 }}
-                              {% if sim_has_architect %}<br>(após comissão arquiteto){% endif %}
-                            </div>
+                        {% if target_mode %}
+                        <button type="button" class="btn-a secondary" style="padding:.35rem .6rem;font-size:.8rem;" onclick="clearTargetFinal()">
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        {% endif %}
+                      </div>
+                      {% if target_mode %}
+                      <div style="font-size:.75rem;color:var(--green);margin-top:.35rem;">
+                        <i class="fa-solid fa-check-circle me-1"></i>
+                        Condições ajustadas para atingir R$ {{ target_final_input|floatformat:2 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Target Installment (collapsible, card only) -->
+                <div class="mt-2" id="target-installment-section" style="background:var(--bg);border-radius:8px;overflow:hidden;{% if sim_payment_type != 'CREDIT_CARD' and sim_payment_type != 'BOLETO' or sim_installments <= 1 %}display:none;{% endif %}">
+                  <div style="padding:.55rem .9rem;cursor:pointer;" onclick="this.querySelector('.col-toggle').click()">
+                    <button type="button" class="col-toggle"
+                            data-bs-toggle="collapse" data-bs-target="#target-installment-collapse"
+                            aria-expanded="false" aria-controls="target-installment-collapse"
+                            onclick="event.stopPropagation();">
+                      <span style="display:flex;align-items:center;gap:.4rem;">
+                        <i class="fa-solid fa-money-bill-wave" style="font-size:.75rem;color:var(--brand);"></i>
+                        Valor Final da Parcela Desejado
+                      </span>
+                      <i class="fa-solid fa-chevron-down arr"></i>
+                    </button>
+                  </div>
+                  <div class="collapse" id="target-installment-collapse">
+                    <div style="padding:0 .9rem .75rem;">
+                      <div class="d-flex gap-2 align-items-center">
+                        <span style="font-weight:700;color:var(--brand);">R$</span>
+                        <input type="text" id="target-installment-input" class="form-control form-control-sm"
+                               placeholder="Valor da parcela..."
+                               value="{% if target_installment_mode %}{{ target_installment_input|floatformat:2 }}{% endif %}"
+                               style="max-width:200px;font-weight:700;font-size:1rem;border-radius:8px;"
+                               inputmode="decimal" oninput="maskCurrency(this)">
+                        <button type="button" class="btn-a dark" style="padding:.35rem .8rem;font-size:.8rem;" onclick="applyTargetInstallment()">
+                          <i class="fa-solid fa-calculator"></i>Calcular
+                        </button>
+                        {% if target_installment_mode %}
+                        <button type="button" class="btn-a secondary" style="padding:.35rem .6rem;font-size:.8rem;" onclick="clearTargetInstallment()">
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        {% endif %}
+                      </div>
+                      {% if target_installment_mode %}
+                      <div style="font-size:.75rem;color:var(--green);margin-top:.35rem;">
+                        <i class="fa-solid fa-check-circle me-1"></i>
+                        Condições ajustadas para parcela de R$ {{ target_installment_input|floatformat:2 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Commissions -->
+                <div class="row g-2 mt-2">
+                  {% if sim_has_architect %}
+                  <div class="col-12">
+                    <div class="hi muted" style="padding:.9rem 1.1rem;">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                          <div class="hi-l">Comissão Arquiteto ({{ architect_percent }}%)</div>
+                          <div class="hi-v" style="font-size:1.2rem;">R$ {{ architect_commission_value|floatformat:2 }}</div>
+                        </div>
+                        <div style="font-size:.75rem;opacity:.85;text-align:right;">sobre R$ {{ valor_avista|floatformat:2 }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
+                  <div class="col-12">
+                    <div class="hi {% if seller_commission_percent >= 4 %}green{% else %}brand{% endif %}" style="padding:.9rem 1.1rem;">
+                      <button type="button" class="col-toggle col-toggle-w"
+                              data-bs-toggle="collapse" data-bs-target="#seller-commission-collapse"
+                              aria-expanded="false" aria-controls="seller-commission-collapse">
+                        <span class="hi-l mb-0" style="opacity:1;"><i class="fa-solid fa-user-tie me-1"></i>Comissão do Vendedor</span>
+                        <i class="fa-solid fa-chevron-down arr"></i>
+                      </button>
+                      <div id="seller-commission-collapse" class="collapse mt-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                          <div class="hi-v" style="font-size:1.2rem;">R$ {{ seller_commission_value|floatformat:2 }}</div>
+                          <div style="font-size:.75rem;opacity:.85;text-align:right;">
+                            {{ seller_commission_percent }}% sobre R$ {{ seller_commission_base|floatformat:2 }}
+                            {% if sim_has_architect %}<br>(após comissão arquiteto){% endif %}
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+                {% endif %}
               </div>
-              </div><!-- /sim-results -->
+            </div>
+            </div><!-- /sim-results -->
 
-              <!-- ─── QUICK ACTIONS (in right column) ─── -->
-              <div class="sim-section fade-in fade-in-d2" style="background: transparent; box-shadow: none; border: none;">
-                <div class="d-flex flex-column gap-2">
-                  <button type="button" class="btn-action primary w-100" onclick="saveConditions()" style="justify-content: center; padding: .85rem;">
-                    <i class="fa-solid fa-floppy-disk"></i>
-                    Salvar Condições no Orçamento
-                  </button>
-                  <div class="d-flex gap-2">
-                    <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-action secondary flex-fill" target="_blank"
-                       style="justify-content: center; font-size: .82rem;">
-                      <i class="fa-solid fa-file-pdf"></i>PDF Cliente
-                    </a>
-                    <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-action secondary flex-fill" target="_blank"
-                       style="justify-content: center; font-size: .82rem;">
-                      <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
-                    </a>
-                  </div>
-                  <div class="d-flex gap-2">
-                    <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-action secondary flex-fill"
-                       style="justify-content: center; font-size: .82rem;">
-                      <i class="fa-solid fa-pencil"></i>Editar
-                    </a>
-                    <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-action secondary flex-fill"
-                       style="justify-content: center; font-size: .82rem;">
-                      <i class="fa-solid fa-eye"></i>Ver Orçamento
-                    </a>
-                  </div>
+            <!-- Actions -->
+            <div class="fi fi-2" style="margin-bottom:1rem;">
+              <div class="d-flex flex-column gap-2">
+                {% if margin_limit_exceeded %}
+                <button type="button" class="btn-a dark w-100" disabled
+                        style="justify-content:center;padding:.75rem;opacity:.5;cursor:not-allowed;">
+                  <i class="fa-solid fa-ban"></i>
+                  Condições Bloqueadas (limite {{ margin_limit }}%)
+                </button>
+                {% else %}
+                <button type="button" class="btn-a primary w-100" onclick="saveConditions()" style="justify-content:center;padding:.75rem;">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  Salvar Condições no Orçamento
+                </button>
+                {% endif %}
+                <div class="d-flex gap-2">
+                  <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-a secondary flex-fill" target="_blank"
+                     style="justify-content:center;font-size:.82rem;">
+                    <i class="fa-solid fa-file-pdf"></i>PDF Cliente
+                  </a>
+                  <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-a secondary flex-fill" target="_blank"
+                     style="justify-content:center;font-size:.82rem;">
+                    <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
+                  </a>
+                </div>
+                <div class="d-flex gap-2">
+                  <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-a secondary flex-fill"
+                     style="justify-content:center;font-size:.82rem;">
+                    <i class="fa-solid fa-pencil"></i>Editar
+                  </a>
+                  <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-a secondary flex-fill"
+                     style="justify-content:center;font-size:.82rem;">
+                    <i class="fa-solid fa-eye"></i>Ver Orçamento
+                  </a>
                 </div>
               </div>
+            </div>
 
-            </div><!-- /RIGHT COLUMN -->
-          </div><!-- /row -->
+          </div><!-- /RIGHT -->
+        </div><!-- /row -->
+      </form>
 
-        </form><!-- /sim-form -->
+      <!-- Hidden save form -->
+      <form method="post" id="save-form" style="display:none;">
+        {% csrf_token %}
+        <input type="hidden" name="action"                 value="save_conditions">
+        <input type="hidden" name="sim_payment_type"       id="save-ptype">
+        <input type="hidden" name="sim_installments"       id="save-inst">
+        <input type="hidden" name="sim_has_architect"      id="save-arch">
+        <input type="hidden" name="sim_architect_id"       id="save-arch-id">
+        <input type="hidden" name="discount_percent"       id="save-disc">
+        <input type="hidden" name="price_increase_percent" id="save-pi">
+      </form>
 
-        <!-- Hidden save form -->
-        <form method="post" id="save-form" style="display: none;">
-          {% csrf_token %}
-          <input type="hidden" name="action"                 value="save_conditions">
-          <input type="hidden" name="sim_payment_type"       id="save-ptype">
-          <input type="hidden" name="sim_installments"       id="save-inst">
-          <input type="hidden" name="sim_has_architect"      id="save-arch">
-          <input type="hidden" name="discount_percent"       id="save-disc">
-          <input type="hidden" name="price_increase_percent" id="save-pi">
-        </form>
+    </div>
+  </section>
 
-      </div>
-    </section>
+  <section class="pt-4 pb-3" style="background:var(--brand);color:#fff;">
+    <div class="container text-center">
+      <p class="mb-0" style="font-size:.82rem;opacity:.8;">&copy; 2026 Roselar. Todos os direitos reservados.</p>
+    </div>
+  </section>
+</main>
 
-    <section class="pt-4 pb-3" style="background: var(--brand); color: #fff;">
-      <div class="container text-center">
-        <p class="mb-0" style="font-size: .85rem; opacity: .8;">&copy; 2026 Roselar. Todos os direitos reservados.</p>
-      </div>
-    </section>
-  </main>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+<script src="{% static 'assets/js/theme.js' %}"></script>
+<script>
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
-  <script src="{% static 'assets/js/theme.js' %}"></script>
+var tariffsByType = JSON.parse('{{ tariffs_by_type_json|escapejs }}');
+var initDiscount  = parseFloat('{{ discount_percent }}');
+var initPriceInc  = parseFloat('{{ price_increase_pct }}');
+var initInstall   = parseInt('{{ sim_installments }}');
+var initPType     = '{{ sim_payment_type }}';
+var MARGIN_BASE   = parseFloat('{{ margin_base }}');
+var loadingBar    = document.getElementById('loading-bar');
 
-  <script>
-  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+function showLoading() { loadingBar.classList.add('on'); }
+function hideLoading() { loadingBar.classList.remove('on'); }
 
-  // ── Server data ───────────────────────────────────────────────────────────
-  var tariffsByType      = JSON.parse('{{ tariffs_by_type_json|escapejs }}');
-  var initDiscount       = parseFloat('{{ discount_percent }}');
-  var initPriceInc       = parseFloat('{{ price_increase_pct }}');
-  var initInstall        = parseInt('{{ sim_installments }}');
-  var initPType          = '{{ sim_payment_type }}';
-  var MARGIN_BASE        = parseFloat('{{ margin_base }}');
+function maskCurrency(el) {
+  var raw = el.value.replace(/\D/g, '');
+  if (!raw) { el.value = ''; return; }
+  raw = raw.replace(/^0+/, '') || '0';
+  while (raw.length < 3) raw = '0' + raw;
+  var intPart = raw.slice(0, -2), decPart = raw.slice(-2);
+  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  el.value = intPart + ',' + decPart;
+  try { el.setSelectionRange(el.value.length, el.value.length); } catch(e) {}
+}
 
-  // ── Loading bar ──────────────────────────────────────────────────────────
-  var loadingBar = document.getElementById('loading-bar');
-  function showLoading() { loadingBar.classList.add('active'); }
-  function hideLoading() { loadingBar.classList.remove('active'); }
+function formatInitialValue(el) {
+  if (!el || !el.value) return;
+  var v = parseFloat(el.value);
+  if (v > 0) el.value = v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  else el.value = '';
+}
 
-  // ── Discount slider ──────────────────────────────────────────────────────
-  function onDiscountChange(val) {
-    val = parseFloat(val);
-    document.getElementById('h-discount').value = val.toFixed(1);
-    document.getElementById('live-discount-val').textContent = val.toFixed(1) + '%';
-    var lbl = document.getElementById('lbl-discount');
-    if (val > 0) {
-      lbl.textContent = '-' + val.toFixed(1) + '%';
-      lbl.style.color = 'var(--red)';
-      lbl.style.background = 'var(--red-light)';
-    } else {
-      lbl.textContent = 'Sem desconto';
-      lbl.style.color = 'var(--brand)';
-      lbl.style.background = 'var(--brand-bg)';
+var _prevMarginExceeded = {{ margin_exceeded|yesno:'true,false' }};
+var _prevBlocked = {{ margin_limit_exceeded|yesno:'true,false' }};
+function showMarginToast(msg) {
+  var t = document.getElementById('margin-toast');
+  if (msg) document.getElementById('margin-toast-msg').textContent = msg;
+  t.classList.add('show');
+}
+function hideMarginToast() {
+  document.getElementById('margin-toast').classList.remove('show');
+}
+
+function onDiscountChange(val) {
+  val = parseFloat(val);
+  document.getElementById('h-discount').value = val.toFixed(1);
+  document.getElementById('live-discount-val').textContent = val.toFixed(1) + '%';
+  var lbl = document.getElementById('lbl-discount');
+  if (val > 0) {
+    lbl.textContent = '-' + val.toFixed(1) + '%';
+    lbl.style.color = 'var(--red)'; lbl.style.background = '#fce4ec';
+  } else {
+    lbl.textContent = 'Sem desconto';
+    lbl.style.color = 'var(--brand)'; lbl.style.background = 'var(--bg)';
+  }
+}
+
+function onIncreaseChange(val) {
+  val = parseFloat(val);
+  document.getElementById('h-price-inc').value = val.toFixed(1);
+  var lbl = document.getElementById('lbl-increase');
+  if (val > 0) {
+    lbl.textContent = '+' + val.toFixed(1) + '%';
+    lbl.style.color = 'var(--green)'; lbl.style.background = '#e8f5e9';
+  } else {
+    lbl.textContent = 'Sem ajuste';
+    lbl.style.color = 'var(--brand)'; lbl.style.background = 'var(--bg)';
+  }
+}
+
+function onInstChange(val) {
+  document.getElementById('h-installments').value = parseInt(val);
+  updateFeeDisplay(parseInt(val));
+  toggleInstallmentTarget();
+}
+
+function onPaymentTypeChange() {
+  var pt = document.getElementById('sel-ptype').value;
+  document.getElementById('h-ptype').value = pt;
+  var hasInst = (pt === 'CREDIT_CARD' || pt === 'BOLETO');
+  document.getElementById('inst-dropdown-row').style.display = hasInst ? '' : 'none';
+  if (!hasInst) { document.getElementById('inst-select').value = 1; document.getElementById('h-installments').value = 1; }
+  rebuildInstOptions();
+  updateFeeDisplay(parseInt(document.getElementById('inst-select').value) || 1);
+  toggleInstallmentTarget();
+  scheduleSubmit();
+}
+
+function rebuildInstOptions() {
+  var pt = document.getElementById('sel-ptype').value;
+  var opts = tariffsByType[pt] || [];
+  var sel = document.getElementById('inst-select');
+  var cur = parseInt(sel.value) || 1;
+  sel.innerHTML = '';
+  opts.forEach(function(o) {
+    var opt = document.createElement('option');
+    opt.value = o.installments; opt.textContent = o.label;
+    if (o.installments === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  if (!sel.value) sel.value = 1;
+}
+
+function updateFeeDisplay(inst) {
+  var pt = document.getElementById('sel-ptype').value;
+  var opts = tariffsByType[pt] || [];
+  var fee = 0;
+  opts.forEach(function(o) { if (o.installments === inst) fee = o.fee; });
+  document.getElementById('fee-display').textContent = fee.toFixed(2) + '%';
+}
+
+var submitTimer = null, pendingTargetFinal = '', pendingTargetInstallment = '';
+
+function scheduleSubmit() {
+  pendingTargetFinal = '';
+  pendingTargetInstallment = '';
+  clearTimeout(submitTimer);
+  submitTimer = setTimeout(doSubmit, 400);
+}
+
+function doSubmit() {
+  showLoading();
+  var discount = parseFloat(document.getElementById('discount-slider').value) || 0;
+  var priceInc = parseFloat(document.getElementById('increase-slider').value) || 0;
+  document.getElementById('h-discount').value     = discount.toFixed(1);
+  document.getElementById('h-price-inc').value     = priceInc.toFixed(1);
+  document.getElementById('h-installments').value  = document.getElementById('inst-select').value;
+  document.getElementById('h-ptype').value         = document.getElementById('sel-ptype').value;
+  document.getElementById('h-architect').value     = document.getElementById('chk-architect').checked ? '1' : '0';
+  var archId = document.getElementById('h-architect-id').value;
+
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+  fd.append('_ajax', '1');
+  fd.append('discount_percent',       discount.toFixed(1));
+  fd.append('price_increase_percent', priceInc.toFixed(1));
+  fd.append('sim_installments',       document.getElementById('inst-select').value);
+  fd.append('sim_payment_type',       document.getElementById('sel-ptype').value);
+  fd.append('sim_has_architect',      document.getElementById('chk-architect').checked ? '1' : '0');
+  if (archId) fd.append('sim_architect_id', archId);
+  if (pendingTargetFinal) fd.append('target_final', pendingTargetFinal);
+  if (pendingTargetInstallment) fd.append('target_installment', pendingTargetInstallment);
+
+  fetch(window.location.href, {method:'POST', body:fd})
+    .then(function(r) { return r.text(); })
+    .then(function(html) { applyZones(html); hideLoading(); })
+    .catch(function(e) { console.error('Sim error:', e); hideLoading(); });
+}
+
+function applyZones(html) {
+  var doc = new DOMParser().parseFromString(html, 'text/html');
+  ['sim-results','margin-zone'].forEach(function(id) {
+    var n = doc.getElementById(id), c = document.getElementById(id);
+    if (n && c) c.outerHTML = n.outerHTML;
+  });
+  var nDA = doc.getElementById('live-discount-amount'), cDA = document.getElementById('live-discount-amount');
+  if (nDA && cDA) cDA.textContent = nDA.textContent;
+
+  var sd = document.getElementById('sim-data');
+  if (sd) {
+    var maxD = parseFloat(sd.dataset.maxDiscount) || 30;
+    var clD  = parseFloat(sd.dataset.discountClamped) || 0;
+    var sl   = document.getElementById('discount-slider');
+    sl.max = maxD;
+    if (parseFloat(sl.value) > maxD) { sl.value = clD; onDiscountChange(clD); }
+    var lm = document.getElementById('lbl-max-discount');
+    if (lm) lm.textContent = Math.round(maxD) + '%';
+    if (sd.dataset.targetMode === '1') {
+      var nd = parseFloat(sd.dataset.discountClamped) || 0;
+      var np = parseFloat(sd.dataset.priceIncrease) || 0;
+      sl.max = maxD; sl.value = nd; onDiscountChange(nd);
+      var is = document.getElementById('increase-slider');
+      is.value = np; onIncreaseChange(np);
     }
+    var nowExceeded = sd.dataset.marginExceeded === '1';
+    var nowBlocked = sd.dataset.marginLimitExceeded === '1';
+    if (nowBlocked && !_prevBlocked) showMarginToast('O custo total ultrapassou a margem permitida. Abra "Ajuste de Valor & Margem" para detalhes.');
+    if (!nowBlocked && _prevBlocked) hideMarginToast();
+    _prevMarginExceeded = nowExceeded;
+    _prevBlocked = nowBlocked;
   }
+}
 
-  // ── Price increase slider ────────────────────────────────────────────────
-  function onIncreaseChange(val) {
-    val = parseFloat(val);
-    document.getElementById('h-price-inc').value = val.toFixed(1);
-    var lbl = document.getElementById('lbl-increase');
-    if (val > 0) {
-      lbl.textContent = '+' + val.toFixed(1) + '%';
-      lbl.style.color = 'var(--green)';
-      lbl.style.background = 'var(--green-light)';
-    } else {
-      lbl.textContent = 'Sem ajuste';
-      lbl.style.color = 'var(--brand)';
-      lbl.style.background = 'var(--brand-bg)';
-    }
-  }
+function applyTargetFinal() {
+  var inp = document.getElementById('target-final-input');
+  var val = inp.value.replace(/\./g, '').replace(',', '.').trim();
+  if (!val || isNaN(parseFloat(val)) || parseFloat(val) <= 0) { inp.focus(); return; }
+  pendingTargetFinal = val; doSubmit();
+}
 
-  // ── Installments change ───────────────────────────────────────────────────
-  function onInstChange(val) {
-    val = parseInt(val);
-    document.getElementById('h-installments').value = val;
-    updateFeeDisplay(val);
-  }
+function clearTargetFinal() {
+  document.getElementById('target-final-input').value = '';
+  pendingTargetFinal = ''; scheduleSubmit();
+}
 
-  // ── Payment type change ───────────────────────────────────────────────────
-  function onPaymentTypeChange() {
-    var pt = document.getElementById('sel-ptype').value;
-    document.getElementById('h-ptype').value = pt;
-    var hasInstallments = (pt === 'CREDIT_CARD' || pt === 'BOLETO');
-    var instRow = document.getElementById('inst-dropdown-row');
-    instRow.style.display = hasInstallments ? '' : 'none';
-    if (!hasInstallments) {
-      document.getElementById('inst-select').value = 1;
-      document.getElementById('h-installments').value = 1;
-    }
-    rebuildInstOptions();
-    updateFeeDisplay(parseInt(document.getElementById('inst-select').value) || 1);
-    scheduleSubmit();
-  }
+function applyTargetInstallment() {
+  var inp = document.getElementById('target-installment-input');
+  var val = inp.value.replace(/\./g, '').replace(',', '.').trim();
+  if (!val || isNaN(parseFloat(val)) || parseFloat(val) <= 0) { inp.focus(); return; }
+  pendingTargetInstallment = val; doSubmit();
+}
 
-  function rebuildInstOptions() {
-    var pt = document.getElementById('sel-ptype').value;
-    var options = tariffsByType[pt] || [];
-    var instSel = document.getElementById('inst-select');
-    var curVal  = parseInt(instSel.value) || 1;
-    instSel.innerHTML = '';
-    options.forEach(function(o) {
-      var opt = document.createElement('option');
-      opt.value = o.installments;
-      opt.textContent = o.label;
-      if (o.installments === curVal) opt.selected = true;
-      instSel.appendChild(opt);
-    });
-    if (!instSel.value) {
-      instSel.value = 1;
-    }
-  }
+function clearTargetInstallment() {
+  document.getElementById('target-installment-input').value = '';
+  pendingTargetInstallment = ''; scheduleSubmit();
+}
 
-  function updateFeeDisplay(installments) {
-    var ptype   = document.getElementById('sel-ptype').value;
-    var options = tariffsByType[ptype] || [];
-    var fee     = 0;
-    options.forEach(function(o) {
-      if (o.installments === installments) fee = o.fee;
-    });
-    document.getElementById('fee-display').textContent = fee.toFixed(2) + '%';
-  }
+function toggleInstallmentTarget() {
+  var pt = document.getElementById('sel-ptype').value;
+  var inst = parseInt(document.getElementById('inst-select').value) || 1;
+  var sec = document.getElementById('target-installment-section');
+  if (sec) sec.style.display = ((pt === 'CREDIT_CARD' || pt === 'BOLETO') && inst > 1) ? '' : 'none';
+}
 
-  // ── Auto-submit (debounced AJAX) ──────────────────────────────────────────
-  var submitTimer = null;
-  function scheduleSubmit() {
-    clearTimeout(submitTimer);
-    submitTimer = setTimeout(doSubmit, 400);
-  }
+/* ── Architect search / select / register ────────────────── */
+var _archSearchTimer = null;
 
-  function doSubmit() {
-    showLoading();
-    var discount  = parseFloat(document.getElementById('discount-slider').value) || 0;
-    var priceInc  = parseFloat(document.getElementById('increase-slider').value) || 0;
-    document.getElementById('h-discount').value     = discount.toFixed(1);
-    document.getElementById('h-price-inc').value    = priceInc.toFixed(1);
-    document.getElementById('h-installments').value = document.getElementById('inst-select').value;
-    document.getElementById('h-ptype').value        = document.getElementById('sel-ptype').value;
-    document.getElementById('h-architect').value    = document.getElementById('chk-architect').checked ? '1' : '0';
+function toggleArchitectPanel() {
+  var panel = document.getElementById('architect-panel');
+  if (panel) panel.style.display = document.getElementById('chk-architect').checked ? 'block' : 'none';
+}
 
-    var fd = new FormData();
-    fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-    fd.append('_ajax', '1');
-    fd.append('discount_percent',       discount.toFixed(1));
-    fd.append('price_increase_percent', priceInc.toFixed(1));
-    fd.append('sim_installments',       document.getElementById('inst-select').value);
-    fd.append('sim_payment_type',       document.getElementById('sel-ptype').value);
-    fd.append('sim_has_architect',      document.getElementById('chk-architect').checked ? '1' : '0');
+function searchArchitectDebounce() {
+  clearTimeout(_archSearchTimer);
+  var q = document.getElementById('arch-search-input').value.trim();
+  if (q.length < 2) { document.getElementById('arch-results').classList.add('d-none'); return; }
+  _archSearchTimer = setTimeout(function() { searchArchitect(q); }, 400);
+}
 
-    fetch(window.location.href, {method: 'POST', body: fd})
-      .then(function(r) { return r.text(); })
-      .then(function(html) { applyZones(html); hideLoading(); })
-      .catch(function(e) { console.error('Sim AJAX error:', e); hideLoading(); });
-  }
-
-  function applyZones(html) {
-    var doc = new DOMParser().parseFromString(html, 'text/html');
-    ['sim-results', 'margin-zone', 'increase-suggestion-zone'].forEach(function(id) {
-      var newEl = doc.getElementById(id);
-      var curEl = document.getElementById(id);
-      if (newEl && curEl) curEl.outerHTML = newEl.outerHTML;
-    });
-    var newDA = doc.getElementById('live-discount-amount');
-    var curDA = document.getElementById('live-discount-amount');
-    if (newDA && curDA) curDA.textContent = newDA.textContent;
-
-    var simData = document.getElementById('sim-data');
-    if (simData) {
-      var maxDisc = parseFloat(simData.dataset.maxDiscount) || 30;
-      var clampedDisc = parseFloat(simData.dataset.discountClamped) || 0;
-      var slider = document.getElementById('discount-slider');
-      slider.max = maxDisc;
-      if (parseFloat(slider.value) > maxDisc) {
-        slider.value = clampedDisc;
-        onDiscountChange(clampedDisc);
+function searchArchitect(query) {
+  fetch('/api/search-architect/?query=' + encodeURIComponent(query))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var list = document.getElementById('arch-results-list');
+      list.innerHTML = '';
+      if (data.results && data.results.length) {
+        data.results.forEach(function(a) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn btn-sm btn-outline-secondary text-start';
+          btn.innerHTML = '<strong>' + a.name + '</strong><br><small class="text-muted">PIX: ' + a.pix + '</small>';
+          btn.onclick = function() { selectArchitect(a.id, a.name, a.pix); };
+          list.appendChild(btn);
+        });
+      } else {
+        list.innerHTML = '<small class="text-muted">Nenhum arquiteto encontrado.</small>';
       }
-      var lblMax = document.getElementById('lbl-max-discount');
-      if (lblMax) lblMax.textContent = Math.round(maxDisc) + '%';
+      document.getElementById('arch-results').classList.remove('d-none');
+      document.getElementById('arch-register').classList.add('d-none');
+    });
+}
+
+function selectArchitect(id, name, pix) {
+  document.getElementById('h-architect-id').value = id;
+  document.getElementById('arch-selected-name').textContent = name;
+  document.getElementById('arch-selected-pix').textContent = 'PIX: ' + pix;
+  document.getElementById('arch-selected').classList.remove('d-none');
+  document.getElementById('arch-search-box').classList.add('d-none');
+  document.getElementById('arch-results').classList.add('d-none');
+  document.getElementById('arch-register').classList.add('d-none');
+  document.getElementById('arch-search-input').value = '';
+  scheduleSubmit();
+}
+
+function deselectArchitect() {
+  document.getElementById('h-architect-id').value = '';
+  document.getElementById('arch-selected').classList.add('d-none');
+  document.getElementById('arch-search-box').classList.remove('d-none');
+  document.getElementById('arch-search-input').value = '';
+}
+
+function showArchitectRegister() {
+  document.getElementById('arch-register').classList.remove('d-none');
+  document.getElementById('arch-results').classList.add('d-none');
+}
+
+function hideArchitectRegister() {
+  document.getElementById('arch-register').classList.add('d-none');
+  document.getElementById('arch-new-name').value = '';
+  document.getElementById('arch-new-pix').value = '';
+}
+
+function createArchitect() {
+  var name = document.getElementById('arch-new-name').value.trim();
+  var pix = document.getElementById('arch-new-pix').value.trim();
+  if (!name) { document.getElementById('arch-new-name').focus(); return; }
+  if (!pix) { document.getElementById('arch-new-pix').focus(); return; }
+  fetch('/api/create-architect/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value},
+    body: JSON.stringify({name: name, pix: pix})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      selectArchitect(data.architect.id, data.architect.name, data.architect.pix);
+      hideArchitectRegister();
+    } else {
+      alert(data.error || 'Erro ao cadastrar arquiteto.');
     }
-  }
+  })
+  .catch(function(e) { alert('Erro ao cadastrar arquiteto.'); });
+}
 
-  // ── Save conditions ───────────────────────────────────────────────────────
-  function saveConditions() {
-    document.getElementById('save-ptype').value = document.getElementById('sel-ptype').value;
-    document.getElementById('save-inst').value  = document.getElementById('inst-select').value;
-    document.getElementById('save-arch').value  = document.getElementById('chk-architect').checked ? '1' : '0';
-    document.getElementById('save-disc').value  = document.getElementById('h-discount').value;
-    document.getElementById('save-pi').value    = document.getElementById('h-price-inc').value;
-    document.getElementById('save-form').submit();
-  }
+function saveConditions() {
+  document.getElementById('save-ptype').value = document.getElementById('sel-ptype').value;
+  document.getElementById('save-inst').value  = document.getElementById('inst-select').value;
+  document.getElementById('save-arch').value  = document.getElementById('chk-architect').checked ? '1' : '0';
+  document.getElementById('save-arch-id').value = document.getElementById('h-architect-id').value;
+  document.getElementById('save-disc').value  = document.getElementById('h-discount').value;
+  document.getElementById('save-pi').value    = document.getElementById('h-price-inc').value;
+  document.getElementById('save-form').submit();
+}
 
-  // ── Init ──────────────────────────────────────────────────────────────────
-  (function init() {
-    document.getElementById('h-discount').value     = initDiscount.toFixed(1);
-    document.getElementById('h-price-inc').value     = initPriceInc.toFixed(1);
-    document.getElementById('h-installments').value  = initInstall;
-    document.getElementById('h-ptype').value         = initPType;
-    document.getElementById('h-architect').value     = '{{ sim_has_architect|yesno:"1,0" }}';
-
-    document.getElementById('discount-slider').value = initDiscount;
-    document.getElementById('increase-slider').value = initPriceInc;
-
-    rebuildInstOptions();
-    var instSel = document.getElementById('inst-select');
-    instSel.value = initInstall;
-
-    var hasInstallments = (initPType === 'CREDIT_CARD' || initPType === 'BOLETO');
-    document.getElementById('inst-dropdown-row').style.display = hasInstallments ? '' : 'none';
-
-    updateFeeDisplay(initInstall);
-  })();
-  </script>
+(function init() {
+  document.getElementById('h-discount').value    = initDiscount.toFixed(1);
+  document.getElementById('h-price-inc').value    = initPriceInc.toFixed(1);
+  document.getElementById('h-installments').value = initInstall;
+  document.getElementById('h-ptype').value        = initPType;
+  document.getElementById('h-architect').value    = '{{ sim_has_architect|yesno:"1,0" }}';
+  document.getElementById('h-architect-id').value = '{{ sim_architect_id }}';
+  document.getElementById('discount-slider').value = initDiscount;
+  document.getElementById('increase-slider').value = initPriceInc;
+  rebuildInstOptions();
+  document.getElementById('inst-select').value = initInstall;
+  document.getElementById('inst-dropdown-row').style.display =
+    (initPType === 'CREDIT_CARD' || initPType === 'BOLETO') ? '' : 'none';
+  updateFeeDisplay(initInstall);
+  formatInitialValue(document.getElementById('target-final-input'));
+  formatInitialValue(document.getElementById('target-installment-input'));
+  document.getElementById('target-final-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); applyTargetFinal(); }
+  });
+  var tii = document.getElementById('target-installment-input');
+  if (tii) tii.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); applyTargetInstallment(); } });
+  toggleInstallmentTarget();
+})();
+</script>
 </body>
 </html>

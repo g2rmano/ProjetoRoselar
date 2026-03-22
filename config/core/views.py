@@ -474,7 +474,7 @@ def search_customer(request):
         })
     return JsonResponse({"found": False})
 
-
+2
 @login_required
 @require_http_methods(["POST"])
 def create_customer(request):
@@ -528,6 +528,39 @@ def get_shipping_company_payment_methods(request, company_id):
         return JsonResponse({"success": True, "payment_methods": company.payment_methods or ""})
     except ShippingCompany.DoesNotExist:
         return JsonResponse({"success": False, "payment_methods": ""}, status=404)
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Architect Search / Create
+# ──────────────────────────────────────────────────────────────────────
+@login_required
+def search_architect(request):
+    query = request.GET.get("query", "").strip()
+    if not query or len(query) < 2:
+        return JsonResponse({"results": []})
+    from .models import Architect
+    architects = Architect.objects.filter(name__icontains=query)[:5]
+    results = [{"id": a.id, "name": a.name, "pix": a.pix} for a in architects]
+    return JsonResponse({"results": results})
+
+
+@login_required
+@require_http_methods(["POST"])
+def create_architect(request):
+    import json
+    try:
+        data = json.loads(request.body)
+        name = (data.get("name") or "").strip()
+        pix = (data.get("pix") or "").strip()
+        if not name:
+            return JsonResponse({"success": False, "error": "Nome é obrigatório."}, status=400)
+        if not pix:
+            return JsonResponse({"success": False, "error": "Chave PIX é obrigatória."}, status=400)
+        from .models import Architect
+        architect = Architect.objects.create(name=name, pix=pix)
+        return JsonResponse({"success": True, "architect": {"id": architect.id, "name": architect.name, "pix": architect.pix}})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -684,7 +717,7 @@ def report_commissions(request):
     date_to = request.GET.get("date_to", str(today))
 
     from core.models import SalesMarginConfig
-    TOTAL_MARGIN, MIN_COMM, MAX_COMM = SalesMarginConfig.get_config()
+    TOTAL_MARGIN, MIN_COMM, MAX_COMM, _margin_limit = SalesMarginConfig.get_config()
 
     qs = Quote.objects.filter(
         status=QuoteStatus.CONVERTED,

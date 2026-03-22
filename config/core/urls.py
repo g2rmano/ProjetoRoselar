@@ -12,6 +12,11 @@ urlpatterns = [
     path("api/search-customer/", views.search_customer, name="search_customer"),
     path("api/create-customer/", views.create_customer, name="create_customer"),
     path("api/search-customer-by-name/", views.search_customer_by_name, name="search_customer_by_name"),
+
+    # Architect APIs
+    path("api/search-architect/", views.search_architect, name="search_architect"),
+    path("api/create-architect/", views.create_architect, name="create_architect"),
+
     path("api/shipping-company/<int:company_id>/payment-methods/", views.get_shipping_company_payment_methods, name="shipping_company_payment_methods"),
 
     # Global Search

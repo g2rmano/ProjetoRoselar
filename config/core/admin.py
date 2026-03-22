@@ -5,6 +5,7 @@ from .models import (
     Notification, AuditLog, SalesGoal,
     CommunicationHistory,
     QuoteTemplate, QuoteTemplateItem,
+    Architect,
 )
 
 
@@ -58,10 +59,18 @@ class ArchitectCommissionAdmin(AdminOnly, admin.ModelAdmin):
         return False
 
 
+@admin.register(Architect)
+class ArchitectAdmin(SellerAccess, admin.ModelAdmin):
+    list_display = ("name", "pix", "created_at")
+    search_fields = ("name", "pix")
+    fields = ("name", "pix")
+    actions = ["delete_selected"]
+
+
 @admin.register(SalesMarginConfig)
 class SalesMarginConfigAdmin(AdminOnly, admin.ModelAdmin):
-    list_display = ("total_margin", "min_commission", "max_commission")
-    fields = ("total_margin", "min_commission", "max_commission")
+    list_display = ("total_margin", "min_commission", "max_commission", "margin_limit")
+    fields = ("total_margin", "min_commission", "max_commission", "margin_limit")
 
     def has_add_permission(self, request):
         if not _is_admin(request.user):
