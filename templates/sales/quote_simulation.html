@@ -338,7 +338,7 @@
                     <span class="s-max" id="lbl-max-discount">{{ max_discount_allowed|floatformat:0 }}%</span>
                   </div>
                   <input type="range" class="sl-disc" id="discount-slider"
-                         min="0" max="{{ max_discount_allowed|floatformat:1 }}" step="0.5"
+                         min="0" max="{{ max_discount_allowed|floatformat:1 }}" step="0.1"
                          value="{{ discount_percent }}"
                          oninput="onDiscountChange(this.value); scheduleSubmit()">
                 </div>
@@ -359,7 +359,7 @@
               </div>
             </div>
 
-            <!-- Ajuste de Valor & Margem -->
+            <!-- Ajuste de Preço -->
             <div class="s-card fi fi-4">
               <div class="s-hdr" style="cursor:pointer;" onclick="this.querySelector('.col-toggle').click()">
                 <div class="s-icon green"><i class="fa-solid fa-chart-line"></i></div>
@@ -367,7 +367,7 @@
                         data-bs-toggle="collapse" data-bs-target="#increase-collapse"
                         aria-expanded="false" aria-controls="increase-collapse"
                         onclick="event.stopPropagation();">
-                  <span>Ajuste de Valor &amp; Margem</span>
+                  <span>Ajuste de Preço</span>
                   <i class="fa-solid fa-chevron-down arr"></i>
                 </button>
               </div>
@@ -383,50 +383,37 @@
                       <span class="s-max">30%</span>
                     </div>
                     <input type="range" class="sl-inc" id="increase-slider"
-                           min="0" max="30" step="0.5"
+                           min="0" max="30" step="0.1"
                            value="{{ price_increase_pct }}"
                            oninput="onIncreaseChange(this.value); scheduleSubmit()">
                   </div>
-
                   <hr style="border-color:var(--border);margin:.8rem 0;">
                   <div id="margin-zone">
-                  {% if margin_exceeded %}
-                  <div class="sim-msg warn">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                    <div>
-                      <strong>Margem Excedida!</strong>
-                      Custo total: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%).
-                      {% if commission_reduced %}Comissão reduzida para {{ seller_commission_percent }}%.{% endif %}
-                      {% if suggested_increase > 0 %}Sugestão: +<strong>{{ suggested_increase }}%</strong> de ajuste.{% endif %}
-                    </div>
-                  </div>
-                  {% elif commission_reduced %}
-                  <div class="sim-msg ok">
-                    <i class="fa-solid fa-shield-halved"></i>
-                    <div><strong>Comissão proporcional:</strong> {{ seller_commission_percent }}% (faixa: 3%-5%). Custo: <strong>{{ total_cost_pct }}%</strong></div>
-                  </div>
-                  {% else %}
-                  <div class="sim-msg ok">
-                    <i class="fa-solid fa-check-circle"></i>
-                    <div><strong>Margem OK!</strong> Custo: <strong>{{ total_cost_pct }}%</strong> (margem: {{ effective_margin }}%)</div>
-                  </div>
-                  {% endif %}
-
                   {% if margin_limit_exceeded %}
                   <div class="sim-msg bad">
                     <i class="fa-solid fa-ban"></i>
                     <div>
-                      <strong>Bloqueado!</strong> O custo total (<strong>{{ total_cost_pct }}%</strong>) atingiu o limite de margem (<strong>{{ margin_limit }}%</strong>).
-                      {% if min_increase_to_unblock > 0 %}Adicione no mínimo <strong>+{{ min_increase_to_unblock }}%</strong> de ajuste para desbloquear.{% else %}Reduza o desconto, remova o arquiteto ou aumente o preço.{% endif %}
+                      <strong>Bloqueado!</strong>
+                      {% if min_increase_to_unblock > 0 %}Adicione no mínimo <strong>+{{ min_increase_to_unblock }}%</strong> de ajuste para desbloquear.{% else %}Reduza o desconto, o número de parcelas ou aumente o preço.{% endif %}
                     </div>
                   </div>
+                  {% elif margin_exceeded %}
+                  <div class="sim-msg warn">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div>
+                      <strong>Atenção!</strong>
+                      {% if suggested_increase > 0 %}Sugestão: aumente <strong>+{{ suggested_increase }}%</strong> no ajuste de preço.{% else %}Considere aumentar o ajuste de preço ou reduzir o desconto.{% endif %}
+                    </div>
+                  </div>
+                  {% else %}
+                  <div class="sim-msg ok">
+                    <i class="fa-solid fa-check-circle"></i>
+                    <div><strong>Condições OK!</strong></div>
+                  </div>
                   {% endif %}
-
-                  <div class="row g-2">
-                    <div class="col-6 col-md-3"><div class="stat"><div class="stat-l">Margem</div><div class="stat-v" style="font-size:.95rem;">{{ effective_margin }}%</div></div></div>
-                    <div class="col-6 col-md-3"><div class="stat"><div class="stat-l">Taxa</div><div class="stat-v {% if store_fee_percent > 10 %}red{% endif %}" style="font-size:.95rem;">{{ store_fee_percent }}%</div></div></div>
-                    <div class="col-6 col-md-3"><div class="stat"><div class="stat-l">Comissão</div><div class="stat-v" style="font-size:.95rem;">{{ seller_commission_percent }}%</div></div></div>
-                    <div class="col-6 col-md-3"><div class="stat"><div class="stat-l">Custo Total</div><div class="stat-v {% if margin_exceeded %}red{% else %}green{% endif %}" style="font-size:.95rem;">{{ total_cost_pct }}%</div></div></div>
+                  <div class="row g-2 mt-2">
+                    <div class="col-6"><div class="stat"><div class="stat-l">Comissão</div><div class="stat-v" style="font-size:.95rem;">{{ seller_commission_percent }}%</div></div></div>
+                    <div class="col-6"><div class="stat"><div class="stat-l">Valor</div><div class="stat-v green" style="font-size:.95rem;">R$ {{ seller_commission_value|floatformat:2 }}</div></div></div>
                   </div>
                   </div>
                 </div>
@@ -590,7 +577,7 @@
                 <div class="hi mt-3" style="background:#fff3f3;border:2px dashed var(--red);padding:1.2rem;text-align:center;border-radius:10px;">
                   <i class="fa-solid fa-lock" style="font-size:1.5rem;color:var(--red);margin-bottom:.4rem;"></i>
                   <div style="font-weight:700;color:var(--red);font-size:1rem;">Condições Bloqueadas</div>
-                  <div style="font-size:.82rem;color:var(--muted);margin-top:.3rem;">Valores ocultos enquanto o limite de margem estiver excedido.</div>
+                  <div style="font-size:.82rem;color:var(--muted);margin-top:.3rem;">Ajuste as condições para desbloquear.</div>
                   {% if min_increase_to_unblock > 0 %}
                   <div style="font-size:.85rem;margin-top:.5rem;color:var(--brand);font-weight:600;">
                     <i class="fa-solid fa-lightbulb me-1"></i>Adicione no mínimo <strong>+{{ min_increase_to_unblock }}%</strong> de ajuste para desbloquear.
@@ -716,23 +703,6 @@
                   </div>
                   {% endif %}
                   <div class="col-12">
-                    <div class="hi {% if seller_commission_percent >= 4 %}green{% else %}brand{% endif %}" style="padding:.9rem 1.1rem;">
-                      <button type="button" class="col-toggle col-toggle-w"
-                              data-bs-toggle="collapse" data-bs-target="#seller-commission-collapse"
-                              aria-expanded="false" aria-controls="seller-commission-collapse">
-                        <span class="hi-l mb-0" style="opacity:1;"><i class="fa-solid fa-user-tie me-1"></i>Comissão do Vendedor</span>
-                        <i class="fa-solid fa-chevron-down arr"></i>
-                      </button>
-                      <div id="seller-commission-collapse" class="collapse mt-2">
-                        <div class="d-flex justify-content-between align-items-center">
-                          <div class="hi-v" style="font-size:1.2rem;">R$ {{ seller_commission_value|floatformat:2 }}</div>
-                          <div style="font-size:.75rem;opacity:.85;text-align:right;">
-                            {{ seller_commission_percent }}% sobre R$ {{ seller_commission_base|floatformat:2 }}
-                            {% if sim_has_architect %}<br>(após comissão arquiteto){% endif %}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
                 {% endif %}
@@ -747,7 +717,7 @@
                 <button type="button" class="btn-a dark w-100" disabled
                         style="justify-content:center;padding:.75rem;opacity:.5;cursor:not-allowed;">
                   <i class="fa-solid fa-ban"></i>
-                  Condições Bloqueadas (limite {{ margin_limit }}%)
+                  Condições Bloqueadas
                 </button>
                 {% else %}
                 <button type="button" class="btn-a primary w-100" onclick="saveConditions()" style="justify-content:center;padding:.75rem;">
@@ -983,7 +953,7 @@ function applyZones(html) {
     }
     var nowExceeded = sd.dataset.marginExceeded === '1';
     var nowBlocked = sd.dataset.marginLimitExceeded === '1';
-    if (nowBlocked && !_prevBlocked) showMarginToast('O custo total ultrapassou a margem permitida. Abra "Ajuste de Valor & Margem" para detalhes.');
+    if (nowBlocked && !_prevBlocked) showMarginToast('O custo total ultrapassou o limite de margem. Ajuste as condições.');
     if (!nowBlocked && _prevBlocked) hideMarginToast();
     _prevMarginExceeded = nowExceeded;
     _prevBlocked = nowBlocked;

@@ -530,6 +530,46 @@ def get_shipping_company_payment_methods(request, company_id):
         return JsonResponse({"success": False, "payment_methods": ""}, status=404)
 
 
+@login_required
+def search_shipping_company(request):
+    query = request.GET.get("query", "").strip()
+    if not query or len(query) < 2:
+        return JsonResponse({"results": []})
+    companies = ShippingCompany.objects.filter(name__icontains=query, is_active=True)[:5]
+    results = [{"id": c.id, "name": c.name, "cnpj": c.cnpj or ""} for c in companies]
+    return JsonResponse({"results": results})
+
+
+@login_required
+@require_http_methods(["POST"])
+def create_shipping_company(request):
+    try:
+        data = json.loads(request.body)
+        name = (data.get("name") or "").strip()
+        cnpj = (data.get("cnpj") or "").strip().replace(".", "").replace("/", "").replace("-", "")
+        email = (data.get("email") or "").strip()
+        if not name:
+            return JsonResponse({"success": False, "error": "Nome é obrigatório."}, status=400)
+        if not cnpj:
+            return JsonResponse({"success": False, "error": "CNPJ é obrigatório."}, status=400)
+        if not email:
+            return JsonResponse({"success": False, "error": "E-mail é obrigatório."}, status=400)
+        company = ShippingCompany(name=name, cnpj=cnpj, email=email)
+        company.full_clean()
+        company.save()
+        return JsonResponse({"success": True, "company": {"id": company.id, "name": str(company)}})
+    except ValidationError as e:
+        msgs = []
+        if hasattr(e, 'message_dict'):
+            for field, errors in e.message_dict.items():
+                msgs.extend(errors)
+        else:
+            msgs = list(e.messages)
+        return JsonResponse({"success": False, "error": " ".join(msgs)}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
 # ──────────────────────────────────────────────────────────────────────
 # Architect Search / Create
 # ──────────────────────────────────────────────────────────────────────
@@ -717,7 +757,7 @@ def report_commissions(request):
     date_to = request.GET.get("date_to", str(today))
 
     from core.models import SalesMarginConfig
-    TOTAL_MARGIN, MIN_COMM, MAX_COMM, _margin_limit = SalesMarginConfig.get_config()
+    TOTAL_MARGIN, MIN_COMM, MAX_COMM = SalesMarginConfig.get_config()
 
     qs = Quote.objects.filter(
         status=QuoteStatus.CONVERTED,

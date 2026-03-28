@@ -69,8 +69,8 @@ class ArchitectAdmin(SellerAccess, admin.ModelAdmin):
 
 @admin.register(SalesMarginConfig)
 class SalesMarginConfigAdmin(AdminOnly, admin.ModelAdmin):
-    list_display = ("total_margin", "min_commission", "max_commission", "margin_limit")
-    fields = ("total_margin", "min_commission", "max_commission", "margin_limit")
+    list_display = ("total_margin", "min_commission", "max_commission")
+    fields = ("total_margin", "min_commission", "max_commission")
 
     def has_add_permission(self, request):
         if not _is_admin(request.user):

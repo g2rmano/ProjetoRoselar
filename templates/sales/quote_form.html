@@ -27,72 +27,148 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <style>
-      /* Make all form controls square */
+      :root {
+        --brand:   #0A2640;
+        --brand-l: #163a5a;
+        --bg:      #f4f6f9;
+        --surface: #fff;
+        --green:   #198754;
+        --red:     #dc3545;
+        --orange:  #e67e22;
+        --blue:    #0d6efd;
+        --muted:   #6c757d;
+        --border:  #dee2e6;
+        --radius:  10px;
+        --shadow:  0 1px 4px rgba(0,0,0,.06);
+        --shadow-h:0 4px 14px rgba(0,0,0,.09);
+      }
+      * { box-sizing: border-box; }
+      body { font-family: 'Manrope', sans-serif; background: var(--bg); }
+
+      /* ── Section cards ── */
+      .s-card {
+        background: var(--surface); border-radius: var(--radius);
+        box-shadow: var(--shadow); margin-bottom: 1rem;
+        overflow: hidden; border: 1px solid rgba(0,0,0,.04);
+        transition: box-shadow .2s;
+      }
+      .s-card:hover { box-shadow: var(--shadow-h); }
+      .s-hdr {
+        padding: .7rem 1.1rem; display: flex; align-items: center; gap: .55rem;
+        font-weight: 700; font-size: .88rem; color: var(--brand);
+        background: #fafbfc; border-bottom: 1px solid var(--border);
+      }
+      .s-icon {
+        width: 30px; height: 30px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .78rem; color: #fff; flex-shrink: 0;
+      }
+      .s-icon.brand  { background: var(--brand); }
+      .s-icon.green  { background: var(--green); }
+      .s-icon.red    { background: var(--red); }
+      .s-icon.orange { background: var(--orange); }
+      .s-icon.blue   { background: var(--blue); }
+      .s-icon.muted  { background: var(--muted); }
+      .s-body { padding: 1.1rem; }
+
+      /* ── Form controls ── */
       .form-control,
       .form-select,
-      input:not([type="checkbox"]):not([type="radio"]),
+      input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
       select,
       textarea {
-        border-radius: 0 !important;
+        border: 1.5px solid var(--border); border-radius: 8px !important;
+        font-size: .88rem; font-weight: 500; color: var(--brand);
+        transition: border-color .2s, box-shadow .2s;
       }
-      
-      /* Keep only user dropdown button rounded */
-      #dropdownUserButton {
-        border-radius: 0.375rem !important;
+      .form-control:focus,
+      .form-select:focus,
+      select:focus,
+      textarea:focus {
+        border-color: var(--brand) !important;
+        box-shadow: 0 0 0 3px rgba(10,38,64,.1) !important;
       }
-      
-      /* Auto-resize textarea */
+      .f-label, .form-label {
+        font-size: .72rem !important; font-weight: 700 !important;
+        text-transform: uppercase; letter-spacing: .04em;
+        color: var(--muted) !important; margin-bottom: .3rem !important;
+      }
       textarea.form-control {
-        min-height: 38px;
-        max-height: 200px;
-        resize: none;
-        overflow-y: auto;
-        transition: height 0.1s ease;
-        line-height: 1.5;
+        min-height: 38px; max-height: 200px; resize: none;
+        overflow-y: auto; transition: height 0.1s ease; line-height: 1.5;
       }
-      
+
+      /* ── Formset rows ── */
       .formset-row {
-        border: 1px solid #dee2e6;
-        border-radius: 0;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        background-color: #f8f9fa;
-        position: relative;
+        border: 1.5px solid var(--border); border-radius: var(--radius);
+        padding: 1.2rem 1.2rem .5rem; margin-bottom: .8rem;
+        background: var(--bg); position: relative;
+        transition: border-color .2s, box-shadow .2s;
+      }
+      .formset-row:hover { border-color: #c0c7ce; box-shadow: var(--shadow); }
+      .formset-row .item-number {
+        position: absolute; top: -10px; left: 14px;
+        background: var(--brand); color: #fff; font-size: .68rem; font-weight: 800;
+        padding: 1px 10px; border-radius: 6px; letter-spacing: .03em;
       }
       .delete-row-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        opacity: 1;
-        background-color: #dc3545;
-        color: #fff;
-        border: none;
-        z-index: 10;
+        position: absolute; top: 8px; right: 8px;
+        width: 28px; height: 28px; border-radius: 8px !important;
+        display: flex; align-items: center; justify-content: center;
+        background: #fce4ec; color: var(--red); border: 1px solid #f1aeb5;
+        font-size: .72rem; z-index: 10; cursor: pointer; transition: .2s;
       }
-      .add-row-btn {
-        margin-top: 1rem;
+      .delete-row-btn:hover { background: var(--red); color: #fff; }
+
+      /* ── Buttons ── */
+      .btn-a {
+        display: inline-flex; align-items: center; gap: .35rem;
+        padding: .55rem 1.2rem; font-weight: 700; font-size: .85rem;
+        border: none; border-radius: 8px !important; cursor: pointer;
+        text-decoration: none; transition: all .2s;
       }
-      #customer-results-list .btn {
-        transition: all 0.2s;
+      .btn-a:hover { transform: translateY(-1px); box-shadow: var(--shadow-h); }
+      .btn-a.primary { background: var(--green); color: #fff; }
+      .btn-a.primary:hover { background: #146c43; color: #fff; }
+      .btn-a.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--border); }
+      .btn-a.secondary:hover { background: var(--bg); color: var(--brand); }
+      .btn-a.dark { background: var(--brand); color: #fff; }
+      .btn-a.dark:hover { background: var(--brand-l); color: #fff; }
+      .btn-a.outline { background: transparent; color: var(--green); border: 1.5px solid var(--green); }
+      .btn-a.outline:hover { background: var(--green); color: #fff; }
+
+      /* ── Search results ── */
+      #customer-results-list .btn,
+      #shipping-results-list .btn {
+        transition: all 0.2s; border-radius: 8px !important;
       }
-      #customer-results-list .btn:hover {
+      #customer-results-list .btn:hover,
+      #shipping-results-list .btn:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       }
-      
-      /* Square cards */
-      .card {
-        border-radius: 0 !important;
-      }
-      
-      /* Square buttons except user dropdown */
-      .btn:not(#dropdownUserButton) {
-        border-radius: 0 !important;
-      }
-      
-      /* Square alerts */
-      .alert {
-        border-radius: 0 !important;
+
+      /* ── Alerts ── */
+      .alert { border-radius: 8px !important; font-size: .86rem; }
+      .alert-success { background: #e8f5e9; border: 1px solid #a3cfbb; color: #0f5132; }
+      .alert-info    { background: #e3f2fd; border: 1px solid #90caf9; color: #0c5276; }
+      .alert-warning { background: #fff8e1; border: 1px solid #ffe082; color: #6d5200; }
+      .alert-danger  { background: #fce4ec; border: 1px solid #f1aeb5; color: #842029; }
+
+      /* ── Cards (override bootstrap) ── */
+      .card { border-radius: var(--radius) !important; border: none !important; }
+
+      /* ── Animations ── */
+      @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+      .fi { animation: fadeIn .35s ease both; }
+      .fi-1 { animation-delay:.05s } .fi-2 { animation-delay:.1s }
+      .fi-3 { animation-delay:.15s } .fi-4 { animation-delay:.2s }
+      .fi-5 { animation-delay:.25s }
+
+      /* ── Responsive ── */
+      @media (max-width: 768px) {
+        .s-body { padding: .8rem; }
+        .formset-row { padding: .9rem .9rem .3rem; }
       }
     </style>
   </head>
@@ -138,35 +214,51 @@
         </div>
       </nav>
 
-      <section class="py-8" style="min-height: 100vh;">
-        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 30vh; z-index: -1;"></div>
+      <section class="py-5" style="min-height: 100vh;">
+        <div style="position:absolute;top:0;left:0;right:0;height:30vh;
+                     background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
         
-        <div class="container">
-          <div class="row justify-content-center mt-5">
-            <div class="col-12 col-lg-10">
-              <div class="bg-white p-5 rounded-3 shadow-lg">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                  <h1 class="fw-bold mb-0">
-                    <i class="fa-solid fa-file-invoice me-2"></i>
-                    {% if quote %}Editar Orçamento #{{ quote.number }}{% else %}Novo Orçamento{% endif %}
-                  </h1>
-                  {% if quote %}
-                    <a href="{% url 'sales:quote_detail' quote.id %}" class="btn btn-outline-secondary">
-                      <i class="fa-solid fa-arrow-left me-2"></i>Voltar
-                    </a>
-                  {% endif %}
-                </div>
+        <div class="container" style="margin-top:80px;max-width:900px;">
 
-                <form method="post" id="quote-form" enctype="multipart/form-data">
-                  {% csrf_token %}
-
-
-
-                  <div class="card mb-4">
-                    <div class="card-header bg-info text-white">
-                      <h5 class="mb-0"><i class="fa-solid fa-user me-2"></i>Cliente</h5>
+          <!-- ═══ HEADER ═══ -->
+          <div class="s-card fi" style="border:none;box-shadow:var(--shadow-h);">
+            <div style="padding:1.3rem 1.4rem;">
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                  <div class="d-flex align-items-center gap-3 mb-2">
+                    <div style="width:40px;height:40px;border-radius:10px;background:var(--brand);color:#fff;
+                                display:flex;align-items:center;justify-content:center;font-size:1.1rem;">
+                      <i class="fa-solid fa-file-invoice"></i>
                     </div>
-                    <div class="card-body">
+                    <div>
+                      <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">
+                        {% if quote %}Editar Orçamento #{{ quote.number }}{% else %}Novo Orçamento{% endif %}
+                      </h4>
+                      <div style="font-size:.78rem;color:var(--muted);">Preencha os dados do orçamento</div>
+                    </div>
+                  </div>
+                </div>
+                {% if quote %}
+                <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-a secondary" style="flex-shrink:0;">
+                  <i class="fa-solid fa-arrow-left"></i>Voltar
+                </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ FORM ═══ -->
+          <form method="post" id="quote-form" enctype="multipart/form-data">
+            {% csrf_token %}
+
+
+
+            <div class="s-card fi fi-1">
+                    <div class="s-hdr">
+                      <div class="s-icon blue"><i class="fa-solid fa-user"></i></div>
+                      Cliente
+                    </div>
+                    <div class="s-body">
                       <div class="mb-3">
                         <label for="customer-unified-search" class="form-label fw-bold">Buscar Cliente</label>
                         <input type="text" id="customer-unified-search" class="form-control"
@@ -198,8 +290,8 @@
                           <i class="fa-solid fa-check-circle me-2"></i>
                           Cliente encontrado: <strong id="customer-found-name"></strong>
                         </span>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deselectCustomer()">
-                          <i class="fa-solid fa-xmark me-1"></i>Trocar
+                        <button type="button" class="btn-a secondary" style="padding:.35rem .8rem;font-size:.78rem;" onclick="deselectCustomer()">
+                          <i class="fa-solid fa-xmark"></i>Trocar
                         </button>
                       </div>
                       
@@ -228,8 +320,8 @@
                             <input type="email" id="new-customer-email" class="form-control" placeholder="email@exemplo.com">
                           </div>
                         </div>
-                        <button type="button" class="btn btn-success" onclick="createCustomer()">
-                          <i class="fa-solid fa-user-plus me-2"></i>Criar Cliente
+                        <button type="button" class="btn-a primary" onclick="createCustomer()">
+                          <i class="fa-solid fa-user-plus"></i>Criar Cliente
                         </button>
                       </div>
                     </div>
@@ -244,11 +336,12 @@
                     {{ form.payment_fee_percent }}
                   </div>
 
-                  <div class="card mb-4">
-                    <div class="card-header bg-warning text-dark">
-                      <h5 class="mb-0"><i class="fa-solid fa-truck me-2"></i>Frete</h5>
-                    </div>
-                    <div class="card-body">
+            <div class="s-card fi fi-2">
+              <div class="s-hdr">
+                <div class="s-icon orange"><i class="fa-solid fa-truck"></i></div>
+                Frete
+              </div>
+              <div class="s-body">
                       <div class="row">
                         <div class="col-md-12 mb-3">
                           <label for="{{ form.freight_responsible.id_for_label }}" class="form-label fw-bold">Responsável pelo Frete</label>
@@ -274,12 +367,64 @@
                         <div id="shipping-company-container">
                           <div class="row">
                             <div class="col-md-12 mb-3">
-                              <label for="{{ form.shipping_company.id_for_label }}" class="form-label fw-bold">Transportadora</label>
-                              {{ form.shipping_company }}
-                              {% if form.shipping_company.errors %}
-                                <div class="text-danger small">{{ form.shipping_company.errors }}</div>
-                              {% endif %}
+                              <label class="form-label fw-bold">Transportadora</label>
+                              <input type="text" id="shipping-company-search" class="form-control"
+                                     placeholder="Digite o nome da transportadora" autocomplete="off">
+                              <small id="shipping-search-hint" class="text-muted">
+                                Busca por nome da transportadora
+                              </small>
                             </div>
+                          </div>
+                          
+                          <!-- Search results list -->
+                          <div id="shipping-search-results" class="d-none mb-3">
+                            <div class="alert alert-warning">
+                              <i class="fa-solid fa-search me-2"></i>
+                              <strong>Resultados da busca:</strong>
+                              <div id="shipping-results-list" class="mt-2"></div>
+                            </div>
+                          </div>
+                          
+                          <!-- Hidden shipping_company field for form submission -->
+                          <div class="d-none">
+                            {{ form.shipping_company }}
+                          </div>
+                          
+                          <!-- Shipping company info display (when found) -->
+                          <div id="shipping-found" class="alert alert-success d-none mb-3 d-flex justify-content-between align-items-center">
+                            <span>
+                              <i class="fa-solid fa-check-circle me-2"></i>
+                              Transportadora: <strong id="shipping-found-name"></strong>
+                            </span>
+                            <button type="button" class="btn-a secondary" style="padding:.35rem .8rem;font-size:.78rem;" onclick="deselectShippingCompany()">
+                              <i class="fa-solid fa-xmark"></i>Trocar
+                            </button>
+                          </div>
+                          
+                          <!-- Shipping company registration (when not found) -->
+                          <div id="shipping-register" class="d-none mb-3">
+                            <div class="alert alert-info">
+                              <i class="fa-solid fa-info-circle me-2"></i>
+                              Transportadora não encontrada. Preencha os dados para cadastrar:
+                            </div>
+                            <div class="row">
+                              <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Nome <span class="text-danger">*</span></label>
+                                <input type="text" id="new-shipping-name" class="form-control" placeholder="Nome da transportadora">
+                              </div>
+                              <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">CNPJ <span class="text-danger">*</span></label>
+                                <input type="text" id="new-shipping-cnpj" class="form-control" placeholder="Somente números – 14 dígitos">
+                                <small id="shipping-cnpj-feedback" class="fw-semibold"></small>
+                              </div>
+                              <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">E-mail <span class="text-danger">*</span></label>
+                                <input type="email" id="new-shipping-email" class="form-control" placeholder="email@exemplo.com">
+                              </div>
+                            </div>
+                            <button type="button" class="btn-a primary" onclick="createShippingCompany()">
+                              <i class="fa-solid fa-truck"></i>Cadastrar Transportadora
+                            </button>
                           </div>
                         </div>
                         
@@ -299,18 +444,19 @@
                     </div>
                   </div>
 
-                  <div class="card mb-4">
-                    <div class="card-header bg-success text-white">
-                      <h5 class="mb-0"><i class="fa-solid fa-box me-2"></i>Itens do Orçamento</h5>
-                    </div>
-                    <div class="card-body">
+              <div class="s-card fi fi-3">
+              <div class="s-hdr">
+                <div class="s-icon green"><i class="fa-solid fa-box"></i></div>
+                Itens do Orçamento
+              </div>
+              <div class="s-body">
                       {{ formset.management_form }}
                       
                       <div id="formset-container">
                         {% for item_form in formset %}
                           <div class="formset-row" data-formset-row>
                             {% if item_form.DELETE %}
-                              <button type="button" class="btn btn-danger btn-sm delete-row-btn" onclick="deleteRow(this)">
+                              <button type="button" class="delete-row-btn" onclick="deleteRow(this)">
                                 <i class="fa-solid fa-trash"></i>
                               </button>
                               <div class="d-none">{{ item_form.DELETE }}</div>
@@ -381,43 +527,45 @@
                         {% endfor %}
                       </div>
 
-                      <button type="button" class="btn btn-outline-success add-row-btn" onclick="addFormRow()">
-                        <i class="fa-solid fa-plus me-2"></i>Adicionar Item
-                      </button>
-                    </div>
-                  </div>
-
-                  <div id="form-warnings" class="alert alert-danger d-none mb-3" role="alert">
-                    <i class="fa-solid fa-exclamation-triangle me-2"></i><span id="form-warnings-text"></span>
-                  </div>
-
-                  {% if form.errors or formset.errors %}
-                  <div class="alert alert-danger mb-3" id="server-errors">
-                    <i class="fa-solid fa-exclamation-triangle me-2"></i>
-                    <strong>Corrija os campos em vermelho:</strong>
-                  </div>
-                  {% endif %}
-
-                  <div class="d-flex justify-content-end gap-3">
-                    <button type="submit" class="btn btn-success btn-lg" name="action" value="save">
-                      <i class="fa-solid fa-save me-2"></i>Salvar Orçamento
-                    </button>
-                    <button type="submit" class="btn btn-primary btn-lg" name="action" value="next_step">
-                      <i class="fa-solid fa-arrow-right me-2"></i>Salvar e Avançar
-                    </button>
-                  </div>
-                </form>
+                <button type="button" class="btn-a outline" onclick="addFormRow()" style="margin-top:.6rem;">
+                  <i class="fa-solid fa-plus"></i>Adicionar Item
+                </button>
               </div>
             </div>
-          </div>
+
+            <div id="form-warnings" class="alert alert-danger d-none mb-3 fi" role="alert">
+              <i class="fa-solid fa-exclamation-triangle me-2"></i><span id="form-warnings-text"></span>
+            </div>
+
+            {% if form.errors or formset.errors %}
+            <div class="alert alert-danger mb-3 fi" id="server-errors">
+              <i class="fa-solid fa-exclamation-triangle me-2"></i>
+              <strong>Corrija os campos em vermelho:</strong>
+            </div>
+            {% endif %}
+
+            <!-- ═══ ACTION BUTTONS ═══ -->
+            <div class="s-card fi fi-4" style="border:none;box-shadow:var(--shadow-h);">
+              <div style="padding:1rem 1.3rem;">
+                <div class="d-flex justify-content-end gap-3 flex-wrap">
+                  <button type="submit" class="btn-a dark" name="action" value="save">
+                    <i class="fa-solid fa-save"></i>Salvar Orçamento
+                  </button>
+                  <button type="submit" class="btn-a primary" name="action" value="next_step">
+                    <i class="fa-solid fa-arrow-right"></i>Salvar e Avançar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
       </section>
 
-      <section class="pt-5 pb-4 bg-dark text-white">
+      <section class="pt-5 pb-4" style="background:var(--brand);color:#fff;">
         <div class="container">
           <div class="row">
             <div class="col-12 text-center">
-              <p class="mb-0">© 2026 Roselar. Todos os direitos reservados.</p>
+              <p class="mb-0" style="font-size:.82rem;opacity:.7;">© 2026 Roselar. Todos os direitos reservados.</p>
             </div>
           </div>
         </div>
@@ -601,6 +749,16 @@
           if (selectedOption && selectedOption.text) {
             document.getElementById('customer-found-name').textContent = selectedOption.text;
             document.getElementById('customer-found').classList.remove('d-none');
+          }
+        }
+
+        // Re-display selected shipping company on page reload
+        const shippingSelect = document.querySelector('select[name="shipping_company"]');
+        if (shippingSelect && shippingSelect.value) {
+          const selectedShipping = shippingSelect.options[shippingSelect.selectedIndex];
+          if (selectedShipping && selectedShipping.text) {
+            document.getElementById('shipping-found-name').textContent = selectedShipping.text;
+            document.getElementById('shipping-found').classList.remove('d-none');
           }
         }
       });
@@ -831,6 +989,148 @@
         });
       }
 
+      // ── Shipping Company search / register ──────────────────────────
+      (function() {
+        const searchInput = document.getElementById('shipping-company-search');
+        let shippingTimer;
+        if (searchInput) {
+          searchInput.addEventListener('input', function() {
+            clearTimeout(shippingTimer);
+            const query = this.value.trim();
+            if (query.length < 2) {
+              hideAllShippingUI();
+              return;
+            }
+            shippingTimer = setTimeout(() => searchShippingCompany(query), 400);
+          });
+        }
+
+        // CNPJ validation feedback on new-shipping-cnpj input
+        const cnpjInput = document.getElementById('new-shipping-cnpj');
+        if (cnpjInput) {
+          cnpjInput.addEventListener('input', function() {
+            const digits = this.value.replace(/\D/g, '');
+            const fb = document.getElementById('shipping-cnpj-feedback');
+            if (!fb) return;
+            if (digits.length === 0) {
+              fb.textContent = '';
+              fb.className = 'fw-semibold';
+            } else if (digits.length === 14) {
+              if (validateCNPJ(digits)) {
+                fb.textContent = '✓ CNPJ válido';
+                fb.className = 'fw-semibold text-success';
+              } else {
+                fb.textContent = '✗ CNPJ inválido';
+                fb.className = 'fw-semibold text-danger';
+              }
+            } else if (digits.length > 14) {
+              fb.textContent = '✗ Número muito longo (máx. 14 dígitos)';
+              fb.className = 'fw-semibold text-danger';
+            } else {
+              fb.textContent = digits.length + ' dígitos → continue digitando (14 = CNPJ)';
+              fb.className = 'fw-semibold text-muted';
+            }
+          });
+        }
+      })();
+
+      function hideAllShippingUI() {
+        document.getElementById('shipping-search-results').classList.add('d-none');
+        document.getElementById('shipping-found').classList.add('d-none');
+        document.getElementById('shipping-register').classList.add('d-none');
+      }
+
+      function searchShippingCompany(query) {
+        fetch(`/api/search-shipping-company/?query=${encodeURIComponent(query)}`)
+          .then(res => res.json())
+          .then(data => {
+            const resultsList = document.getElementById('shipping-results-list');
+            const resultsContainer = document.getElementById('shipping-search-results');
+            if (data.results && data.results.length > 0) {
+              resultsList.innerHTML = '';
+              data.results.forEach(company => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn btn-outline-primary btn-sm me-2 mb-2';
+                button.innerHTML = `<i class="fa-solid fa-truck me-1"></i>${company.name}`;
+                button.onclick = () => selectShippingCompany(company);
+                resultsList.appendChild(button);
+              });
+              resultsContainer.classList.remove('d-none');
+              document.getElementById('shipping-found').classList.add('d-none');
+              document.getElementById('shipping-register').classList.add('d-none');
+            } else {
+              hideAllShippingUI();
+              document.getElementById('shipping-register').classList.remove('d-none');
+              // Pre-fill name from search
+              const nameInput = document.getElementById('new-shipping-name');
+              if (nameInput) nameInput.value = query;
+            }
+          })
+          .catch(err => console.error('Error searching shipping company:', err));
+      }
+
+      function selectShippingCompany(company) {
+        const select = document.querySelector('select[name="shipping_company"]');
+        if (select) select.value = company.id;
+        hideAllShippingUI();
+        document.getElementById('shipping-found-name').textContent = company.name;
+        document.getElementById('shipping-found').classList.remove('d-none');
+        const searchInput = document.getElementById('shipping-company-search');
+        if (searchInput) searchInput.value = '';
+      }
+
+      function deselectShippingCompany() {
+        const select = document.querySelector('select[name="shipping_company"]');
+        if (select) select.value = '';
+        document.getElementById('shipping-found').classList.add('d-none');
+        const searchInput = document.getElementById('shipping-company-search');
+        if (searchInput) { searchInput.value = ''; searchInput.focus(); }
+      }
+
+      function createShippingCompany() {
+        const name = document.getElementById('new-shipping-name').value.trim();
+        const cnpj = document.getElementById('new-shipping-cnpj').value.replace(/\D/g, '');
+        const email = document.getElementById('new-shipping-email').value.trim();
+
+        if (!name) { alert('Por favor, preencha o nome da transportadora.'); return; }
+        if (!cnpj || cnpj.length !== 14) { alert('Por favor, informe um CNPJ válido (14 dígitos).'); return; }
+        if (!validateCNPJ(cnpj)) { alert('CNPJ inválido. Verifique os dígitos.'); return; }
+        if (!email) { alert('Por favor, informe o e-mail da transportadora.'); return; }
+
+        fetch('/api/create-shipping-company/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: JSON.stringify({ name, cnpj, email })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            const select = document.querySelector('select[name="shipping_company"]');
+            if (select) {
+              const option = document.createElement('option');
+              option.value = data.company.id;
+              option.text = data.company.name;
+              option.selected = true;
+              select.appendChild(option);
+            }
+            document.getElementById('shipping-found-name').textContent = data.company.name;
+            document.getElementById('shipping-found').classList.remove('d-none');
+            document.getElementById('shipping-register').classList.add('d-none');
+            document.getElementById('shipping-company-search').value = '';
+          } else {
+            alert('Erro ao cadastrar transportadora: ' + (data.error || 'Erro desconhecido'));
+          }
+        })
+        .catch(err => {
+          console.error('Error creating shipping company:', err);
+          alert('Erro ao cadastrar transportadora. Verifique o console.');
+        });
+      }
+
       function deleteRow(btn) {
         const row = btn.closest('[data-formset-row]');
         const deleteCheckbox = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
@@ -856,9 +1156,14 @@
         newRow.innerHTML = newRow.innerHTML.replace(regex, '-' + formNum + '-');
         
         // Clear all input values
-        newRow.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]), select, textarea').forEach(input => {
+        newRow.querySelectorAll('input:not([type="checkbox"]), select, textarea').forEach(input => {
+          if (input.name && input.name.endsWith('-id')) return; // clear id below
           input.value = '';
         });
+        
+        // Clear hidden id so Django treats this as a new form
+        const hiddenId = newRow.querySelector('input[name$="-id"]');
+        if (hiddenId) hiddenId.value = '';
         
         // Uncheck DELETE checkbox if exists
         const deleteCheckbox = newRow.querySelector('input[type="checkbox"][name$="-DELETE"]');
@@ -933,6 +1238,18 @@
         applyCurrencyMask(input);
       });
 
+      // Apply mask to freight_value input
+      const freightInput = document.querySelector('input[name="freight_value"]');
+      if (freightInput) {
+        if (freightInput.value && freightInput.value.includes('.')) {
+          const parts = freightInput.value.split('.');
+          const intPart = parts[0].replace(/^0+/, '') || '0';
+          const decPart = (parts[1] || '00').padEnd(2, '0').slice(0, 2);
+          freightInput.value = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + decPart;
+        }
+        applyCurrencyMask(freightInput);
+      }
+
       function showFormWarning(msg) {
         const box = document.getElementById('form-warnings');
         const txt = document.getElementById('form-warnings-text');
@@ -958,7 +1275,7 @@
         if (frVal === 'STORE' || frVal === 'CARRIER') {
           const fv = document.querySelector('input[name="freight_value"]');
           const dw = document.querySelector('select[name="delivery_weeks"]');
-          if (!fv || !fv.value.trim() || parseFloat(fv.value.replace(',','.')) <= 0) missingFreight.push('Valor do Frete');
+          if (!fv || !fv.value.trim() || parseFloat(fv.value.replace(/\./g, '').replace(',','.')) <= 0) missingFreight.push('Valor do Frete');
           if (!dw || !dw.value) missingFreight.push('Prazo de Entrega');
           if (frVal === 'CARRIER') {
             const sc = document.querySelector('select[name="shipping_company"]');
@@ -1003,7 +1320,17 @@
               delCb.checked = true;
               row.style.display = 'none';
             } else {
-              row.remove();
+              // Create a DELETE checkbox so Django skips this form
+              const prefix = row.querySelector('input[name$="-product_name"]');
+              if (prefix) {
+                const formPrefix = prefix.name.replace('-product_name', '');
+                const cb = document.createElement('input');
+                cb.type = 'hidden';
+                cb.name = formPrefix + '-DELETE';
+                cb.value = 'on';
+                row.appendChild(cb);
+              }
+              row.style.display = 'none';
             }
           } else if (allFilled) {
             hasValidItem = true;
@@ -1023,6 +1350,12 @@
             row.style.border = '2px solid #dc3545';
           }
         });
+
+        // Convert freight_value from display format to decimal
+        const fvInput = document.querySelector('input[name="freight_value"]');
+        if (fvInput && fvInput.value) {
+          fvInput.value = fvInput.value.replace(/\./g, '').replace(',', '.');
+        }
 
         if (hasIncompleteItem) {
           e.preventDefault();

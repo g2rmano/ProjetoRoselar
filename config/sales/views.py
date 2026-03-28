@@ -1413,9 +1413,9 @@ def _build_simulation_context(
     """Pure calculation — no DB writes, no request handling."""
     from core.models import PaymentTariff, PaymentMethodType, ArchitectCommission, SalesMarginConfig
 
-    _tm, _mc_min, _mc_max, margin_limit = SalesMarginConfig.get_config()
-    margin_limit = Decimal(str(margin_limit))
+    _tm, _mc_min, _mc_max = SalesMarginConfig.get_config()
     MARGIN_BASE = Decimal(str(_tm))
+    margin_limit = MARGIN_BASE
 
     COMMISSION_FLOOR = Decimal("2")
     COMMISSION_MIN   = Decimal("3")
@@ -1465,29 +1465,17 @@ def _build_simulation_context(
     max_discount_allowed = MAX_DISCOUNT_ABSOLUTE
     fixed_costs = store_fee_percent + architect_cost_pct + sim_discount
 
-    # Comissão baseada no gap (margem - custos fixos, sem comissão)
-    # gap < 2  → custo alto → comissão = 2%
-    # gap 2–4  → custo ≈ margem (±1%) → comissão = 3%
-    # gap > 4  → margem folgada → comissão sobe 3%→5% (sqrt), chega em 5% com gap ≥ 6
-    from math import sqrt
-    gap = effective_margin - fixed_costs
-    if gap < Decimal("2"):
-        seller_commission_percent = COMMISSION_FLOOR
-    elif gap <= Decimal("4"):
-        seller_commission_percent = COMMISSION_MIN
-    else:
-        t = min(Decimal("1"), (gap - Decimal("4")) / Decimal("2"))
-        seller_commission_percent = COMMISSION_MIN + (COMMISSION_MAX - COMMISSION_MIN) * Decimal(str(sqrt(float(t))))
-    seller_commission_percent = min(COMMISSION_MAX, max(COMMISSION_FLOOR, seller_commission_percent)).quantize(Decimal("0.1"))
+    seller_commission_percent = max(COMMISSION_FLOOR, effective_margin - fixed_costs + COMMISSION_FLOOR).quantize(Decimal("0.1"))
 
     original_commission_percent = COMMISSION_MAX
 
-    total_cost_pct  = fixed_costs + seller_commission_percent
+    # Custo total NÃO inclui comissão do vendedor
+    total_cost_pct  = fixed_costs
     margin_exceeded = total_cost_pct > effective_margin
     commission_reduced = seller_commission_percent < COMMISSION_MAX
     margin_excess = total_cost_pct - effective_margin if margin_exceeded else Decimal("0")
 
-    # Bloqueio: custo > limite (18%) + ajuste
+    # Bloqueio: custo > limite + ajuste
     margin_limit_exceeded = total_cost_pct >= (margin_limit + price_increase_pct)
     controls_blocked = margin_limit_exceeded
 
@@ -1505,7 +1493,9 @@ def _build_simulation_context(
     price_multiplier  = (Decimal("100") + price_increase_pct) / Decimal("100")
     adj_subtotal      = subtotal * price_multiplier
     total_before_disc = adj_subtotal + freight_value
-    discount_value    = total_before_disc * sim_discount / Decimal("100")
+    # Desconto sempre sobre valor base (sem ajuste de margem)
+    base_total        = subtotal + freight_value
+    discount_value    = base_total * sim_discount / Decimal("100")
     total_after_disc  = total_before_disc - discount_value
 
     payment_fee_value = total_after_disc * store_fee_percent / Decimal("100")
@@ -1522,7 +1512,8 @@ def _build_simulation_context(
 
     # Base da comissão do vendedor
     seller_commission_base = adj_subtotal
-    seller_discount_value  = seller_commission_base * sim_discount / Decimal("100")
+    # Desconto sobre valor base (sem ajuste de margem)
+    seller_discount_value  = subtotal * sim_discount / Decimal("100")
     seller_commission_base = seller_commission_base - seller_discount_value
     if sim_has_architect:
         seller_commission_base -= architect_commission_value
@@ -1680,7 +1671,7 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
 
     if request.method == "POST" and request.POST.get('action') == 'save_conditions':
         if ctx['margin_limit_exceeded']:
-            messages.error(request, f"Custo total ({ctx['total_cost_pct']}%) ultrapassou o limite de margem ({ctx['margin_limit']}%). Ajuste as condições antes de salvar.")
+            messages.error(request, "Condições bloqueadas. Ajuste o preço antes de salvar.")
             ctx['quote'] = quote
             return render(request, 'sales/quote_simulation.html', ctx)
         with transaction.atomic():

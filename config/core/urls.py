@@ -18,6 +18,8 @@ urlpatterns = [
     path("api/create-architect/", views.create_architect, name="create_architect"),
 
     path("api/shipping-company/<int:company_id>/payment-methods/", views.get_shipping_company_payment_methods, name="shipping_company_payment_methods"),
+    path("api/search-shipping-company/", views.search_shipping_company, name="search_shipping_company"),
+    path("api/create-shipping-company/", views.create_shipping_company, name="create_shipping_company"),
 
     # Global Search
     path("api/search/", views.global_search, name="global_search"),

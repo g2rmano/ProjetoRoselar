@@ -29,6 +29,7 @@ class QuoteForm(forms.ModelForm):
             "payment_fee_percent",
         ]
         widgets = {
+            "freight_value": forms.TextInput(attrs={"class": "form-control", "inputmode": "numeric", "placeholder": "0,00"}),
             "delivery_weeks": forms.Select(attrs={"class": "form-control"}),
             "payment_installments": forms.Select(attrs={"class": "form-control"}),
             "payment_fee_percent": forms.HiddenInput(),

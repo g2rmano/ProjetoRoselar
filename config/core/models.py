@@ -237,14 +237,14 @@ class SalesMarginConfig(models.Model):
     total_margin = models.DecimalField(
         max_digits=5,
         decimal_places=1,
-        default=12.0,
-        verbose_name="Margem Ideal (%)",
-        help_text="Margem ideal da empresa (%). Abaixo disso a comissão sobe, acima desce.",
+        default=10.0,
+        verbose_name="Margem (%)",
+        help_text="Margem da empresa (%). Custos acima desse valor bloqueiam o orçamento.",
     )
     min_commission = models.DecimalField(
         max_digits=5,
         decimal_places=1,
-        default=1.0,
+        default=2.0,
         verbose_name="Comissão Mínima (%)",
         help_text="Comissão mínima do vendedor (%)",
     )
@@ -254,13 +254,6 @@ class SalesMarginConfig(models.Model):
         default=5.0,
         verbose_name="Comissão Máxima (%)",
         help_text="Comissão máxima do vendedor (%) — quando desconto = 0",
-    )
-    margin_limit = models.DecimalField(
-        max_digits=5,
-        decimal_places=1,
-        default=18.0,
-        verbose_name="Limite de Margem (%)",
-        help_text="Custo total máximo permitido (%). Acima desse valor o orçamento é bloqueado.",
     )
 
     updated_at = models.DateTimeField(auto_now=True)
@@ -272,7 +265,7 @@ class SalesMarginConfig(models.Model):
     def __str__(self) -> str:
         return (
             f"Margem {self.total_margin}% · "
-            f"Comissão {self.min_commission}%–{self.max_commission}%"
+            f"Comissão mín {self.min_commission}%"
         )
 
     def save(self, *args, **kwargs):
@@ -281,9 +274,9 @@ class SalesMarginConfig(models.Model):
 
     @classmethod
     def get_config(cls):
-        """Retorna (total_margin, min_commission, max_commission, margin_limit)."""
+        """Retorna (total_margin, min_commission, max_commission)."""
         obj, _ = cls.objects.get_or_create(pk=1)
-        return obj.total_margin, obj.min_commission, obj.max_commission, obj.margin_limit
+        return obj.total_margin, obj.min_commission, obj.max_commission
 
 
 # ──────────────────────────────────────────────────────────────────────
