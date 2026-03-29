@@ -4,6 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
   <title>Notificações | Roselar</title>
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
@@ -96,7 +97,7 @@
   <script src="{% static 'assets/js/theme.js' %}"></script>
   <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
   <script>
-    function getCSRF() { return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrftoken='))?.split('=')[1] || ''; }
+    function getCSRF() { return document.querySelector('meta[name="csrf-token"]').content; }
     function markRead(id) {
       fetch('/api/notifications/' + id + '/read/', { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } })
         .then(r => r.json()).then(() => { document.getElementById('notif-' + id).classList.remove('unread'); });

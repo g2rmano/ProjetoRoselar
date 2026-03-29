@@ -203,6 +203,13 @@ CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 
+# Make CSRF cookie a browser-session cookie (cleared on browser close)
+# Prevents stale persistent cookies from causing CSRF failures.
+CSRF_COOKIE_AGE = None
+
+# Custom CSRF failure view — auto-clears stale cookie and redirects
+CSRF_FAILURE_VIEW = 'accounts.views.csrf_failure_view'
+
 # Logging – surface errors in Railway logs
 LOGGING = {
     'version': 1,
