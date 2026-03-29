@@ -238,6 +238,7 @@ var utils = {
 var detectorInit = function detectorInit() {
   var _window = window,
       is = _window.is;
+  if (!is) return;
   var html = document.querySelector('html');
   is.opera() && addClass(html, 'opera');
   is.mobile() && addClass(html, 'mobile');

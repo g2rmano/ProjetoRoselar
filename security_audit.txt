@@ -1,0 +1,264 @@
+============================================================
+  ROSELAR - SECURITY AUDIT REPORT
+  Date: March 28, 2026
+============================================================
+
+
+CRITICAL (Fix immediately)
+============================================================
+
+C1. Password Oracle / Brute-Force in authorize_discount_api
+   File: config/sales/views.py — authorize_discount_api
+   
+   Iterates every is_staff user and tries the submitted password
+   against each one. An attacker with any session can brute-force
+   ALL admin passwords simultaneously, with zero rate limiting.
+   Also leaks internal error messages via str(e) in exception handler.
+   
+   FIX: Only authenticate the current user or a specific named admin.
+   Never iterate passwords across users. Add rate limiting.
+
+---
+
+C2. Hardcoded SECRET_KEY Fallback
+   File: config/config/settings.py line 26
+   
+   SECRET_KEY falls back to a publicly visible insecure key if the
+   env var is unset. Anyone with the repo can forge sessions, CSRF
+   tokens, and password resets.
+   
+   FIX: Remove the fallback entirely; raise an error if SECRET_KEY
+   is not set in environment variables.
+
+---
+
+C3. Open Redirect on Login
+   File: config/accounts/views.py line 22
+   
+   The 'next' parameter from GET is passed directly to redirect()
+   with no validation. Enables phishing attacks:
+   /accounts/login/?next=https://evil.com
+   
+   FIX: Validate next_url with
+   django.utils.http.url_has_allowed_host_and_scheme()
+
+---
+
+C4. ALLOWED_HOSTS = ['*'] Default
+   File: config/config/settings.py line 30
+   
+   Defaults to wildcard '*', disabling Host header validation.
+   Enables cache poisoning and host-header attacks.
+   
+   FIX: Set a safe default (e.g. localhost) and require explicit
+   configuration for production.
+
+
+HIGH (Fix soon)
+============================================================
+
+H1. IDOR on All Quotes — No Ownership Check
+   File: config/sales/views.py
+   Functions: quote_detail, quote_edit, quote_convert_to_orders,
+   quote_pdf_client, quote_pdf_supplier, quote_duplicate,
+   quote_simulate_commission
+   
+   All views fetch quotes by ID with get_object_or_404(Quote, id=...)
+   and NO ownership check. Any authenticated seller can view, edit,
+   convert, generate PDFs, or duplicate ANY other seller's quotes.
+   
+   FIX: Filter by seller=request.user or check ownership explicitly
+   for non-admin users.
+
+---
+
+H2. IDOR on All Orders — No Ownership Check
+   File: config/sales/views.py
+   Functions: order_list, order_detail, order_pdf
+   
+   All orders from all sellers are visible to any authenticated user,
+   including purchase costs (purchase_unit_cost).
+   
+   FIX: Filter order_list by seller and check ownership on detail/PDF.
+
+---
+
+H3. Reports Accessible to All Users (No Admin Check)
+   File: config/core/views.py
+   Functions: report_sales, report_commissions, report_discounts,
+   report_products, report_csv_export
+   
+   These views only require @login_required but have NO role/permission
+   check. Any seller can see company-wide sales, commissions, margin
+   configuration, and export CSVs.
+   
+   FIX: Add is_admin check like audit_log_list does.
+
+---
+
+H4. Media Files Publicly Accessible
+   File: config/core/middleware.py + config/config/urls.py
+   
+   /media/ is exempted from login checks in the middleware.
+   All uploaded files (proposal images, event attachments) are
+   accessible to anyone with the URL, no authentication required.
+   
+   FIX: Remove /media/ from PUBLIC_PREFIXES. Serve media through
+   a view that checks authentication.
+
+---
+
+H5. Dashboard Leaks Cross-Seller Data
+   File: config/core/views.py — home() and dashboard()
+   
+   pending_quotes, upcoming_deliveries, and overdue_events are
+   queried WITHOUT filtering by seller. Every seller sees every
+   other seller's pending quotes, deliveries, and overdue events.
+   
+   FIX: Filter by seller=user (or assigned_to=user) for non-admins.
+
+---
+
+H6. SellerAccess Admin Mixin Has No Auth Check
+   File: config/core/admin_helpers.py
+   
+   SellerAccess returns True unconditionally for all permissions
+   (view, add, change, delete). No check for is_authenticated
+   or is_staff.
+   
+   FIX: Check request.user.is_authenticated and request.user.is_staff.
+
+
+MEDIUM
+============================================================
+
+M1. Open Redirect in add_communication
+   File: config/core/views.py — add_communication
+   
+   redirect_url from POST is used directly in redirect() with
+   no validation.
+   
+   FIX: Validate with url_has_allowed_host_and_scheme().
+
+---
+
+M2. Logout via GET — No CSRF Protection
+   File: config/accounts/views.py — logout
+   
+   Logout accepts GET requests with no CSRF protection.
+   A malicious <img src="/accounts/logout/"> tag would silently
+   log the user out.
+   
+   FIX: Require POST and use @require_POST.
+
+---
+
+M3. File Upload — No Content-Type Validation
+   File: config/calendar_app/views.py — api_attachment_upload
+   
+   Only file size is validated (10 MB). No check on file extension,
+   content type, or actual content. Uploaded HTML/SVG files could
+   execute JavaScript in the app's origin when served back.
+   
+   FIX: Allowlist file extensions and content types. Force
+   Content-Disposition: attachment AND override dangerous MIME types.
+
+---
+
+M4. Missing Security Headers
+   File: config/config/settings.py
+   
+   Missing production security settings:
+   - SECURE_SSL_REDIRECT = True
+   - SECURE_HSTS_SECONDS (e.g. 31536000)
+   - SECURE_CONTENT_TYPE_NOSNIFF = True
+   - X_FRAME_OPTIONS = 'DENY'
+   - SECURE_BROWSER_XSS_FILTER = True
+   
+   FIX: Add these settings, conditioned on not DEBUG.
+
+---
+
+M5. Unvalidated Input in goal_create
+   File: config/core/views.py — goal_create
+   
+   Raw POST data converted to Decimal() and int() with no
+   try/except. Malformed input causes unhandled 500 error.
+   Dates also not validated.
+   
+   FIX: Wrap in try/except or use Django forms for validation.
+
+---
+
+M6. Exception Details Leaked to Client
+   Files: sales/views.py (authorize_discount_api, etc.),
+   core/views.py (create_customer, create_shipping_company, etc.)
+   
+   str(e) is returned in JSON responses, exposing DB schema,
+   file paths, and internal details.
+   
+   FIX: Return generic error messages. Log exceptions server-side.
+
+---
+
+M7. Customer PII Exposed to All Users
+   File: config/core/views.py — search_customer
+   
+   Any authenticated user can search and retrieve full CPF, CNPJ,
+   phone, and email for ANY customer by document number.
+   
+   FIX: Restrict to the user's own customers or admin-only.
+
+---
+
+M8. Serving Media via django.views.static.serve in Production
+   File: config/config/urls.py
+   
+   django.views.static.serve is explicitly documented as
+   "not suitable for production". No security headers, caching,
+   or access control.
+   
+   FIX: Use WhiteNoise or a proper web server (nginx) to serve media.
+
+
+LOW
+============================================================
+
+L1. No Rate Limiting
+   No rate limiting on login, authorize_discount_api, search APIs,
+   or any endpoint. Enables brute-force and resource exhaustion.
+   
+   FIX: Add django-ratelimit or django-axes.
+
+---
+
+L2. home() View Missing @login_required Decorator
+   File: config/core/views.py
+   
+   Middleware catches this, but defense-in-depth best practice is
+   to add the decorator directly.
+
+---
+
+L3. get_architect_commission_api Missing @login_required
+   File: config/sales/views.py
+   
+   Same defense-in-depth issue.
+
+---
+
+L4. quote_detail Uses .get() Instead of get_object_or_404
+   File: config/sales/views.py
+   
+   Returns 500 instead of 404 for invalid IDs.
+
+
+============================================================
+  TOP 3 PRIORITY ACTIONS
+============================================================
+
+1. Remove the hardcoded SECRET_KEY fallback — raise error if unset
+2. Fix the password oracle in authorize_discount_api
+3. Add ownership checks to all quote/order views
+
+============================================================

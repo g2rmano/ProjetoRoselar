@@ -84,31 +84,34 @@ def home(request):
         )
 
         # Pending quotes
+        pending_quotes = Quote.objects.filter(status=QuoteStatus.DRAFT)
+        if not is_admin:
+            pending_quotes = pending_quotes.filter(seller=user)
         pending_quotes = (
-            Quote.objects.filter(status=QuoteStatus.DRAFT)
+            pending_quotes
             .select_related("customer", "seller")
             .order_by("-quote_date")[:5]
         )
 
         # Upcoming deliveries
-        upcoming_deliveries = (
-            CalendarEvent.objects.filter(
-                event_type="DELIVERY",
-                status=EventStatus.PENDING,
-                event_date__gte=today,
-                event_date__lte=today + timedelta(days=7),
-            )
-            .order_by("event_date")[:5]
+        upcoming_deliveries = CalendarEvent.objects.filter(
+            event_type="DELIVERY",
+            status=EventStatus.PENDING,
+            event_date__gte=today,
+            event_date__lte=today + timedelta(days=7),
         )
+        if not is_admin:
+            upcoming_deliveries = upcoming_deliveries.filter(assigned_to=user)
+        upcoming_deliveries = upcoming_deliveries.order_by("event_date")[:5]
 
         # Overdue
-        overdue_events = (
-            CalendarEvent.objects.filter(
-                status=EventStatus.PENDING,
-                event_date__lt=today,
-            )
-            .order_by("event_date")[:5]
+        overdue_events = CalendarEvent.objects.filter(
+            status=EventStatus.PENDING,
+            event_date__lt=today,
         )
+        if not is_admin:
+            overdue_events = overdue_events.filter(assigned_to=user)
+        overdue_events = overdue_events.order_by("event_date")[:5]
 
         # Notifications
         unread_count = Notification.objects.filter(recipient=user, read=False).count()
@@ -382,30 +385,39 @@ def dashboard(request):
     chart_values = [float(d["total"] or 0) for d in monthly_data]
 
     # ── Pending quotes ──
+    pending_quotes = Quote.objects.filter(status=QuoteStatus.DRAFT)
+    if not is_admin:
+        pending_quotes = pending_quotes.filter(seller=user)
     pending_quotes = (
-        Quote.objects.filter(status=QuoteStatus.DRAFT)
+        pending_quotes
         .select_related("customer", "seller")
         .order_by("-quote_date")[:5]
     )
 
     # ── Upcoming deliveries ──
+    upcoming_deliveries = CalendarEvent.objects.filter(
+        event_type="DELIVERY",
+        status=EventStatus.PENDING,
+        event_date__gte=today,
+        event_date__lte=today + timedelta(days=7),
+    )
+    if not is_admin:
+        upcoming_deliveries = upcoming_deliveries.filter(assigned_to=user)
     upcoming_deliveries = (
-        CalendarEvent.objects.filter(
-            event_type="DELIVERY",
-            status=EventStatus.PENDING,
-            event_date__gte=today,
-            event_date__lte=today + timedelta(days=7),
-        )
+        upcoming_deliveries
         .select_related("customer", "assigned_to")
         .order_by("event_date")[:5]
     )
 
     # ── Overdue events ──
+    overdue_events = CalendarEvent.objects.filter(
+        status=EventStatus.PENDING,
+        event_date__lt=today,
+    )
+    if not is_admin:
+        overdue_events = overdue_events.filter(assigned_to=user)
     overdue_events = (
-        CalendarEvent.objects.filter(
-            status=EventStatus.PENDING,
-            event_date__lt=today,
-        )
+        overdue_events
         .select_related("customer", "assigned_to")
         .order_by("event_date")[:5]
     )
@@ -711,13 +723,24 @@ def add_communication(request):
 # ──────────────────────────────────────────────────────────────────────
 # Reports
 # ──────────────────────────────────────────────────────────────────────
+def _is_admin_user(user):
+    """True for ADMIN, OWNER, or superuser."""
+    return user.is_superuser or user.role in (Role.ADMIN, Role.OWNER)
+
+
 @login_required
 def reports_hub(request):
+    if not _is_admin_user(request.user):
+        messages.error(request, "Acesso negado.")
+        return redirect("core:index")
     return render(request, "core/reports_hub.html")
 
 
 @login_required
 def report_sales(request):
+    if not _is_admin_user(request.user):
+        messages.error(request, "Acesso negado.")
+        return redirect("core:index")
     today = timezone.localdate()
     date_from = request.GET.get("date_from", str(today.replace(day=1)))
     date_to = request.GET.get("date_to", str(today))
@@ -752,6 +775,9 @@ def report_sales(request):
 
 @login_required
 def report_commissions(request):
+    if not _is_admin_user(request.user):
+        messages.error(request, "Acesso negado.")
+        return redirect("core:index")
     today = timezone.localdate()
     date_from = request.GET.get("date_from", str(today.replace(day=1)))
     date_to = request.GET.get("date_to", str(today))
@@ -801,6 +827,9 @@ def report_commissions(request):
 
 @login_required
 def report_discounts(request):
+    if not _is_admin_user(request.user):
+        messages.error(request, "Acesso negado.")
+        return redirect("core:index")
     today = timezone.localdate()
     date_from = request.GET.get("date_from", str(today.replace(day=1)))
     date_to = request.GET.get("date_to", str(today))
@@ -825,6 +854,9 @@ def report_discounts(request):
 
 @login_required
 def report_products(request):
+    if not _is_admin_user(request.user):
+        messages.error(request, "Acesso negado.")
+        return redirect("core:index")
     today = timezone.localdate()
     date_from = request.GET.get("date_from", str(today.replace(day=1)))
     date_to = request.GET.get("date_to", str(today))
@@ -852,6 +884,9 @@ def report_products(request):
 
 @login_required
 def report_csv_export(request):
+    if not _is_admin_user(request.user):
+        messages.error(request, "Acesso negado.")
+        return redirect("core:index")
     import csv
     today = timezone.localdate()
     date_from = request.GET.get("date_from", str(today.replace(day=1)))

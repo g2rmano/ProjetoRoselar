@@ -29,6 +29,30 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 logger = logging.getLogger(__name__)
 
 
+def _is_admin(user):
+    """True for ADMIN, OWNER or superuser."""
+    from accounts.models import Role
+    return user.is_superuser or user.role in (Role.ADMIN, Role.OWNER)
+
+
+def _get_quote_or_403(request, quote_id, **extra_filters):
+    """Fetch a quote by ID; non-admin users must own it."""
+    from django.http import HttpResponseForbidden
+    quote = get_object_or_404(Quote, id=quote_id, **extra_filters)
+    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+        return None, HttpResponseForbidden("Acesso negado.")
+    return quote, None
+
+
+def _get_order_or_403(request, order_id, **extra_filters):
+    """Fetch an order by ID; non-admin users must own the parent quote."""
+    from django.http import HttpResponseForbidden
+    order = get_object_or_404(Order, pk=order_id, **extra_filters)
+    if not _is_admin(request.user) and order.quote.seller_id != request.user.id:
+        return None, HttpResponseForbidden("Acesso negado.")
+    return order, None
+
+
 def _safe_content_disposition(filename: str) -> str:
     """Build a Content-Disposition header value safe for any filename."""
     # ASCII-safe fallback: strip accents, replace non-ASCII
@@ -145,6 +169,7 @@ def authorize_discount_api(request: HttpRequest) -> JsonResponse:
     
     try:
         data = json.loads(request.body)
+        username = data.get('username', '').strip()
         password = data.get('password')
         discount = data.get('discount')
         
@@ -156,35 +181,25 @@ def authorize_discount_api(request: HttpRequest) -> JsonResponse:
         if discount_value <= 15:
             return JsonResponse({'authorized': False, 'error': 'Discount must be > 15%'}, status=400)
         
-        # Try to authenticate with the provided password
-        # First check if it's the current user's password
-        user = authenticate(username=request.user.username, password=password)
+        # Authenticate: current user if no username provided, or specific admin
+        target_username = username if username else request.user.username
+        user = authenticate(username=target_username, password=password)
         
         if user and user.is_staff:
-            # User is authenticated and is staff/admin
             return JsonResponse({
                 'authorized': True,
                 'authorized_by': user.username,
                 'discount': discount_value
             })
         
-        # If not, try to find any staff user with this password
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
+        return JsonResponse({'authorized': False, 'error': 'Credenciais inválidas'}, status=403)
         
-        for admin_user in User.objects.filter(is_staff=True):
-            auth_user = authenticate(username=admin_user.username, password=password)
-            if auth_user:
-                return JsonResponse({
-                    'authorized': True,
-                    'authorized_by': auth_user.username,
-                    'discount': discount_value
-                })
-        
-        return JsonResponse({'authorized': False, 'error': 'Invalid password'}, status=403)
-        
-    except Exception as e:
-        return JsonResponse({'authorized': False, 'error': str(e)}, status=500)
+    except (json.JSONDecodeError, ValueError, TypeError):
+        return JsonResponse({'authorized': False, 'error': 'Dados inválidos'}, status=400)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception('authorize_discount_api error')
+        return JsonResponse({'authorized': False, 'error': 'Erro interno'}, status=500)
 
 
 @require_http_methods(["GET"])
@@ -205,6 +220,8 @@ def get_architect_commission_api(request: HttpRequest) -> JsonResponse:
 def quote_list(request: HttpRequest) -> HttpResponse:
     """List all quotes with search functionality."""
     quotes = Quote.objects.select_related('customer', 'seller').order_by('-created_at')
+    if not _is_admin(request.user):
+        quotes = quotes.filter(seller=request.user)
     
     # Search functionality
     search_query = request.GET.get('search', '').strip()
@@ -329,6 +346,9 @@ def quote_edit(request: HttpRequest, quote_id: int) -> HttpResponse:
     Edita orçamento + itens.
     """
     quote = get_object_or_404(Quote, id=quote_id)
+    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:quote_list")
 
     if request.method == "POST":
         form = QuoteForm(request.POST, instance=quote)
@@ -404,12 +424,15 @@ def quote_detail(request: HttpRequest, quote_id: int) -> HttpResponse:
     """
     Tela de detalhe com itens e pedidos gerados.
     """
-    quote = (
+    quote = get_object_or_404(
         Quote.objects
         .select_related("customer", "seller")
-        .prefetch_related("items", "items__supplier", "orders", "orders__items")
-        .get(id=quote_id)
+        .prefetch_related("items", "items__supplier", "orders", "orders__items"),
+        id=quote_id,
     )
+    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:quote_list")
 
     return render(request, "sales/quote_detail.html", {"quote": quote, "today": timezone.localdate()})
 
@@ -424,12 +447,13 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
       - valida antes
       - bulk_create de itens
     """
-    quote = (
-        Quote.objects
-        .select_for_update()
-        .prefetch_related("items", "items__supplier")
-        .get(id=quote_id)
+    quote = get_object_or_404(
+        Quote.objects.prefetch_related("items", "items__supplier"),
+        id=quote_id,
     )
+    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:quote_list")
 
     # Parse the required real delivery date from the modal form
     from datetime import date as date_type
@@ -600,6 +624,9 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
                      .prefetch_related("items", "items__images"),
         id=quote_id,
     )
+    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:quote_list")
 
     config = ProposalConfig.get_config()
 
@@ -1008,6 +1035,9 @@ def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
         Quote.objects.select_related("customer", "seller").prefetch_related("items", "items__supplier"),
         id=quote_id
     )
+    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:quote_list")
     
     # Create PDF in memory
     buffer = BytesIO()
@@ -1139,7 +1169,9 @@ def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
 @login_required
 def order_list(request: HttpRequest) -> HttpResponse:
     """List all orders with search functionality."""
-    orders = Order.objects.select_related('quote', 'supplier', 'quote__customer').order_by('-created_at')
+    orders = Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller').order_by('-created_at')
+    if not _is_admin(request.user):
+        orders = orders.filter(quote__seller=request.user)
     
     # Search functionality
     search_query = request.GET.get('search', '').strip()
@@ -1179,6 +1211,9 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller'),
         pk=order_id
     )
+    if not _is_admin(request.user) and order.quote.seller_id != request.user.id:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:order_list")
     
     items = order.items.select_related('quote_item').all()
     
@@ -1201,6 +1236,9 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
         Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller'),
         pk=order_id
     )
+    if not _is_admin(request.user) and order.quote.seller_id != request.user.id:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:order_list")
     
     # Don't generate PDF for total conference orders
     if order.is_total_conference:
@@ -1465,7 +1503,7 @@ def _build_simulation_context(
     max_discount_allowed = MAX_DISCOUNT_ABSOLUTE
     fixed_costs = store_fee_percent + architect_cost_pct + sim_discount
 
-    seller_commission_percent = max(COMMISSION_FLOOR, effective_margin - fixed_costs + COMMISSION_FLOOR).quantize(Decimal("0.1"))
+    seller_commission_percent = max(COMMISSION_FLOOR, effective_margin - fixed_costs).quantize(Decimal("0.1"))
 
     original_commission_percent = COMMISSION_MAX
 
@@ -1610,6 +1648,9 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
     quote = get_object_or_404(
         Quote.objects.select_related('customer', 'seller'), id=quote_id
     )
+    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:quote_list")
 
     subtotal = quote.calculate_subtotal()
     freight_value = quote.freight_value or Decimal("0.00")
@@ -1804,6 +1845,9 @@ def standalone_simulation(request: HttpRequest) -> HttpResponse:
 def quote_duplicate(request, quote_id):
     """Duplicar um orçamento existente."""
     original = get_object_or_404(Quote, id=quote_id)
+    if not _is_admin(request.user) and original.seller_id != request.user.id:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:quote_list")
     from core.models import AuditLog, AuditAction
 
     with transaction.atomic():

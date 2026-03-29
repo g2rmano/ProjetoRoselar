@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib import messages
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 @ensure_csrf_cookie
@@ -25,7 +26,9 @@ def login(request):
                 request.session.set_expiry(60 * 60 * 24 * 30)
             auth_login(request, user)
             messages.success(request, f'Bem-vindo de volta, {user.username}!')
-            next_url = request.GET.get('next') or reverse('core:index')
+            next_url = request.GET.get('next', '')
+            if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                next_url = reverse('core:index')
             return redirect(next_url)
         else:
             messages.error(request, 'Nome de usuário ou senha inválidos.')

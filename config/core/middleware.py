@@ -8,7 +8,6 @@ PUBLIC_PREFIXES = [
     '/accounts/logout/',
     '/admin/',
     '/static/',
-    '/media/',
     '/health/',
 ]
 
