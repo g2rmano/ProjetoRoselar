@@ -22,29 +22,136 @@
     <link href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" rel="stylesheet">
     <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
     <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
-    {% if user.is_authenticated %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-      .navbar-nav .nav-item.dropdown:hover > .dropdown-menu {
-        display: block;
+      :root{--brand:#0A2640;--brand-l:#163a5a;--bg:#f4f6f9;--surface:#fff;--green:#198754;--red:#dc3545;--orange:#e67e22;--blue:#0d6efd;--cyan:#0dcaf0;--muted:#6c757d;--border:#dee2e6;--radius:10px;--shadow:0 1px 4px rgba(0,0,0,.06);--shadow-h:0 4px 14px rgba(0,0,0,.09);}
+      *{box-sizing:border-box;}
+      body{font-family:'Manrope',sans-serif;background:var(--bg);margin:0;}
+
+      /* s-card design system */
+      .s-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:1rem;overflow:hidden;border:1px solid rgba(0,0,0,.04);transition:box-shadow .2s;}
+      .s-card:hover{box-shadow:var(--shadow-h);}
+      .s-hdr{padding:.7rem 1.1rem;display:flex;align-items:center;gap:.55rem;font-weight:700;font-size:.88rem;color:var(--brand);background:#fafbfc;border-bottom:1px solid var(--border);}
+      .s-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.78rem;color:#fff;flex-shrink:0;}
+      .s-icon.brand{background:var(--brand);}.s-icon.green{background:var(--green);}.s-icon.blue{background:var(--blue);}.s-icon.red{background:var(--red);}.s-icon.muted{background:var(--muted);}.s-icon.orange{background:var(--orange);}
+      .s-body{padding:1.1rem;}
+
+      /* buttons */
+      .btn-a{display:inline-flex;align-items:center;gap:.35rem;padding:.55rem 1.2rem;font-weight:700;font-size:.85rem;border:none;border-radius:8px;cursor:pointer;text-decoration:none;transition:all .2s;}
+      .btn-a:hover{transform:translateY(-1px);box-shadow:var(--shadow-h);}
+      .btn-a.primary{background:var(--green);color:#fff;}.btn-a.primary:hover{background:#146c43;color:#fff;}
+      .btn-a.secondary{background:#fff;color:var(--brand);border:1.5px solid var(--border);}.btn-a.secondary:hover{background:var(--bg);color:var(--brand);}
+      .btn-a.dark{background:var(--brand);color:#fff;}.btn-a.dark:hover{background:var(--brand-l);color:#fff;}
+      .btn-a.outline{background:transparent;color:var(--brand);border:1.5px solid var(--border);}.btn-a.outline:hover{background:var(--bg);}
+
+      /* hero gradient */
+      .idx-hero{background:linear-gradient(135deg,var(--brand),var(--brand-l));padding-top:130px;padding-bottom:3rem;position:relative;overflow:hidden;}
+      .idx-hero::after{content:'';position:absolute;top:-30%;right:-10%;width:50%;height:160%;background:radial-gradient(circle,rgba(255,255,255,.04) 0%,transparent 70%);pointer-events:none;}
+      .idx-greeting h1{font-size:1.6rem;font-weight:800;color:#fff;margin:0 0 .3rem;}
+      .idx-greeting p{color:rgba(255,255,255,.7);font-size:.92rem;margin:0 0 1rem;}
+      .idx-greeting .btn-a.primary{background:#22c55e;color:#fff;}.idx-greeting .btn-a.primary:hover{background:#16a34a;color:#fff;}
+      .idx-greeting .btn-a.g-outline{color:#fff;border-color:rgba(255,255,255,.3);background:transparent;}.idx-greeting .btn-a.g-outline:hover{background:rgba(255,255,255,.1);color:#fff;}
+
+      /* hero glass cards */
+      .h-metric{background:rgba(255,255,255,.07);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:.8rem 1rem;text-align:center;}
+      .h-metric .hm-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.55);font-weight:600;margin-bottom:2px;}
+      .h-metric .hm-value{font-size:1.3rem;font-weight:700;color:#fff;}
+      .h-metric .hm-value.green{color:#4ade80;}
+      .h-metric .hm-sub{font-size:.68rem;color:rgba(255,255,255,.45);}
+      .h-chart-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);font-weight:600;margin-bottom:.3rem;text-align:center;}
+      .h-mini-table{width:100%;font-size:.78rem;border-collapse:collapse;}
+      .h-mini-table th{color:rgba(255,255,255,.5);font-size:.65rem;text-transform:uppercase;font-weight:600;padding:.25rem .4rem;border-bottom:1px solid rgba(255,255,255,.1);}
+      .h-mini-table td{color:rgba(255,255,255,.85);padding:.25rem .4rem;border-bottom:1px solid rgba(255,255,255,.06);}
+      .h-section-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);font-weight:600;margin-bottom:.4rem;}
+
+      /* KPI */
+      .kpi-val{font-size:1.5rem;font-weight:700;color:var(--brand);}
+      .kpi-val.green{color:var(--green);}.kpi-val.red{color:var(--red);}
+      .kpi-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;margin-bottom:4px;}
+      .kpi-sub{font-size:.7rem;color:#9ca3af;}
+      .kpi-goal-bar{height:10px;background:#e5e7eb;border-radius:99px;overflow:hidden;}
+      .kpi-goal-bar .fill{height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:99px;}
+
+      /* product rows */
+      .prod-row{display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.82rem;}
+      .prod-row:last-child{border-bottom:none;}
+      .prod-rank{width:24px;height:24px;border-radius:50%;background:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:var(--brand);margin-right:.5rem;}
+      .prod-rank.top3{background:var(--brand);color:#fff;}
+      .prod-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.65rem;font-weight:600;background:#ecfdf5;color:#16a34a;margin-left:6px;}
+
+      /* items table */
+      .items-table{width:100%;border-collapse:collapse;font-size:.85rem;}
+      .items-table th{color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.03em;padding:.5rem .6rem;border-bottom:2px solid var(--border);text-align:left;}
+      .items-table td{padding:.55rem .6rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+      .items-table tbody tr:hover{background:var(--bg);}
+
+      /* quick access cards */
+      .qa-card .s-body{display:flex;flex-direction:column;align-items:center;text-align:center;padding:2rem 1.5rem;}
+      .qa-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff;margin-bottom:.8rem;}
+
+      /* layout helpers */
+      .hdr-wrap{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+      .hdr-btns{display:flex;gap:.45rem;flex-wrap:wrap;}
+      @media(max-width:575px){.hdr-btns{width:100%;}.hdr-btns .btn-a{flex:1;justify-content:center;}}
+
+      /* ── MOBILE FIXES ── */
+      @media(max-width:767px){
+        html,body{overflow-x:hidden;}
+        /* shrink navbar logo on mobile */
+        .navbar-brand img{height:50px !important;}
+        .navbar{padding-top:.3rem;padding-bottom:.3rem;}
+        /* solid bg when mobile menu is open */
+        .navbar-collapse{background:var(--brand);border-radius:0 0 12px 12px;padding:.5rem .8rem;margin-top:.3rem;}
+        .idx-hero{padding-top:100px;padding-bottom:2rem;}
+        .idx-greeting h1{font-size:1.3rem;}
+        .idx-greeting p{font-size:.84rem;}
+        .h-metric{padding:.55rem .6rem;}
+        .h-metric .hm-value{font-size:1.05rem;}
+        .h-metric .hm-label{font-size:.58rem;}
+        .h-metric .hm-sub{font-size:.6rem;}
+        .h-chart-label{font-size:.6rem;}
+        .s-hdr{font-size:.8rem;padding:.6rem .9rem;flex-wrap:wrap;}
+        .s-hdr span:first-of-type:not(.s-icon){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+        .s-body{padding:.8rem;}
+        .kpi-val{font-size:1.2rem;}
+        .kpi-label{font-size:.6rem;}
+        .kpi-sub{font-size:.62rem;}
+        /* shrink chart containers on mobile */
+        .s-card .s-body[style*="height:280px"]{height:200px !important;}
+        .s-card .s-body[style*="height:260px"]{height:200px !important;}
+        /* product rows stack */
+        .prod-row{flex-wrap:wrap;gap:.2rem;}
+        .prod-row .text-end{width:100%;text-align:left !important;padding-left:calc(24px + .5rem);}
+        /* ranking table: hide ticket + participação on mobile */
+        .items-table th:nth-child(5),.items-table td:nth-child(5),
+        .items-table th:nth-child(6),.items-table td:nth-child(6){display:none;}
+        .items-table{font-size:.78rem;}
+        /* section header */
+        .hdr-wrap h3{font-size:1.1rem !important;}
       }
-      .dropdown-menu .dropdown-item {
-        color: #333;
-        padding: 0.5rem 1.5rem;
+      @media(max-width:400px){
+        .h-metric .hm-value{font-size:.92rem;}
+        .h-metric{padding:.45rem .5rem;}
+        .idx-hero .row.g-2.mb-3 .col-4{padding-left:4px;padding-right:4px;}
+        .kpi-val{font-size:1rem;}
       }
-      .dropdown-menu .dropdown-item:hover {
-        background-color: #f8f9fa;
-        color: #0A2640;
+
+      /* nav pills */
+      .nav-pills-custom .nav-link{display:inline-flex;align-items:center;gap:6px;padding:.45rem .9rem;border-radius:8px;font-weight:700;font-size:.82rem;color:rgba(255,255,255,.7);border:1.5px solid transparent;transition:all .2s;}
+      .nav-pills-custom .nav-link:hover{color:#fff;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.18);}
+      .nav-pills-custom .nav-link.active{color:#fff;background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.25);}
+      .nav-pills-custom .nav-link i{font-size:.78rem;}
+      @media(max-width:991px){
+        .nav-pills-custom .nav-link{width:100%;padding:.6rem 1rem;font-size:.88rem;border-bottom:1px solid rgba(255,255,255,.08);border-radius:0;}
+        .nav-pills-custom .nav-link:hover,.nav-pills-custom .nav-link.active{background:rgba(255,255,255,.1);border-radius:0;}
       }
-      .dropdown-menu .dropdown-item.active {
-        background-color: transparent;
-        color: #333;
-      }
-      .dropdown-menu .dropdown-item.active:hover {
-        background-color: #f8f9fa;
-        color: #0A2640;
-      }
+
+      {% if user.is_authenticated %}
+      .navbar-nav .nav-item.dropdown:hover>.dropdown-menu{display:block;}
+      .dropdown-menu .dropdown-item{color:#333;padding:0.5rem 1.5rem;}
+      .dropdown-menu .dropdown-item:hover{background-color:#f8f9fa;color:#0A2640;}
+      {% endif %}
     </style>
-    {% endif %}
 
   </head>
 
@@ -55,11 +162,11 @@
         <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 80px;" /></a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars text-white fs-3"></i></button>
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav ms-auto">
-              <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
-              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'calendar_app:calendar' %}">Calendário</a></li>
-              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'sales:standalone_simulation' %}">Simulador</a></li>
+            <ul class="navbar-nav ms-auto nav-pills-custom">
+              <li class="nav-item"><a class="nav-link active" href="{% url 'core:index' %}"><i class="fa-solid fa-house"></i>Início</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'calendar_app:calendar' %}"><i class="fa-solid fa-calendar-days"></i>Calendário</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}"><i class="fa-solid fa-file-invoice"></i>Orçamentos</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'sales:standalone_simulation' %}"><i class="fa-solid fa-calculator"></i>Simulador</a></li>
               {% if user.is_authenticated %}
 				<li class="nav-item dropdown">
 				<button
@@ -133,273 +240,154 @@
       </script>
       {% endif %}
 
-      <div class="bg-dark"><img class="img-fluid position-absolute end-0" src="{% static 'assets/img/hero/hero-bg.png' %}" alt="" />
-
-        <section>
-          <div class="container">
-            <div class="row align-items-center py-lg-8 py-6">
-              <div class="col-lg-5 text-center text-lg-start">
-                {% if user.is_authenticated %}
-                  <h1 class="text-white fs-5 fs-xl-6">Olá, {{ user.username }}!</h1>
-                  <p class="text-white py-lg-3 py-2">Acompanhe seus resultados e gerencie seus orçamentos em tempo real.</p>
-                  <a href="{% url 'sales:quote_create' %}" class="btn btn-success text-black me-3 mb-3"><i class="fa-solid fa-plus me-1"></i>Novo Orçamento</a>
-                  <a href="{% url 'calendar_app:calendar' %}" class="btn btn-outline-light mb-3"><i class="fa-solid fa-calendar me-1"></i>Calendário</a>
-                {% else %}
-                  <h1 class="text-white fs-5 fs-xl-6">Lorem ipsum dolor sit amet</h1>
-                  <p class="text-white py-lg-3 py-2">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                  <a href="{% url 'accounts:login' %}" class="btn btn-success text-black me-3 mb-3">Entrar</a>
-                  <button class="btn btn-outline-light mb-3">Explorar</button>
-                {% endif %}
+      <!-- ═══════════ HERO ═══════════ -->
+      <div class="idx-hero">
+        <div class="container">
+          {% if user.is_authenticated %}
+          <div class="row align-items-center">
+            <div class="col-lg-5 mb-4 mb-lg-0 idx-greeting">
+              <h1>Olá, {{ user.username }}!</h1>
+              <p>Acompanhe seus resultados e gerencie seus orçamentos em tempo real.</p>
+              <div class="hdr-btns">
+                <a href="{% url 'sales:quote_create' %}" class="btn-a primary"><i class="fa-solid fa-plus"></i>Novo Orçamento</a>
+                <a href="{% url 'calendar_app:calendar' %}" class="btn-a g-outline"><i class="fa-solid fa-calendar"></i>Calendário</a>
               </div>
-
-              <div class="col-lg-7 mt-3 mt-lg-0">
-                {% if user.is_authenticated %}
-                <style>
-                  .hero-card { background: rgba(255,255,255,0.07); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 1rem 1.25rem; }
-                  .hero-metric { text-align: center; }
-                  .hero-metric .hm-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; color: rgba(255,255,255,0.6); font-weight: 600; margin-bottom: 2px; }
-                  .hero-metric .hm-value { font-size: 1.3rem; font-weight: 700; color: #fff; }
-                  .hero-metric .hm-value.green { color: #4ade80; }
-                  .hero-metric .hm-sub { font-size: .7rem; color: rgba(255,255,255,0.5); }
-                  .hero-goal-bar { height: 16px; background: rgba(255,255,255,0.12); border-radius: 4px; overflow: hidden; }
-                  .hero-goal-bar .hg-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #22c55e); transition: width .5s; }
-                  .hero-mini-table { width: 100%; font-size: .78rem; border-collapse: collapse; }
-                  .hero-mini-table th { color: rgba(255,255,255,0.5); font-size: .65rem; text-transform: uppercase; font-weight: 600; padding: .25rem .4rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-                  .hero-mini-table td { color: rgba(255,255,255,0.85); padding: .25rem .4rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
-                  .hero-section-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: rgba(255,255,255,0.5); font-weight: 600; margin-bottom: .4rem; }
-                </style>
-
-                <div class="hero-card">
-                  <!-- Metrics Row -->
-                  <div class="row g-2 mb-3">
-                    <div class="col-6 col-md-3">
-                      <div class="hero-metric">
-                        <div class="hm-label">Vendas</div>
-                        <div class="hm-value green">R$ {{ my_total_sold_month|floatformat:0 }}</div>
-                        <div class="hm-sub">Ant: R$ {{ prev_total|floatformat:0 }}</div>
-                      </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                      <div class="hero-metric">
-                        <div class="hm-label">Orçamentos</div>
-                        <div class="hm-value">{{ my_quotes_count_month }}</div>
-                        <div class="hm-sub">Conv: {{ my_converted_count_month }}</div>
-                      </div>
-                      
-                    </div>
-                    <div class="col-6 col-md-3">
-                      <div class="hero-metric">
-                        <div class="hm-label">Conversão</div>
-                        <div class="hm-value {% if my_conversion_rate >= 50 %}green{% endif %}">{{ my_conversion_rate }}%</div>
-                        <div class="hm-sub">Desc: {{ avg_discount }}%</div>
-                      </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                      <div class="hero-metric">
-                        <div class="hm-label">Ticket Médio</div>
-                        <div class="hm-value">R$ {{ my_avg_ticket|floatformat:0 }}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Pie/Doughnut Charts Row -->
-                  <div class="row g-2">
-                    <div class="col-4 text-center">
-                      <div class="hero-section-label"><i class="fa-solid fa-bullseye me-1"></i>Meta</div>
-                      <div style="height:110px; position:relative;">
-                        <canvas id="heroGoalPie"></canvas>
-                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-weight:700;font-size:.85rem;">{{ goal_pct_raw }}%</div>
-                      </div>
-                    </div>
-                    <div class="col-4 text-center">
-                      <div class="hero-section-label"><i class="fa-solid fa-chart-pie me-1"></i>Conversão</div>
-                      <div style="height:110px; position:relative;">
-                        <canvas id="heroConvPie"></canvas>
-                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-weight:700;font-size:.85rem;">{{ my_conversion_rate }}%</div>
-                      </div>
-                    </div>
-                    <div class="col-4 text-center">
-                      <div class="hero-section-label"><i class="fa-solid fa-file-circle-check me-1"></i>Status</div>
-                      <div style="height:110px;">
-                        <canvas id="heroStatusPie"></canvas>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Pending + Overdue compact row -->
-                  {% if pending_quotes or overdue_events %}
-                  <div class="row g-2 mt-2">
-                    {% if pending_quotes %}
-                    <div class="{% if overdue_events %}col-6{% else %}col-12{% endif %}">
-                      <div class="hero-section-label"><i class="fa-solid fa-file-invoice me-1"></i>Pendentes</div>
-                      <table class="hero-mini-table">
-                        {% for q in pending_quotes %}
-                        <tr><td>{{ q.number }}</td><td>{{ q.customer.name|truncatechars:18 }}</td></tr>
-                        {% endfor %}
-                      </table>
-                    </div>
-                    {% endif %}
-                    {% if overdue_events %}
-                    <div class="{% if pending_quotes %}col-6{% else %}col-12{% endif %}">
-                      <div class="hero-section-label" style="color:#f87171;"><i class="fa-solid fa-exclamation-triangle me-1"></i>Atrasados</div>
-                      <table class="hero-mini-table">
-                        {% for ev in overdue_events %}
-                        <tr><td style="color:#f87171;">{{ ev.event_date|date:"d/m" }}</td><td>{{ ev.title|truncatechars:18 }}</td></tr>
-                        {% endfor %}
-                      </table>
-                    </div>
-                    {% endif %}
-                  </div>
-                  {% endif %}
-
-                  {% if is_admin %}
-                  <!-- Admin: Team row -->
-                  <div class="row g-2 mt-2 pt-2" style="border-top:1px solid rgba(255,255,255,0.1);">
-                    <div class="col-4">
-                      <div class="hero-metric">
-                        <div class="hm-label">Equipe Vendas</div>
-                        <div class="hm-value green" style="font-size:1.1rem;">R$ {{ team_total_sold_month|floatformat:0 }}</div>
-                      </div>
-                    </div>
-                    <div class="col-4">
-                      <div class="hero-metric">
-                        <div class="hm-label">Orçamentos</div>
-                        <div class="hm-value" style="font-size:1.1rem;">{{ team_quotes_month }}</div>
-                      </div>
-                    </div>
-                    <div class="col-4">
-                      <div class="hero-metric">
-                        <div class="hm-label">Conv. Equipe</div>
-                        <div class="hm-value" style="font-size:1.1rem;">{{ team_conversion_rate }}%</div>
-                      </div>
-                    </div>
-                  </div>
-                  {% if seller_ranking %}
-                  <div class="hero-section-label mt-2"><i class="fa-solid fa-trophy me-1"></i>Ranking</div>
-                  <table class="hero-mini-table">
-                    <thead><tr><th>#</th><th>Vendedor</th><th>Total</th></tr></thead>
-                    <tbody>{% for s in seller_ranking %}<tr><td>{{ forloop.counter }}</td><td>{{ s.seller__username }}</td><td class="fw-bold">R$ {{ s.total|floatformat:0 }}</td></tr>{% endfor %}</tbody>
-                  </table>
-                  {% endif %}
-                  {% endif %}
+            </div>
+            <div class="col-lg-7">
+              <!-- Metric pills -->
+              <div class="row g-2 mb-3">
+                <div class="col-6 col-md-3"><div class="h-metric"><div class="hm-label">Vendas</div><div class="hm-value green">R$ {{ my_total_sold_month|floatformat:0 }}</div><div class="hm-sub">Ant: R$ {{ prev_total|floatformat:0 }}</div></div></div>
+                <div class="col-6 col-md-3"><div class="h-metric"><div class="hm-label">Orçamentos</div><div class="hm-value">{{ my_quotes_count_month }}</div><div class="hm-sub">Conv: {{ my_converted_count_month }}</div></div></div>
+                <div class="col-6 col-md-3"><div class="h-metric"><div class="hm-label">Conversão</div><div class="hm-value {% if my_conversion_rate >= 50 %}green{% endif %}">{{ my_conversion_rate }}%</div><div class="hm-sub">Desc: {{ avg_discount }}%</div></div></div>
+                <div class="col-6 col-md-3"><div class="h-metric"><div class="hm-label">Ticket Médio</div><div class="hm-value">R$ {{ my_avg_ticket|floatformat:0 }}</div></div></div>
+              </div>
+              <!-- Mini charts row -->
+              <div class="row g-2 mb-3">
+                <div class="col-4 text-center">
+                  <div class="h-chart-label"><i class="fa-solid fa-bullseye me-1"></i>Meta</div>
+                  <div style="height:110px;position:relative;"><canvas id="heroGoalPie"></canvas><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-weight:700;font-size:.85rem;">{{ goal_pct_raw }}%</div></div>
                 </div>
-                {% else %}
-                  <img class="img-fluid" src="{% static 'assets/img/hero/hero-graphics.png' %}" alt="" />
+                <div class="col-4 text-center">
+                  <div class="h-chart-label"><i class="fa-solid fa-chart-pie me-1"></i>Conversão</div>
+                  <div style="height:110px;position:relative;"><canvas id="heroConvPie"></canvas><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-weight:700;font-size:.85rem;">{{ my_conversion_rate }}%</div></div>
+                </div>
+                <div class="col-4 text-center">
+                  <div class="h-chart-label"><i class="fa-solid fa-file-circle-check me-1"></i>Status</div>
+                  <div style="height:110px;"><canvas id="heroStatusPie"></canvas></div>
+                </div>
+              </div>
+              <!-- Pending + Overdue -->
+              {% if pending_quotes or overdue_events %}
+              <div class="row g-2">
+                {% if pending_quotes %}
+                <div class="{% if overdue_events %}col-6{% else %}col-12{% endif %}">
+                  <div class="h-section-label"><i class="fa-solid fa-file-invoice me-1"></i>Pendentes</div>
+                  <table class="h-mini-table">{% for q in pending_quotes %}<tr><td>{{ q.number }}</td><td>{{ q.customer.name|truncatechars:18 }}</td></tr>{% endfor %}</table>
+                </div>
+                {% endif %}
+                {% if overdue_events %}
+                <div class="{% if pending_quotes %}col-6{% else %}col-12{% endif %}">
+                  <div class="h-section-label" style="color:#f87171;"><i class="fa-solid fa-exclamation-triangle me-1"></i>Atrasados</div>
+                  <table class="h-mini-table">{% for ev in overdue_events %}<tr><td style="color:#f87171;">{{ ev.event_date|date:"d/m" }}</td><td>{{ ev.title|truncatechars:18 }}</td></tr>{% endfor %}</table>
+                </div>
                 {% endif %}
               </div>
+              {% endif %}
+              <!-- Admin team row -->
+              {% if is_admin %}
+              <div class="row g-2 mt-2 pt-2" style="border-top:1px solid rgba(255,255,255,.1);">
+                <div class="col-4"><div class="h-metric"><div class="hm-label">Equipe Vendas</div><div class="hm-value green" style="font-size:1.1rem;">R$ {{ team_total_sold_month|floatformat:0 }}</div></div></div>
+                <div class="col-4"><div class="h-metric"><div class="hm-label">Orçamentos</div><div class="hm-value" style="font-size:1.1rem;">{{ team_quotes_month }}</div></div></div>
+                <div class="col-4"><div class="h-metric"><div class="hm-label">Conv. Equipe</div><div class="hm-value" style="font-size:1.1rem;">{{ team_conversion_rate }}%</div></div></div>
+              </div>
+              {% if seller_ranking %}
+              <div class="h-section-label mt-2"><i class="fa-solid fa-trophy me-1"></i>Ranking</div>
+              <table class="h-mini-table"><thead><tr><th>#</th><th>Vendedor</th><th>Total</th></tr></thead><tbody>{% for s in seller_ranking %}<tr><td>{{ forloop.counter }}</td><td>{{ s.seller__username }}</td><td class="fw-bold">R$ {{ s.total|floatformat:0 }}</td></tr>{% endfor %}</tbody></table>
+              {% endif %}
+              {% endif %}
             </div>
           </div>
-        </section>
-
+          {% else %}
+          <div class="row align-items-center py-6">
+            <div class="col-lg-5 text-center text-lg-start idx-greeting">
+              <h1>Lorem ipsum dolor sit amet</h1>
+              <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+              <a href="{% url 'accounts:login' %}" class="btn-a primary">Entrar</a>
+              <button class="btn-a g-outline ms-2">Explorar</button>
+            </div>
+            <div class="col-lg-7 mt-3 mt-lg-0">
+              <img class="img-fluid" src="{% static 'assets/img/hero/hero-graphics.png' %}" alt="" />
+            </div>
+          </div>
+          {% endif %}
+        </div>
       </div>
 
-
-      <!-- ============================================-->
-      <!-- Analytics BI Section (admin only) =========-->
+      <!-- ═══════════ MAIN CONTENT ═══════════ -->
       {% if user.is_authenticated and is_admin %}
-      <section style="padding-top:3rem;padding-bottom:3rem;">
-        <style>
-          .bi-section { font-family: 'Manrope', sans-serif; }
-          .bi-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; transition: box-shadow .2s; height: 100%; }
-          .bi-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.06); }
-          .bi-card-header { background: #0A2640; color: #fff; padding: .6rem 1rem; font-weight: 600; font-size: .8rem; display: flex; align-items: center; justify-content: space-between; }
-          .bi-card-header i { opacity: .7; }
-          .bi-card-body { padding: 1rem; }
-          .bi-kpi { text-align: center; padding: .8rem .5rem; }
-          .bi-kpi .bk-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; font-weight: 600; margin-bottom: 4px; }
-          .bi-kpi .bk-value { font-size: 1.5rem; font-weight: 700; color: #0A2640; }
-          .bi-kpi .bk-value.green { color: #16a34a; }
-          .bi-kpi .bk-value.red { color: #dc2626; }
-          .bi-kpi .bk-delta { font-size: .7rem; color: #9ca3af; }
-          .bi-product-row { display: flex; justify-content: space-between; align-items: center; padding: .35rem 0; border-bottom: 1px solid #f3f4f6; font-size: .82rem; }
-          .bi-product-row:last-child { border-bottom: none; }
-          .bi-product-row .rank { width: 24px; height: 24px; border-radius: 50%; background: #f3f4f6; display: inline-flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; color: #0A2640; margin-right: .5rem; }
-          .bi-product-row .rank.top3 { background: #0A2640; color: #fff; }
-          .bi-badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: .65rem; font-weight: 600; }
-          .bi-goal-bar { height: 10px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
-          .bi-goal-bar .fill { height: 100%; background: linear-gradient(90deg, #16a34a, #22c55e); border-radius: 99px; }
-        </style>
-
-        <div class="container bi-section">
-          <div class="d-flex justify-content-between align-items-center mb-4">
+      <section style="padding:2.5rem 0 3rem;background:var(--bg);">
+        <div class="container">
+          <!-- Section header -->
+          <div class="hdr-wrap mb-4">
             <div>
-              <h3 class="fw-bold mb-0" style="color:#0A2640;"><i class="fa-solid fa-chart-pie me-2"></i>Central de Análises</h3>
-              <span class="text-muted" style="font-size:.85rem;">Visão gerencial completa — dados do mês atual</span>
+              <h3 style="font-weight:800;color:var(--brand);margin:0;"><i class="fa-solid fa-chart-pie me-2"></i>Central de Análises</h3>
+              <span style="color:var(--muted);font-size:.85rem;">Visão gerencial completa — dados do mês atual</span>
             </div>
-            <div class="d-flex gap-2">
-              <a href="{% url 'core:reports_hub' %}" class="btn btn-outline-dark btn-sm"><i class="fa-solid fa-file-export me-1"></i>Relatórios</a>
+            <div class="hdr-btns">
+              <a href="{% url 'core:reports_hub' %}" class="btn-a outline"><i class="fa-solid fa-file-export"></i>Relatórios</a>
             </div>
           </div>
 
           <!-- KPI Row -->
           <div class="row g-3 mb-4">
             <div class="col-6 col-md-3">
-              <div class="bi-card">
-                <div class="bi-kpi">
-                  <div class="bk-label"><i class="fa-solid fa-dollar-sign me-1"></i>Receita Total</div>
-                  <div class="bk-value green">R$ {{ team_total_sold_month|floatformat:0 }}</div>
-                  <div class="bk-delta">{{ team_quotes_month }} orçamentos no mês</div>
-                </div>
-              </div>
+              <div class="s-card"><div class="s-body text-center py-3">
+                <div class="kpi-label"><i class="fa-solid fa-dollar-sign me-1"></i>Receita Total</div>
+                <div class="kpi-val green">R$ {{ team_total_sold_month|floatformat:0 }}</div>
+                <div class="kpi-sub">{{ team_quotes_month }} orçamentos no mês</div>
+              </div></div>
             </div>
             <div class="col-6 col-md-3">
-              <div class="bi-card">
-                <div class="bi-kpi">
-                  <div class="bk-label"><i class="fa-solid fa-percent me-1"></i>Conversão Geral</div>
-                  <div class="bk-value {% if team_conversion_rate >= 50 %}green{% elif team_conversion_rate < 20 %}red{% endif %}">{{ team_conversion_rate }}%</div>
-                  <div class="bk-delta">Equipe completa</div>
-                </div>
-              </div>
+              <div class="s-card"><div class="s-body text-center py-3">
+                <div class="kpi-label"><i class="fa-solid fa-percent me-1"></i>Conversão Geral</div>
+                <div class="kpi-val {% if team_conversion_rate >= 50 %}green{% elif team_conversion_rate < 20 %}red{% endif %}">{{ team_conversion_rate }}%</div>
+                <div class="kpi-sub">Equipe completa</div>
+              </div></div>
             </div>
             <div class="col-6 col-md-3">
-              <div class="bi-card">
-                <div class="bi-kpi">
-                  <div class="bk-label"><i class="fa-solid fa-users me-1"></i>Vendedores Ativos</div>
-                  <div class="bk-value">{{ seller_ranking|length }}</div>
-                  <div class="bk-delta">Com vendas este mês</div>
-                </div>
-              </div>
+              <div class="s-card"><div class="s-body text-center py-3">
+                <div class="kpi-label"><i class="fa-solid fa-users me-1"></i>Vendedores Ativos</div>
+                <div class="kpi-val">{{ seller_ranking|length }}</div>
+                <div class="kpi-sub">Com vendas este mês</div>
+              </div></div>
             </div>
             <div class="col-6 col-md-3">
-              <div class="bi-card">
+              <div class="s-card"><div class="s-body text-center py-3">
                 {% if collective_goal %}
-                <div class="bi-kpi">
-                  <div class="bk-label"><i class="fa-solid fa-bullseye me-1"></i>Meta Coletiva</div>
-                  <div class="bk-value {% if collective_goal_pct >= 100 %}green{% endif %}">{{ collective_goal_pct }}%</div>
-                  <div class="bi-goal-bar mt-1"><div class="fill" style="width:{{ collective_goal_pct }}%;"></div></div>
-                  <div class="bk-delta mt-1">R$ {{ team_total_sold_month|floatformat:0 }} / R$ {{ collective_goal.target_value|floatformat:0 }}</div>
-                </div>
+                <div class="kpi-label"><i class="fa-solid fa-bullseye me-1"></i>Meta Coletiva</div>
+                <div class="kpi-val {% if collective_goal_pct >= 100 %}green{% endif %}">{{ collective_goal_pct }}%</div>
+                <div class="kpi-goal-bar mt-1"><div class="fill" style="width:{{ collective_goal_pct }}%;"></div></div>
+                <div class="kpi-sub mt-1">R$ {{ team_total_sold_month|floatformat:0 }} / R$ {{ collective_goal.target_value|floatformat:0 }}</div>
                 {% else %}
-                <div class="bi-kpi">
-                  <div class="bk-label"><i class="fa-solid fa-bullseye me-1"></i>Meta Coletiva</div>
-                  <div class="bk-value" style="font-size:1rem;color:#9ca3af;">Não definida</div>
-                </div>
+                <div class="kpi-label"><i class="fa-solid fa-bullseye me-1"></i>Meta Coletiva</div>
+                <div class="kpi-val" style="font-size:1rem;color:#9ca3af;">Não definida</div>
                 {% endif %}
-              </div>
+              </div></div>
             </div>
           </div>
 
           <!-- Charts Row 1: Team Evolution + Status Breakdown -->
           <div class="row g-3 mb-4">
             <div class="col-lg-8">
-              <div class="bi-card">
-                <div class="bi-card-header">
-                  <span><i class="fa-solid fa-chart-line me-2"></i>Evolução de Vendas da Equipe</span>
-                  <span style="font-weight:400;font-size:.7rem;opacity:.7;">Últimos 6 meses</span>
-                </div>
-                <div class="bi-card-body" style="height:280px;">
-                  <canvas id="biTeamEvolution"></canvas>
-                </div>
+              <div class="s-card">
+                <div class="s-hdr"><span class="s-icon brand"><i class="fa-solid fa-chart-line"></i></span><span>Evolução de Vendas da Equipe</span><span class="ms-auto" style="font-weight:400;font-size:.7rem;color:var(--muted);">Últimos 6 meses</span></div>
+                <div class="s-body" style="height:280px;"><canvas id="biTeamEvolution"></canvas></div>
               </div>
             </div>
             <div class="col-lg-4">
-              <div class="bi-card">
-                <div class="bi-card-header">
-                  <span><i class="fa-solid fa-circle-half-stroke me-2"></i>Status dos Orçamentos</span>
-                </div>
-                <div class="bi-card-body d-flex align-items-center justify-content-center" style="height:280px;">
-                  <canvas id="biStatusPie"></canvas>
-                </div>
+              <div class="s-card">
+                <div class="s-hdr"><span class="s-icon blue"><i class="fa-solid fa-circle-half-stroke"></i></span><span>Status dos Orçamentos</span></div>
+                <div class="s-body d-flex align-items-center justify-content-center" style="height:280px;"><canvas id="biStatusPie"></canvas></div>
               </div>
             </div>
           </div>
@@ -407,14 +395,9 @@
           <!-- Charts Row 2: Seller Comparison -->
           <div class="row g-3 mb-4">
             <div class="col-lg-12">
-              <div class="bi-card">
-                <div class="bi-card-header">
-                  <span><i class="fa-solid fa-ranking-star me-2"></i>Vendas por Vendedor</span>
-                  <span style="font-weight:400;font-size:.7rem;opacity:.7;">Mês atual</span>
-                </div>
-                <div class="bi-card-body" style="height:260px;">
-                  <canvas id="biSellerBar"></canvas>
-                </div>
+              <div class="s-card">
+                <div class="s-hdr"><span class="s-icon orange"><i class="fa-solid fa-ranking-star"></i></span><span>Vendas por Vendedor</span><span class="ms-auto" style="font-weight:400;font-size:.7rem;color:var(--muted);">Mês atual</span></div>
+                <div class="s-body" style="height:260px;"><canvas id="biSellerBar"></canvas></div>
               </div>
             </div>
           </div>
@@ -422,21 +405,19 @@
           <!-- Charts Row 3: Top Products + Discount Analysis -->
           <div class="row g-3 mb-4">
             <div class="col-lg-5">
-              <div class="bi-card">
-                <div class="bi-card-header">
-                  <span><i class="fa-solid fa-box-open me-2"></i>Top Produtos por Receita</span>
-                </div>
-                <div class="bi-card-body" style="max-height:340px;overflow-y:auto;">
+              <div class="s-card">
+                <div class="s-hdr"><span class="s-icon green"><i class="fa-solid fa-box-open"></i></span><span>Top Produtos por Receita</span></div>
+                <div class="s-body" style="max-height:340px;overflow-y:auto;">
                   {% if bi_top_products %}
                     {% for p in bi_top_products %}
-                    <div class="bi-product-row">
+                    <div class="prod-row">
                       <div class="d-flex align-items-center">
-                        <span class="rank {% if forloop.counter <= 3 %}top3{% endif %}">{{ forloop.counter }}</span>
+                        <span class="prod-rank {% if forloop.counter <= 3 %}top3{% endif %}">{{ forloop.counter }}</span>
                         <span class="fw-semibold" style="color:#374151;">{{ p.product_name|truncatechars:30 }}</span>
                       </div>
                       <div class="text-end">
-                        <span class="fw-bold" style="color:#0A2640;">R$ {{ p.total_revenue|floatformat:0 }}</span>
-                        <span class="bi-badge" style="background:#ecfdf5;color:#16a34a;margin-left:6px;">{{ p.total_qty }}un</span>
+                        <span class="fw-bold" style="color:var(--brand);">R$ {{ p.total_revenue|floatformat:0 }}</span>
+                        <span class="prod-badge">{{ p.total_qty }}un</span>
                       </div>
                     </div>
                     {% endfor %}
@@ -447,161 +428,124 @@
               </div>
             </div>
             <div class="col-lg-7">
-              <div class="bi-card">
-                <div class="bi-card-header">
-                  <span><i class="fa-solid fa-tags me-2"></i>Desconto Médio por Vendedor</span>
-                </div>
-                <div class="bi-card-body" style="height:280px;">
-                  <canvas id="biDiscountBar"></canvas>
-                </div>
+              <div class="s-card">
+                <div class="s-hdr"><span class="s-icon red"><i class="fa-solid fa-tags"></i></span><span>Desconto Médio por Vendedor</span></div>
+                <div class="s-body" style="height:280px;"><canvas id="biDiscountBar"></canvas></div>
               </div>
             </div>
           </div>
 
           <!-- Seller Ranking Table -->
-          <div class="row g-3">
-            <div class="col-12">
-              <div class="bi-card">
-                <div class="bi-card-header">
-                  <span><i class="fa-solid fa-trophy me-2"></i>Ranking Detalhado — Mês Atual</span>
-                </div>
-                <div class="bi-card-body">
-                  {% if seller_ranking %}
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0" style="font-size:.85rem;">
-                      <thead>
-                        <tr style="color:#6b7280;font-size:.7rem;text-transform:uppercase;letter-spacing:.03em;">
-                          <th>#</th>
-                          <th>Vendedor</th>
-                          <th class="text-end">Vendas</th>
-                          <th class="text-end">Total Faturado</th>
-                          <th class="text-end">Ticket Médio</th>
-                          <th class="text-center">Participação</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {% for s in seller_ranking %}
-                        <tr>
-                          <td>
-                            {% if forloop.counter == 1 %}<span style="color:#eab308;"><i class="fa-solid fa-trophy"></i></span>
-                            {% elif forloop.counter == 2 %}<span style="color:#9ca3af;"><i class="fa-solid fa-medal"></i></span>
-                            {% elif forloop.counter == 3 %}<span style="color:#b45309;"><i class="fa-solid fa-award"></i></span>
-                            {% else %}{{ forloop.counter }}
-                            {% endif %}
-                          </td>
-                          <td class="fw-semibold">{{ s.seller__username }}</td>
-                          <td class="text-end">{{ s.count }}</td>
-                          <td class="text-end fw-bold" style="color:#16a34a;">R$ {{ s.total|floatformat:0 }}</td>
-                          <td class="text-end">R$ {% widthratio s.total s.count 1 %}</td>
-                          <td class="text-center">
-                            {% if team_total_sold_month %}
-                              {% widthratio s.total team_total_sold_month 100 %}%
-                            {% else %}0%{% endif %}
-                          </td>
-                        </tr>
-                        {% endfor %}
-                      </tbody>
-                    </table>
-                  </div>
-                  {% else %}
-                    <p class="text-muted text-center mb-0 py-3">Nenhuma venda registrada este mês</p>
-                  {% endif %}
-                </div>
+          <div class="s-card">
+            <div class="s-hdr"><span class="s-icon brand"><i class="fa-solid fa-trophy"></i></span><span>Ranking Detalhado — Mês Atual</span></div>
+            <div class="s-body">
+              {% if seller_ranking %}
+              <div class="table-responsive">
+                <table class="items-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Vendedor</th>
+                      <th class="text-end">Vendas</th>
+                      <th class="text-end">Total Faturado</th>
+                      <th class="text-end">Ticket Médio</th>
+                      <th class="text-center">Participação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for s in seller_ranking %}
+                    <tr>
+                      <td>
+                        {% if forloop.counter == 1 %}<span style="color:#eab308;"><i class="fa-solid fa-trophy"></i></span>
+                        {% elif forloop.counter == 2 %}<span style="color:#9ca3af;"><i class="fa-solid fa-medal"></i></span>
+                        {% elif forloop.counter == 3 %}<span style="color:#b45309;"><i class="fa-solid fa-award"></i></span>
+                        {% else %}{{ forloop.counter }}{% endif %}
+                      </td>
+                      <td class="fw-semibold">{{ s.seller__username }}</td>
+                      <td class="text-end">{{ s.count }}</td>
+                      <td class="text-end fw-bold" style="color:var(--green);">R$ {{ s.total|floatformat:0 }}</td>
+                      <td class="text-end">R$ {% widthratio s.total s.count 1 %}</td>
+                      <td class="text-center">{% if team_total_sold_month %}{% widthratio s.total team_total_sold_month 100 %}%{% else %}0%{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
               </div>
+              {% else %}
+                <p class="text-muted text-center mb-0 py-3">Nenhuma venda registrada este mês</p>
+              {% endif %}
             </div>
           </div>
         </div>
       </section>
       {% elif user.is_authenticated %}
       <!-- Regular seller: quick links -->
-      <section style="padding-top:2.5rem;padding-bottom:2.5rem;">
+      <section style="padding:2.5rem 0 3rem;background:var(--bg);">
         <div class="container">
-          <h3 class="fw-bold text-center mb-4" style="color:#0A2640;">Acesso Rápido</h3>
+          <h3 class="fw-bold text-center mb-4" style="color:var(--brand);">Acesso Rápido</h3>
           <div class="row g-4">
-            <div class="col-md-4 text-center">
-              <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:2rem 1.5rem;height:100%;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,.06)'" onmouseout="this.style.boxShadow='none'">
-                <i class="fa-solid fa-file-invoice fa-2x mb-3" style="color:#0A2640;"></i>
-                <h5 class="fw-bold">Orçamentos</h5>
-                <p class="text-muted" style="font-size:.9rem;">Crie, edite e acompanhe seus orçamentos.</p>
-                <a href="{% url 'sales:quotes_hub' %}" class="fw-bold text-decoration-none" style="color:#0A2640;">Acessar <i class="fa-solid fa-arrow-right ms-1"></i></a>
-              </div>
+            <div class="col-md-4">
+              <div class="s-card qa-card"><div class="s-body">
+                <div class="qa-icon" style="background:var(--brand);"><i class="fa-solid fa-file-invoice"></i></div>
+                <h5 class="fw-bold mb-1">Orçamentos</h5>
+                <p class="text-muted mb-3" style="font-size:.9rem;">Crie, edite e acompanhe seus orçamentos.</p>
+                <a href="{% url 'sales:quotes_hub' %}" class="btn-a dark"><i class="fa-solid fa-arrow-right"></i>Acessar</a>
+              </div></div>
             </div>
-            <div class="col-md-4 text-center">
-              <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:2rem 1.5rem;height:100%;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,.06)'" onmouseout="this.style.boxShadow='none'">
-                <i class="fa-solid fa-calendar fa-2x mb-3" style="color:#0A2640;"></i>
-                <h5 class="fw-bold">Calendário</h5>
-                <p class="text-muted" style="font-size:.9rem;">Gerencie entregas, follow-ups e eventos.</p>
-                <a href="{% url 'calendar_app:calendar' %}" class="fw-bold text-decoration-none" style="color:#0A2640;">Acessar <i class="fa-solid fa-arrow-right ms-1"></i></a>
-              </div>
+            <div class="col-md-4">
+              <div class="s-card qa-card"><div class="s-body">
+                <div class="qa-icon" style="background:var(--green);"><i class="fa-solid fa-calendar"></i></div>
+                <h5 class="fw-bold mb-1">Calendário</h5>
+                <p class="text-muted mb-3" style="font-size:.9rem;">Gerencie entregas, follow-ups e eventos.</p>
+                <a href="{% url 'calendar_app:calendar' %}" class="btn-a dark"><i class="fa-solid fa-arrow-right"></i>Acessar</a>
+              </div></div>
+            </div>
+            <div class="col-md-4">
+              <div class="s-card qa-card"><div class="s-body">
+                <div class="qa-icon" style="background:var(--blue);"><i class="fa-solid fa-calculator"></i></div>
+                <h5 class="fw-bold mb-1">Simulador</h5>
+                <p class="text-muted mb-3" style="font-size:.9rem;">Simule preços e condições de pagamento.</p>
+                <a href="{% url 'sales:standalone_simulation' %}" class="btn-a dark"><i class="fa-solid fa-arrow-right"></i>Acessar</a>
+              </div></div>
             </div>
           </div>
         </div>
       </section>
       {% else %}
-      <!-- Not authenticated: original services -->
-      <section>
+      <!-- Not authenticated: services -->
+      <section style="padding:3rem 0;background:var(--bg);">
         <div class="container">
           <p class="text-center fs-1">Our Services</p>
           <h2 class="mx-auto text-center fs-lg-6 fs-md-5 w-lg-75">Lorem ipsum dolor sit amet consectetur adipiscing elit.</h2>
           <div class="row gx-xl-7 mt-5">
-            <div class="col-md-4 mb-5 mb-md-0 text-center text-md-start"><img class="w-75 w-sm-50 w-md-100" src="{% static 'assets/img/services/1.png' %}" alt="" />
-              <h4 class="mt-4">Título de recurso legal</h4>
-              <p class="fs-1">Curva de aprendizado, efeitos de rede, retorno sobre investimento.</p><a class="text-dark fs-1 pb-2 fw-bold border-black border-bottom text-decoration-none" href="#">Explorar página<i class="fa-solid fa-arrow-right ms-2"></i></a>
+            <div class="col-md-4 mb-5 mb-md-0 text-center text-md-start">
+              <div class="s-card"><div class="s-body">
+                <img class="w-75 w-sm-50 w-md-100 mb-3" src="{% static 'assets/img/services/1.png' %}" alt="" />
+                <h4>Título de recurso legal</h4>
+                <p class="fs-1">Curva de aprendizado, efeitos de rede, retorno sobre investimento.</p>
+                <a class="btn-a dark" href="#">Explorar página<i class="fa-solid fa-arrow-right ms-2"></i></a>
+              </div></div>
             </div>
-            <div class="col-md-4 mb-5 mb-md-0 text-center text-md-start"><img class="w-75 w-sm-50 w-md-100" src="{% static 'assets/img/services/2.png' %}" alt="" />
-              <h4 class="mt-4">Even cooler feature</h4>
-              <p class="fs-1">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p><a class="text-dark fs-1 pb-2 fw-bold border-black border-bottom text-decoration-none" href="#">Explore page<i class="fa-solid fa-arrow-right ms-2"></i></a>
+            <div class="col-md-4 mb-5 mb-md-0 text-center text-md-start">
+              <div class="s-card"><div class="s-body">
+                <img class="w-75 w-sm-50 w-md-100 mb-3" src="{% static 'assets/img/services/2.png' %}" alt="" />
+                <h4>Even cooler feature</h4>
+                <p class="fs-1">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                <a class="btn-a dark" href="#">Explore page<i class="fa-solid fa-arrow-right ms-2"></i></a>
+              </div></div>
             </div>
-            <div class="col-md-4 mb-5 mb-md-0 text-center text-md-start"><img class="w-75 w-sm-50 w-md-100" src="{% static 'assets/img/services/3.png' %}" alt="" />
-              <h4 class="mt-4">Título de recurso legal</h4>
-              <p class="fs-1">Curva de aprendizado, efeitos de rede, retorno sobre investimento.</p><a class="text-dark fs-1 pb-2 fw-bold border-black border-bottom text-decoration-none" href="#">Explorar página<i class="fa-solid fa-arrow-right ms-2"></i></a>
+            <div class="col-md-4 mb-5 mb-md-0 text-center text-md-start">
+              <div class="s-card"><div class="s-body">
+                <img class="w-75 w-sm-50 w-md-100 mb-3" src="{% static 'assets/img/services/3.png' %}" alt="" />
+                <h4>Título de recurso legal</h4>
+                <p class="fs-1">Curva de aprendizado, efeitos de rede, retorno sobre investimento.</p>
+                <a class="btn-a dark" href="#">Explorar página<i class="fa-solid fa-arrow-right ms-2"></i></a>
+              </div></div>
             </div>
           </div>
         </div>
       </section>
       {% endif %}
-
-
-
-    <section class="pt-0">
-
-      <div class="container">
-        <div class="row justify-content-between">
-          <div class="col-lg-5 col-sm-4"><a href="{% url 'core:index' %}"><img class="img-fluid mt-5 mb-4" src="{% static 'assets/img/LogoBlack.png' %}?v=2" alt="" style="max-width: 200px;" /></a>
-            <p class="w-lg-75 text-gray">Lorem ipsum dolor sit amet,consectetur adipiscing  elit, sed do eiusmod tempor incididunt ut labore.</p>
-          </div>
-          <div class="col-lg-2 col-sm-4">
-            <h3 class="fw-bold fs-1 mt-5 mb-4">Landings</h3>
-            <ul class="list-unstyled">
-              <li class="my-3 col-md-4"><a href="#">Home</a></li>
-              <li class="my-3"><a href="#">Product</a></li>
-              <li class="my-3"><a href="#">Services</a></li>
-            </ul>
-          </div>
-          <div class="col-lg-2 col-sm-4">
-            <h3 class="fw-bold fs-1 mt-5 mb-4">Company</h3>
-            <ul class="list-unstyled">
-              <li class="my-3"><a href="#">Home</a></li>
-              <li class="my-3"><a href="#">Careers</a><span class="py-1 px-2 rounded-2 bg-success fw-bold text-dark ms-2">Hiring!</span></li>
-              <li class="my-3"><a href="#">Services</a></li>
-            </ul>
-          </div>
-          <div class="col-lg-2 col-sm-4">
-            <h3 class="fw-bold fs-1 mt-5 mb-4">Resources</h3>
-            <ul class="list-unstyled">
-              <li class="mb-3"><a href="#">Blog</a></li>
-              <li class="mb-3"><a href="#">Products</a></li>
-              <li class="mb-3"><a href="#">Services</a></li>
-            </ul>
-          </div>
-        </div>
-        <p class="text-gray">All rights reserved.</p>
-      </div>
-      <!-- end of .container-->
-
-    </section>
-    <!-- <section> close ============================-->
-    <!-- ============================================-->
 
 
 

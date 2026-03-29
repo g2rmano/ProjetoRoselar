@@ -169,6 +169,8 @@
       @media (max-width: 768px) {
         .s-body { padding: .8rem; }
         .formset-row { padding: .9rem .9rem .3rem; }
+        .hdr-wrap { flex-direction: column; }
+        .hdr-wrap .btn-a { width: 100%; justify-content: center; }
       }
     </style>
   </head>
@@ -223,7 +225,7 @@
           <!-- ═══ HEADER ═══ -->
           <div class="s-card fi" style="border:none;box-shadow:var(--shadow-h);">
             <div style="padding:1.3rem 1.4rem;">
-              <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 hdr-wrap">
                 <div>
                   <div class="d-flex align-items-center gap-3 mb-2">
                     <div style="width:40px;height:40px;border-radius:10px;background:var(--brand);color:#fff;

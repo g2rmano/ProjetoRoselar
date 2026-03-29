@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR" dir="ltr">
 
@@ -21,15 +21,85 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <style>
-      .form-control, .form-select, .btn { border-radius: 0 !important; }
-      #dropdownUserButton { border-radius: 0.375rem !important; }
+      :root {
+        --brand:#0A2640;--brand-l:#163a5a;--bg:#f4f6f9;--surface:#fff;
+        --green:#198754;--red:#dc3545;--orange:#e67e22;--blue:#0d6efd;
+        --cyan:#0dcaf0;--muted:#6c757d;--border:#dee2e6;--radius:10px;
+        --shadow:0 1px 4px rgba(0,0,0,.06);--shadow-h:0 4px 14px rgba(0,0,0,.09);
+      }
+      body { font-family:'Manrope',sans-serif; background:var(--bg); }
+
+      .s-card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:1rem; overflow:hidden; border:1px solid rgba(0,0,0,.04); transition:box-shadow .2s; }
+      .s-card:hover { box-shadow:var(--shadow-h); }
+      .s-hdr { padding:.7rem 1.1rem; display:flex; align-items:center; gap:.55rem; font-weight:700; font-size:.88rem; color:var(--brand); background:#fafbfc; border-bottom:1px solid var(--border); }
+      .s-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.78rem; color:#fff; flex-shrink:0; }
+      .s-icon.brand { background:var(--brand); }
+      .s-icon.green { background:var(--green); }
+      .s-body { padding:1.1rem; }
+
+      .btn-a { display:inline-flex; align-items:center; gap:.35rem; padding:.55rem 1.2rem; font-weight:700; font-size:.85rem; border:none; border-radius:8px; cursor:pointer; text-decoration:none; transition:all .2s; }
+      .btn-a:hover { transform:translateY(-1px); box-shadow:var(--shadow-h); }
+      .btn-a.primary { background:var(--green); color:#fff; }
+      .btn-a.primary:hover { background:#146c43; color:#fff; }
+      .btn-a.secondary { background:#fff; color:var(--brand); border:1.5px solid var(--border); }
+      .btn-a.secondary:hover { background:var(--bg); color:var(--brand); }
+      .btn-a.dark { background:var(--brand); color:#fff; }
+      .btn-a.dark:hover { background:var(--brand-l); color:#fff; }
+
+      /* Form styling */
+      .f-label { font-weight:700; font-size:.85rem; color:var(--brand); margin-bottom:4px; display:block; }
+      .f-label .req { color:var(--red); }
+      .f-input {
+        width:100%; padding:.55rem .8rem; font-size:.88rem; border:1.5px solid var(--border);
+        border-radius:8px; background:#fff; font-family:inherit; transition:border-color .15s;
+      }
+      .f-input:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(13,110,253,.12); }
+      textarea.f-input { resize:vertical; min-height:80px; }
+      select.f-input { cursor:pointer; }
+
+      /* Reminder chips */
+      .rem-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem; }
+      .rem-chip {
+        display:flex; align-items:center; gap:.4rem; padding:.45rem .7rem;
+        border:1.5px solid var(--border); border-radius:8px; background:#fff;
+        cursor:pointer; font-size:.82rem; font-weight:600; color:#495057;
+        transition:all .15s; user-select:none;
+      }
+      .rem-chip:has(input:checked) { background:var(--brand); color:#fff; border-color:var(--brand); }
+      .rem-chip input { display:none; }
+
+      .custom-rem { display:flex; align-items:center; gap:.5rem; margin-top:.5rem; }
+      .custom-rem input[type="number"] {
+        width:70px; padding:.35rem .5rem; font-size:.85rem; border:1.5px solid var(--border);
+        border-radius:8px; text-align:center; font-family:inherit;
+      }
+      .custom-rem input[type="number"]:focus { outline:none; border-color:var(--blue); }
+
+      #dropdownUserButton { border-radius:0.375rem !important; }
+
+      @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+      .fi { animation:fadeIn .35s ease both; }
+      .fi-1{animation-delay:.05s} .fi-2{animation-delay:.1s}
+
+      @media (max-width:768px) {
+        .s-body { padding:.8rem; }
+        .hdr-wrap { flex-direction:column; gap:.6rem !important; }
+        .hdr-btns { width:100%; display:flex; flex-direction:column; gap:.4rem; }
+        .hdr-btns .btn-a { width:100%; justify-content:center; }
+        .rem-grid { grid-template-columns:repeat(2,1fr); }
+        .form-row { flex-direction:column !important; }
+        .form-row > div { width:100% !important; }
+        .action-btns { flex-direction:column; }
+        .action-btns .btn-a { width:100%; justify-content:center; }
+      }
     </style>
   </head>
 
   <body>
     <main class="main" id="top">
       <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
-        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;" /></a>
+        <div class="container">
+          <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;" /></a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"><i class="fa-solid fa-bars text-white fs-3"></i></button>
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ms-auto">
@@ -52,138 +122,150 @@
         </div>
       </nav>
 
-      <section class="py-8" style="min-height: 100vh;">
-        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 30vh; z-index: -1;"></div>
+      <section class="py-5" style="min-height:100vh;">
+        <div style="position:absolute;top:0;left:0;right:0;height:30vh;
+                     background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
 
-        <div class="container">
-          <div class="row justify-content-center">
-            <div class="col-lg-8">
-              <div class="bg-white p-5 shadow-lg" style="border-radius: 0;">
+        <div class="container" style="margin-top:80px;max-width:720px;">
 
-                <h1 class="fw-bold mb-4 text-center">
-                  <i class="fa-solid fa-plus-circle me-2"></i>Novo Evento
-                </h1>
-
-                {% if error %}
-                <div class="alert alert-danger">{{ error }}</div>
-                {% endif %}
-
-                <form method="post">
-                  {% csrf_token %}
-
-                  <div class="mb-3">
-                    <label for="title" class="form-label fw-bold">Título <span class="text-danger">*</span></label>
-                    <input type="text" id="title" name="title" class="form-control" required
-                           placeholder="Ex: Reunião com cliente, Entrega do pedido..."
-                           value="{{ request.POST.title }}">
+          <!-- HEADER -->
+          <div class="s-card fi" style="border:none;box-shadow:var(--shadow-h);">
+            <div style="padding:1.3rem 1.4rem;">
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 hdr-wrap">
+                <div class="d-flex align-items-center gap-3">
+                  <div style="width:40px;height:40px;border-radius:10px;background:var(--green);color:#fff;
+                              display:flex;align-items:center;justify-content:center;font-size:1.1rem;">
+                    <i class="fa-solid fa-plus"></i>
                   </div>
-
-                  <div class="mb-3">
-                    <label for="description" class="form-label fw-bold">Descrição</label>
-                    <textarea id="description" name="description" class="form-control" rows="3"
-                              placeholder="Descrição opcional do evento...">{{ request.POST.description }}</textarea>
+                  <div>
+                    <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">Novo Evento</h4>
+                    <div style="font-size:.78rem;color:var(--muted);">Crie um evento ou compromisso</div>
                   </div>
-
-                  <div class="row">
-                    <div class="col-md-6 mb-3">
-                      <label for="event_date" class="form-label fw-bold">Data <span class="text-danger">*</span></label>
-                      <input type="date" id="event_date" name="event_date" class="form-control" required
-                             value="{{ request.POST.event_date }}">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                      <label for="event_type" class="form-label fw-bold">Tipo</label>
-                      <select id="event_type" name="event_type" class="form-select">
-                        {% for val, label in event_types %}
-                        <option value="{{ val }}" {% if request.POST.event_type == val %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
-                  </div>
-
-                  <!-- Lembretes personalizáveis -->
-                  <div class="mb-3">
-                    <label class="form-label fw-bold"><i class="fa-solid fa-bell me-1"></i>Lembretes</label>
-                    <p class="text-muted small mb-2">Escolha quando deseja ser lembrado deste evento:</p>
-                    <div class="row g-2">
-                      <div class="col-6 col-md-4">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" name="reminders" value="7" id="rem7"
-                                 {% if "7" in selected_reminders %}checked{% endif %}>
-                          <label class="form-check-label" for="rem7">7 dias antes</label>
-                        </div>
-                      </div>
-                      <div class="col-6 col-md-4">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" name="reminders" value="3" id="rem3"
-                                 {% if not selected_reminders or "3" in selected_reminders %}checked{% endif %}>
-                          <label class="form-check-label" for="rem3">3 dias antes</label>
-                        </div>
-                      </div>
-                      <div class="col-6 col-md-4">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" name="reminders" value="1" id="rem1"
-                                 {% if not selected_reminders or "1" in selected_reminders %}checked{% endif %}>
-                          <label class="form-check-label" for="rem1">1 dia antes</label>
-                        </div>
-                      </div>
-                      <div class="col-6 col-md-4">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" name="reminders" value="0" id="rem0"
-                                 {% if not selected_reminders or "0" in selected_reminders %}checked{% endif %}>
-                          <label class="form-check-label" for="rem0">No dia</label>
-                        </div>
-                      </div>
-                      <div class="col-6 col-md-4">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" name="reminders" value="14" id="rem14"
-                                 {% if "14" in selected_reminders %}checked{% endif %}>
-                          <label class="form-check-label" for="rem14">14 dias antes</label>
-                        </div>
-                      </div>
-                      <div class="col-6 col-md-4">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" name="reminders" value="30" id="rem30"
-                                 {% if "30" in selected_reminders %}checked{% endif %}>
-                          <label class="form-check-label" for="rem30">30 dias antes</label>
-                        </div>
-                      </div>
-                    </div>
-                    <!-- Lembrete Personalizado -->
-                    <div class="mt-3 d-flex align-items-center gap-2">
-                      <input class="form-check-input mt-0" type="checkbox" name="reminder_custom_check" id="remCustom"
-                             {% if request.POST.reminder_custom_days %}checked{% endif %}>
-                      <label class="form-check-label me-1" for="remCustom">Personalizado:</label>
-                      <input type="number" name="reminder_custom_days" class="form-control form-control-sm" style="width: 80px;"
-                             min="1" max="365" placeholder="dias"
-                             value="{{ request.POST.reminder_custom_days }}"
-                             {% if not request.POST.reminder_custom_days %}disabled{% endif %}>
-                      <span class="text-muted small">dias antes</span>
-                    </div>
-                  </div>
-
-                  <div class="text-center mt-4 d-flex gap-3 justify-content-center">
-                    <a href="{% url 'calendar_app:calendar' %}" class="btn btn-outline-secondary btn-lg">
-                      <i class="fa-solid fa-arrow-left me-1"></i>Cancelar
-                    </a>
-                    <button type="submit" class="btn btn-dark btn-lg">
-                      <i class="fa-solid fa-check me-1"></i>Criar Evento
-                    </button>
-                  </div>
-                </form>
+                </div>
+                <div class="d-flex gap-2 flex-wrap hdr-btns">
+                  <a href="{% url 'calendar_app:calendar' %}" class="btn-a secondary">
+                    <i class="fa-solid fa-calendar"></i>Calendário
+                  </a>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- FORM -->
+          <div class="s-card fi fi-1">
+            <div class="s-body">
+
+              {% if error %}
+              <div style="background:#fee2e2; color:#991b1b; padding:.7rem 1rem; border-radius:8px; font-size:.85rem; font-weight:600; margin-bottom:1rem;">
+                <i class="fa-solid fa-circle-exclamation me-1"></i>{{ error }}
+              </div>
+              {% endif %}
+
+              <form method="post">
+                {% csrf_token %}
+
+                <div style="margin-bottom:1rem;">
+                  <label class="f-label" for="title">Título <span class="req">*</span></label>
+                  <input type="text" id="title" name="title" class="f-input" required
+                         placeholder="Ex: Reunião com cliente, Entrega do pedido..."
+                         value="{{ request.POST.title }}">
+                </div>
+
+                <div style="margin-bottom:1rem;">
+                  <label class="f-label" for="description">Descrição</label>
+                  <textarea id="description" name="description" class="f-input"
+                            placeholder="Descrição opcional do evento...">{{ request.POST.description }}</textarea>
+                </div>
+
+                <div class="d-flex gap-3 form-row" style="margin-bottom:1rem;">
+                  <div style="flex:1;">
+                    <label class="f-label" for="event_date">Data <span class="req">*</span></label>
+                    <input type="date" id="event_date" name="event_date" class="f-input" required
+                           value="{{ request.POST.event_date }}">
+                  </div>
+                  <div style="flex:1;">
+                    <label class="f-label" for="event_type">Tipo</label>
+                    <select id="event_type" name="event_type" class="f-input">
+                      {% for val, label in event_types %}
+                      <option value="{{ val }}" {% if request.POST.event_type == val %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Lembretes -->
+                <div style="margin-bottom:1.2rem;">
+                  <label class="f-label"><i class="fa-solid fa-bell me-1"></i>Lembretes</label>
+                  <p style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem;">Escolha quando deseja ser lembrado:</p>
+                  <div class="rem-grid">
+                    <label class="rem-chip">
+                      <input type="checkbox" name="reminders" value="7"
+                             {% if "7" in selected_reminders %}checked{% endif %}>
+                      <i class="fa-regular fa-bell"></i> 7 dias
+                    </label>
+                    <label class="rem-chip">
+                      <input type="checkbox" name="reminders" value="3"
+                             {% if not selected_reminders or "3" in selected_reminders %}checked{% endif %}>
+                      <i class="fa-regular fa-bell"></i> 3 dias
+                    </label>
+                    <label class="rem-chip">
+                      <input type="checkbox" name="reminders" value="1"
+                             {% if not selected_reminders or "1" in selected_reminders %}checked{% endif %}>
+                      <i class="fa-regular fa-bell"></i> 1 dia
+                    </label>
+                    <label class="rem-chip">
+                      <input type="checkbox" name="reminders" value="0"
+                             {% if not selected_reminders or "0" in selected_reminders %}checked{% endif %}>
+                      <i class="fa-solid fa-bell"></i> No dia
+                    </label>
+                    <label class="rem-chip">
+                      <input type="checkbox" name="reminders" value="14"
+                             {% if "14" in selected_reminders %}checked{% endif %}>
+                      <i class="fa-regular fa-bell"></i> 14 dias
+                    </label>
+                    <label class="rem-chip">
+                      <input type="checkbox" name="reminders" value="30"
+                             {% if "30" in selected_reminders %}checked{% endif %}>
+                      <i class="fa-regular fa-bell"></i> 30 dias
+                    </label>
+                  </div>
+                  <div class="custom-rem">
+                    <label class="rem-chip" style="width:auto;">
+                      <input type="checkbox" name="reminder_custom_check" id="remCustom"
+                             {% if request.POST.reminder_custom_days %}checked{% endif %}>
+                      <i class="fa-solid fa-sliders"></i> Personalizado
+                    </label>
+                    <input type="number" name="reminder_custom_days" id="customDays"
+                           min="1" max="365" placeholder="dias"
+                           value="{{ request.POST.reminder_custom_days }}"
+                           {% if not request.POST.reminder_custom_days %}disabled{% endif %}>
+                    <span style="font-size:.78rem;color:var(--muted);">dias antes</span>
+                  </div>
+                </div>
+
+                <div class="d-flex gap-3 justify-content-center action-btns" style="margin-top:1.5rem;">
+                  <a href="{% url 'calendar_app:calendar' %}" class="btn-a secondary">
+                    <i class="fa-solid fa-arrow-left"></i>Cancelar
+                  </a>
+                  <button type="submit" class="btn-a dark">
+                    <i class="fa-solid fa-check"></i>Criar Evento
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
         </div>
       </section>
 
-      <section class="py-0 bg-dark">
+      <section class="py-0" style="background:var(--brand);">
         <div class="container">
           <div class="row justify-content-md-between justify-content-evenly py-4">
             <div class="col-12 col-sm-8 col-md-6 col-lg-auto text-center text-md-start">
-              <p class="fs--1 my-2 fw-light text-200">Todos os direitos reservados &copy; Roselar 2026</p>
+              <p class="fs--1 my-2 fw-light" style="color:rgba(255,255,255,.5);">Todos os direitos reservados &copy; Roselar 2026</p>
             </div>
             <div class="col-12 col-sm-8 col-md-6">
-              <p class="fs--1 my-2 text-center text-md-end text-200">Feito com &hearts; pela Roselar</p>
+              <p class="fs--1 my-2 text-center text-md-end" style="color:rgba(255,255,255,.5);">Feito com &hearts; pela Roselar</p>
             </div>
           </div>
         </div>
@@ -197,9 +279,8 @@
     <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
     <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
     <script>
-      // Toggle custom reminder days input
       const remCustom = document.getElementById('remCustom');
-      const daysInput = document.querySelector('input[name="reminder_custom_days"]');
+      const daysInput = document.getElementById('customDays');
       remCustom.addEventListener('change', function() {
         daysInput.disabled = !this.checked;
         if (this.checked) daysInput.focus();

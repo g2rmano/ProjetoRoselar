@@ -1,294 +1,332 @@
 ﻿{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lista de Orçamentos | Roselar</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
+  <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+  <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
+  <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --brand:   #0A2640;
+      --brand-l: #163a5a;
+      --bg:      #f4f6f9;
+      --surface: #fff;
+      --green:   #198754;
+      --red:     #dc3545;
+      --orange:  #e67e22;
+      --blue:    #0d6efd;
+      --cyan:    #0dcaf0;
+      --muted:   #6c757d;
+      --border:  #dee2e6;
+      --radius:  10px;
+      --shadow:  0 1px 4px rgba(0,0,0,.06);
+      --shadow-h:0 4px 14px rgba(0,0,0,.09);
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Manrope', sans-serif; background: var(--bg); }
 
-    <title>Lista de Orçamentos | Roselar</title>
+    .s-card {
+      background: var(--surface); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 1rem;
+      overflow: hidden; border: 1px solid rgba(0,0,0,.04);
+      transition: box-shadow .2s;
+    }
+    .s-card:hover { box-shadow: var(--shadow-h); }
+    .s-hdr {
+      padding: .7rem 1.1rem; display: flex; align-items: center; gap: .55rem;
+      font-weight: 700; font-size: .88rem; color: var(--brand);
+      background: #fafbfc; border-bottom: 1px solid var(--border);
+    }
+    .s-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .78rem; color: #fff; flex-shrink: 0;
+    }
+    .s-icon.brand  { background: var(--brand); }
+    .s-icon.green  { background: var(--green); }
+    .s-icon.blue   { background: var(--blue); }
+    .s-icon.muted  { background: var(--muted); }
+    .s-body { padding: 1.1rem; }
 
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
-    <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
-    <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
-    <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
-    <meta name="theme-color" content="#ffffff">
+    .btn-a {
+      display: inline-flex; align-items: center; gap: .35rem;
+      padding: .55rem 1.2rem; font-weight: 700; font-size: .85rem;
+      border: none; border-radius: 8px; cursor: pointer;
+      text-decoration: none; transition: all .2s;
+    }
+    .btn-a:hover { transform: translateY(-1px); box-shadow: var(--shadow-h); }
+    .btn-a.primary { background: var(--green); color: #fff; }
+    .btn-a.primary:hover { background: #146c43; color: #fff; }
+    .btn-a.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--border); }
+    .btn-a.secondary:hover { background: var(--bg); color: var(--brand); }
+    .btn-a.dark { background: var(--brand); color: #fff; }
+    .btn-a.dark:hover { background: var(--brand-l); color: #fff; }
+    .btn-a.blue { background: var(--blue); color: #fff; }
+    .btn-a.blue:hover { background: #0b5ed7; color: #fff; }
 
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" rel="stylesheet">
-    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
-    <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    .status-badge {
+      padding: .25rem .65rem; border-radius: 2rem; font-weight: 700;
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .04em;
+      display: inline-block;
+    }
+    .status-DRAFT     { background: #e9ecef; color: var(--muted); }
+    .status-SENT      { background: #e3f2fd; color: #0c5276; }
+    .status-APPROVED  { background: #e8f5e9; color: #0f5132; }
+    .status-CONVERTED { background: #e3f2fd; color: var(--blue); }
+    .status-CANCELED  { background: #fce4ec; color: #842029; }
 
-    <style>
-      .status-badge {
-        padding: 0.5rem 1rem;
-        border-radius: 0;
-        font-weight: 600;
-        font-size: 0.875rem;
-        display: inline-block;
-      }
-      .status-DRAFT { background-color: #6c757d; color: white; }
-      .status-SENT { background-color: #0dcaf0; color: white; }
-      .status-APPROVED { background-color: #198754; color: white; }
-      .status-CONVERTED { background-color: #0d6efd; color: white; }
-      .status-CANCELED { background-color: #dc3545; color: white; }
-      
-      .quote-card {
-        border: 1px solid #dee2e6;
-        border-radius: 0;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        background-color: white;
-        transition: all 0.2s;
-      }
-      .quote-card:hover {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
-      }
-      
-      .search-form .form-control,
-      .search-form .form-select,
-      .search-form .btn {
-        border-radius: 0 !important;
-      }
-      
-      .quote-number {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #0A2640;
-      }
-      
-      .quote-info {
-        font-size: 0.9rem;
-        color: #6c757d;
-      }
-      
-      .quote-info strong {
-        color: #0A2640;
-      }
-      
-      #dropdownUserButton {
-        border-radius: 0.375rem !important;
-      }
-    </style>
-  </head>
+    .q-row {
+      background: var(--surface); border-radius: var(--radius);
+      border: 1px solid rgba(0,0,0,.04); padding: 1rem 1.2rem;
+      margin-bottom: .6rem; transition: all .2s;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 1rem; flex-wrap: wrap; box-shadow: var(--shadow);
+    }
+    .q-row:hover { box-shadow: var(--shadow-h); transform: translateY(-1px); }
+    .q-row .q-main { flex: 1; min-width: 200px; }
+    .q-row .q-num {
+      font-weight: 800; color: var(--brand); font-size: .95rem;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .q-row .q-meta {
+      display: flex; gap: 1rem; flex-wrap: wrap; margin-top: .3rem;
+      font-size: .78rem; color: var(--muted);
+    }
+    .q-row .q-meta span { display: flex; align-items: center; gap: .25rem; }
+    .q-row .q-meta i { font-size: .65rem; opacity: .6; }
+    .q-row .q-actions { display: flex; gap: .5rem; align-items: center; flex-shrink: 0; }
+    .q-row .q-val {
+      font-weight: 800; color: var(--brand); font-size: .95rem;
+      white-space: nowrap; text-align: right; min-width: 120px;
+    }
 
-  <body>
-    <main class="main" id="top">
-      <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
-        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;" /></a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars text-white fs-3"></i></button>
-          <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav ms-auto">
-              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
-              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'calendar_app:calendar' %}">Calendário</a></li>
-              <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
-              <li class="nav-item">
-                <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
-                  <span class="me-2">{{ user.username }}</span>
-                  <svg class="w-2.5 h-2.5" style="width: 14px; height: 14px;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
-                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
-                  </svg>
-                </button>
-                <div id="dropdownUser" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-72">
-                  <div class="px-4 py-3 text-sm text-gray-900">
-                    <div class="font-medium">{{ user.username }}</div>
-                    <div class="truncate">{{ user.email }}</div>
-                  </div>
-                  <ul class="py-2 text-sm text-gray-700">
-                    <li>
-                      <a href="{% url 'core:dashboard' %}" class="block px-4 py-2 hover:bg-gray-100">
-                        <i class="fa-solid fa-user me-2"></i>Minha Conta
-                      </a>
-                    </li>
-                  </ul>
-                  <div class="py-2">
-                    <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">
-                      <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
-                    </a>
-                  </div>
+    .search-input, .search-select {
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: .86rem; font-weight: 500; color: var(--brand);
+      padding: .5rem .9rem; width: 100%; transition: border-color .2s, box-shadow .2s;
+      background: #fff;
+    }
+    .search-select {
+      font-weight: 600;
+      -webkit-appearance: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+      background-repeat: no-repeat; background-position: right .65rem center;
+      background-size: 13px; padding-right: 2rem;
+    }
+    .search-input:focus, .search-select:focus {
+      outline: none; border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(10,38,64,.1);
+    }
+
+    .s-alert {
+      padding: .7rem 1rem; border-radius: 8px; font-size: .84rem;
+      display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem;
+    }
+    .s-alert.info { background: #e3f2fd; border: 1px solid #90caf9; color: #0c5276; }
+    .s-alert.success { background: #e8f5e9; border: 1px solid #a3cfbb; color: #0f5132; }
+    .s-alert.warn { background: #fff8e1; border: 1px solid #ffe082; color: #6d5200; }
+
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .fi { animation: fadeIn .35s ease both; }
+    .fi-1 { animation-delay:.05s } .fi-2 { animation-delay:.1s }
+    .fi-3 { animation-delay:.15s } .fi-4 { animation-delay:.2s }
+
+    @media (max-width: 768px) {
+      .s-body { padding: .8rem; }
+      .hdr-wrap { flex-direction: column; }
+      .hdr-btns { width: 100%; }
+      .hdr-btns .btn-a { width: 100%; justify-content: center; }
+      .q-row { flex-direction: column; align-items: flex-start; }
+      .q-row .q-val { text-align: left; }
+      .q-row .q-actions { width: 100%; }
+      .q-row .q-actions .btn-a { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <main class="main" id="top">
+    <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+      <div class="container">
+        <a class="navbar-brand" href="{% url 'core:index' %}">
+          <img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+          <i class="fa-solid fa-bars text-white fs-3"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Início</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'calendar_app:calendar' %}">Calendário</a></li>
+            <li class="nav-item"><a class="nav-link active" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
+            <li class="nav-item">
+              <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
+                <span class="me-2">{{ user.username }}</span>
+                <svg style="width:14px;height:14px;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                </svg>
+              </button>
+              <div id="dropdownUser" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-72">
+                <div class="px-4 py-3 text-sm text-gray-900">
+                  <div class="font-medium">{{ user.username }}</div>
+                  <div class="truncate">{{ user.email }}</div>
                 </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-
-      <section class="py-8" style="min-height: 100vh;">
-        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 30vh; z-index: -1;"></div>
-        
-        <div class="container">
-          {% if messages %}
-            {% for message in messages %}
-              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 0;">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <ul class="py-2 text-sm text-gray-700">
+                  <li><a href="{% url 'core:dashboard' %}" class="block px-4 py-2 hover:bg-gray-100"><i class="fa-solid fa-user me-2"></i>Minha Conta</a></li>
+                </ul>
+                <div class="py-2">
+                  <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100"><i class="fa-solid fa-right-from-bracket me-2"></i>Sair</a>
+                </div>
               </div>
-            {% endfor %}
-          {% endif %}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
 
-          <div class="row justify-content-center">
-            <div class="col-lg-11">
-              <div class="bg-white p-5 shadow-lg" style="border-radius: 0;">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                  <div>
-                    <h1 class="fw-bold mb-2">
-                      <i class="fa-solid fa-file-invoice me-2"></i>Orçamentos
-                    </h1>
-                    <p class="text-muted mb-0">Gerencie todos os orçamentos</p>
-                  </div>
-                  <div class="d-flex gap-2">
-                    <a href="{% url 'sales:quote_create' %}" class="btn btn-success" style="border-radius: 0;">
-                      <i class="fa-solid fa-plus me-2"></i>Novo Orçamento
-                    </a>
-                    <a href="{% url 'sales:quotes_hub' %}" class="btn btn-outline-secondary" style="border-radius: 0;">
-                      <i class="fa-solid fa-arrow-left me-2"></i>Voltar
-                    </a>
-                  </div>
+    <section class="py-5" style="min-height:100vh;">
+      <div style="position:absolute;top:0;left:0;right:0;height:30vh;
+                   background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
+
+      <div class="container" style="margin-top:80px;max-width:1000px;">
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="s-alert {% if 'success' in message.tags %}success{% elif 'warning' in message.tags %}warn{% else %}info{% endif %} fi" style="margin-bottom:.6rem;">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <!-- ═══ HEADER ═══ -->
+        <div class="s-card fi" style="border:none;box-shadow:var(--shadow-h);">
+          <div style="padding:1.3rem 1.4rem;">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 hdr-wrap">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:40px;height:40px;border-radius:10px;background:var(--brand);color:#fff;
+                            display:flex;align-items:center;justify-content:center;font-size:1.1rem;">
+                  <i class="fa-solid fa-file-invoice"></i>
                 </div>
-
-                <!-- Search and Filter Form -->
-                <form method="get" class="search-form mb-4">
-                  <div class="row g-3">
-                    <div class="col-md-6">
-                      <input 
-                        type="text" 
-                        name="search" 
-                        class="form-control" 
-                        placeholder="Buscar por número, cliente, vendedor..." 
-                        value="{{ search_query }}"
-                      >
-                    </div>
-                    <div class="col-md-3">
-                      <select name="status" class="form-select">
-                        <option value="">Todos os Status</option>
-                        <option value="DRAFT" {% if status_filter == "DRAFT" %}selected{% endif %}>Rascunho</option>
-                        <option value="SENT" {% if status_filter == "SENT" %}selected{% endif %}>Enviado</option>
-                        <option value="APPROVED" {% if status_filter == "APPROVED" %}selected{% endif %}>Aprovado</option>
-                        <option value="CONVERTED" {% if status_filter == "CONVERTED" %}selected{% endif %}>Convertido em Pedido</option>
-                        <option value="CANCELED" {% if status_filter == "CANCELED" %}selected{% endif %}>Cancelado</option>
-                      </select>
-                    </div>
-                    <div class="col-md-3">
-                      <button type="submit" class="btn btn-primary w-100">
-                        <i class="fa-solid fa-search me-2"></i>Buscar
-                      </button>
-                    </div>
-                  </div>
-                  {% if search_query or status_filter %}
-                    <div class="mt-2">
-                      <a href="{% url 'sales:quote_list' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 0;">
-                        <i class="fa-solid fa-times me-1"></i>Limpar filtros
-                      </a>
-                    </div>
-                  {% endif %}
-                </form>
-
-                <!-- Quote Count -->
-                <div class="mb-3">
-                  <p class="text-muted mb-0">
-                    <i class="fa-solid fa-info-circle me-1"></i>
-                    <strong>{{ quotes.count }}</strong> orçamento{{ quotes.count|pluralize }} encontrado{{ quotes.count|pluralize }}
-                  </p>
+                <div>
+                  <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">Orçamentos</h4>
+                  <div style="font-size:.78rem;color:var(--muted);">Gerencie todos os orçamentos</div>
                 </div>
-
-                <!-- Quotes List -->
-                {% if quotes %}
-                  <div class="quotes-container">
-                    {% for quote in quotes %}
-                      <div class="quote-card">
-                        <div class="row">
-                          <div class="col-md-8">
-                            <div class="mb-2">
-                              <span class="quote-number">
-                                <i class="fa-solid fa-file-invoice me-2"></i>{{ quote.number }}
-                              </span>
-                              <span class="status-badge status-{{ quote.status }} ms-2">
-                                {{ quote.get_status_display }}
-                              </span>
-                            </div>
-                            
-                            <div class="quote-info mb-2">
-                              <i class="fa-solid fa-user me-1"></i>
-                              <strong>Cliente:</strong> {{ quote.customer.name }}
-                            </div>
-                            
-                            <div class="quote-info mb-2">
-                              <i class="fa-solid fa-user-tie me-1"></i>
-                              <strong>Vendedor:</strong> {{ quote.seller.get_full_name|default:quote.seller.username }}
-                            </div>
-                            
-                            <div class="quote-info mb-2">
-                              <i class="fa-solid fa-box me-1"></i>
-                              <strong>Itens:</strong> {{ quote.items.count }}
-                            </div>
-                            
-                            <div class="quote-info">
-                              <i class="fa-solid fa-dollar-sign me-1"></i>
-                              <strong>Valor Total:</strong> R$ {{ quote.total_value_snapshot|floatformat:2 }}
-                            </div>
-                          </div>
-                          
-                          <div class="col-md-4 text-md-end d-flex flex-column justify-content-between">
-                            <div class="quote-info mb-3">
-                              <i class="fa-solid fa-calendar me-1"></i>
-                              {{ quote.quote_date|date:"d/m/Y" }}
-                            </div>
-                            
-                            <div>
-                              <a href="{% url 'sales:quote_detail' quote.id %}" class="btn btn-primary btn-sm" style="border-radius: 0;">
-                                <i class="fa-solid fa-eye me-1"></i>Ver Detalhes
-                              </a>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    {% endfor %}
-                  </div>
-                {% else %}
-                  <div class="alert alert-info" style="border-radius: 0;">
-                    <i class="fa-solid fa-info-circle me-2"></i>
-                    Nenhum orçamento encontrado.
-                    {% if search_query or status_filter %}
-                      <a href="{% url 'sales:quote_list' %}" class="alert-link">Limpar filtros</a>
-                    {% endif %}
-                  </div>
-                {% endif %}
+              </div>
+              <div class="d-flex gap-2 flex-wrap hdr-btns">
+                <a href="{% url 'sales:quote_create' %}" class="btn-a primary">
+                  <i class="fa-solid fa-plus"></i>Novo Orçamento
+                </a>
+                <a href="{% url 'sales:quotes_hub' %}" class="btn-a secondary">
+                  <i class="fa-solid fa-arrow-left"></i>Voltar
+                </a>
               </div>
             </div>
           </div>
         </div>
-      </section>
 
-      <!-- Footer -->
-      <section class="py-0 bg-dark">
-        <div class="container">
-          <div class="row justify-content-md-between justify-content-evenly py-4">
-            <div class="col-12 col-sm-8 col-md-6 col-lg-auto text-center text-md-start">
-              <p class="fs--1 my-2 fw-light text-200">Todos os direitos reservados &copy; Roselar <span class="d-none d-sm-inline-block"></span><br class="d-sm-none" />2026</p>
-            </div>
-            <div class="col-12 col-sm-8 col-md-6">
-              <p class="fs--1 my-2 text-center text-md-end text-200"> Feito com &hearts; pela Roselar</p>
-            </div>
+        <!-- ═══ SEARCH ═══ -->
+        <div class="s-card fi fi-1">
+          <div class="s-hdr">
+            <div class="s-icon brand"><i class="fa-solid fa-search"></i></div>
+            Buscar e Filtrar
+          </div>
+          <div class="s-body">
+            <form method="get">
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <input type="text" name="search" class="search-input"
+                         placeholder="Buscar por número, cliente, vendedor..."
+                         value="{{ search_query }}">
+                </div>
+                <div class="col-md-3">
+                  <select name="status" class="search-select">
+                    <option value="">Todos os Status</option>
+                    <option value="DRAFT" {% if status_filter == "DRAFT" %}selected{% endif %}>Rascunho</option>
+                    <option value="SENT" {% if status_filter == "SENT" %}selected{% endif %}>Enviado</option>
+                    <option value="APPROVED" {% if status_filter == "APPROVED" %}selected{% endif %}>Aprovado</option>
+                    <option value="CONVERTED" {% if status_filter == "CONVERTED" %}selected{% endif %}>Convertido</option>
+                    <option value="CANCELED" {% if status_filter == "CANCELED" %}selected{% endif %}>Cancelado</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <button type="submit" class="btn-a blue" style="width:100%;justify-content:center;padding:.55rem;">
+                    <i class="fa-solid fa-search"></i>Buscar
+                  </button>
+                </div>
+              </div>
+              {% if search_query or status_filter %}
+                <div style="margin-top:.5rem;">
+                  <a href="{% url 'sales:quote_list' %}" style="font-size:.78rem;color:var(--muted);text-decoration:none;font-weight:600;">
+                    <i class="fa-solid fa-times me-1"></i>Limpar filtros
+                  </a>
+                </div>
+              {% endif %}
+            </form>
           </div>
         </div>
-      </section>
-    </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/is_js@0.9.0/is.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <script src="{% static 'assets/js/theme.js' %}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
-    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
-  </body>
+        <!-- ═══ COUNT ═══ -->
+        <div style="font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:.6rem;padding-left:.2rem;" class="fi fi-2">
+          <i class="fa-solid fa-info-circle me-1"></i>
+          <strong>{{ quotes.count }}</strong> orçamento{{ quotes.count|pluralize }} encontrado{{ quotes.count|pluralize }}
+        </div>
+
+        <!-- ═══ LIST ═══ -->
+        {% if quotes %}
+          {% for quote in quotes %}
+            <div class="q-row fi fi-3">
+              <div class="q-main">
+                <div class="q-num">
+                  <i class="fa-solid fa-file-invoice" style="font-size:.8rem;opacity:.5;"></i>
+                  {{ quote.number }}
+                  <span class="status-badge status-{{ quote.status }}">{{ quote.get_status_display }}</span>
+                </div>
+                <div class="q-meta">
+                  <span><i class="fa-solid fa-user"></i>{{ quote.customer.name }}</span>
+                  <span><i class="fa-solid fa-user-tie"></i>{{ quote.seller.get_full_name|default:quote.seller.username }}</span>
+                  <span><i class="fa-solid fa-box"></i>{{ quote.items.count }} itens</span>
+                  <span><i class="fa-solid fa-calendar"></i>{{ quote.quote_date|date:"d/m/Y" }}</span>
+                </div>
+              </div>
+              <div class="q-val">R$ {{ quote.total_value_snapshot|floatformat:2 }}</div>
+              <div class="q-actions">
+                <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-a dark" style="padding:.4rem .9rem;font-size:.78rem;">
+                  <i class="fa-solid fa-eye"></i>Ver
+                </a>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="s-alert info fi fi-3">
+            <i class="fa-solid fa-info-circle"></i>
+            Nenhum orçamento encontrado.
+            {% if search_query or status_filter %}
+              <a href="{% url 'sales:quote_list' %}" style="color:#0c5276;font-weight:700;">Limpar filtros</a>
+            {% endif %}
+          </div>
+        {% endif %}
+
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+  <script src="{% static 'assets/js/theme.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+</body>
 </html>

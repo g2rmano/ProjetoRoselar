@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR" dir="ltr">
 
@@ -21,28 +21,105 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <style>
-      .event-card { border: 1px solid #dee2e6; padding: 1.25rem; margin-bottom: 0.75rem; background: white; transition: all 0.2s; }
-      .event-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: translateY(-2px); }
-      .evt-type-DELIVERY { border-left: 4px solid #198754; }
-      .evt-type-QUOTE_FOLLOWUP { border-left: 4px solid #fd7e14; }
-      .evt-type-CUSTOM { border-left: 4px solid #6f42c1; }
-      .badge-type-DELIVERY { background: #198754; color: white; }
-      .badge-type-QUOTE_FOLLOWUP { background: #fd7e14; color: white; }
-      .badge-type-CUSTOM { background: #6f42c1; color: white; }
-      .days-badge { font-size: 0.8rem; padding: 4px 10px; border-radius: 3px; font-weight: 600; }
-      .days-today { background: #0d6efd; color: white; }
-      .days-soon { background: #ffc107; color: #333; }
-      .days-ok { background: #e9ecef; color: #333; }
-      .filter-bar { background: #f8f9fa; padding: 15px 20px; margin-bottom: 20px; border: 1px solid #dee2e6; }
-      .filter-bar select, .filter-bar .btn { border-radius: 0 !important; }
-      #dropdownUserButton { border-radius: 0.375rem !important; }
+      :root {
+        --brand:#0A2640;--brand-l:#163a5a;--bg:#f4f6f9;--surface:#fff;
+        --green:#198754;--red:#dc3545;--orange:#e67e22;--blue:#0d6efd;
+        --cyan:#0dcaf0;--muted:#6c757d;--border:#dee2e6;--radius:10px;
+        --shadow:0 1px 4px rgba(0,0,0,.06);--shadow-h:0 4px 14px rgba(0,0,0,.09);
+      }
+      body { font-family:'Manrope',sans-serif; background:var(--bg); }
+
+      .s-card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:1rem; overflow:hidden; border:1px solid rgba(0,0,0,.04); transition:box-shadow .2s; }
+      .s-card:hover { box-shadow:var(--shadow-h); }
+      .s-hdr { padding:.7rem 1.1rem; display:flex; align-items:center; gap:.55rem; font-weight:700; font-size:.88rem; color:var(--brand); background:#fafbfc; border-bottom:1px solid var(--border); }
+      .s-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.78rem; color:#fff; flex-shrink:0; }
+      .s-icon.brand { background:var(--brand); }
+      .s-icon.green { background:var(--green); }
+      .s-icon.red { background:var(--red); }
+      .s-icon.blue { background:var(--blue); }
+      .s-icon.muted { background:var(--muted); }
+      .s-body { padding:1.1rem; }
+
+      .btn-a { display:inline-flex; align-items:center; gap:.35rem; padding:.55rem 1.2rem; font-weight:700; font-size:.85rem; border:none; border-radius:8px; cursor:pointer; text-decoration:none; transition:all .2s; }
+      .btn-a:hover { transform:translateY(-1px); box-shadow:var(--shadow-h); }
+      .btn-a.primary { background:var(--green); color:#fff; }
+      .btn-a.primary:hover { background:#146c43; color:#fff; }
+      .btn-a.secondary { background:#fff; color:var(--brand); border:1.5px solid var(--border); }
+      .btn-a.secondary:hover { background:var(--bg); color:var(--brand); }
+      .btn-a.dark { background:var(--brand); color:#fff; }
+      .btn-a.dark:hover { background:var(--brand-l); color:#fff; }
+      .btn-a.danger { background:var(--red); color:#fff; }
+      .btn-a.danger:hover { background:#b02a37; color:#fff; }
+
+      /* Period pills */
+      .pill-group { display:flex; gap:0; }
+      .pill-group a {
+        padding:.4rem .9rem; font-size:.8rem; font-weight:700; border:1.5px solid var(--border);
+        color:var(--brand); text-decoration:none; background:#fff; transition:all .15s;
+      }
+      .pill-group a:first-child { border-radius:8px 0 0 8px; }
+      .pill-group a:last-child { border-radius:0 8px 8px 0; }
+      .pill-group a.active { background:var(--brand); color:#fff; border-color:var(--brand); }
+
+      /* Event rows */
+      .evt-row {
+        display:flex; align-items:center; gap:.9rem; padding:.85rem 1rem;
+        border-bottom:1px solid var(--border); transition:background .15s; cursor:pointer;
+        text-decoration:none; color:inherit;
+      }
+      .evt-row:last-child { border-bottom:none; }
+      .evt-row:hover { background:#f4f6f9; }
+      .evt-date-box {
+        width:48px; height:48px; border-radius:10px; flex-shrink:0;
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        font-weight:800; font-size:.85rem; line-height:1.1; color:#fff;
+      }
+      .evt-date-box small { font-size:.58rem; font-weight:600; text-transform:uppercase; }
+      .evt-date-box.today { background:var(--blue); }
+      .evt-date-box.soon { background:var(--orange); }
+      .evt-date-box.ok { background:var(--muted); }
+      .evt-info { flex:1; min-width:0; }
+      .evt-info .evt-title { font-weight:700; font-size:.92rem; color:#172b4d; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .evt-info .evt-sub { font-size:.78rem; color:var(--muted); margin-top:2px; }
+      .evt-badge {
+        padding:.25rem .7rem; border-radius:6px; font-size:.75rem; font-weight:700;
+        white-space:nowrap; flex-shrink:0;
+      }
+      .evt-badge.today { background:#dbeafe; color:#1d4ed8; }
+      .evt-badge.soon { background:#fef3c7; color:#92400e; }
+      .evt-badge.ok { background:#e9ecef; color:#495057; }
+      .type-badge { padding:2px 8px; border-radius:5px; font-size:.72rem; font-weight:700; color:#fff; }
+      .type-DELIVERY { background:var(--green); }
+      .type-QUOTE_FOLLOWUP { background:var(--orange); }
+      .type-CUSTOM { background:#6f42c1; }
+
+      #dropdownUserButton { border-radius:0.375rem !important; }
+
+      @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+      .fi { animation:fadeIn .35s ease both; }
+      .fi-1{animation-delay:.05s} .fi-2{animation-delay:.1s} .fi-3{animation-delay:.15s}
+
+      @media (max-width:768px) {
+        .s-body { padding:.8rem; }
+        .hdr-wrap { flex-direction:column; gap:.6rem !important; }
+        .hdr-btns { width:100%; display:flex; flex-direction:column; gap:.4rem; }
+        .hdr-btns .btn-a { width:100%; justify-content:center; }
+        .filter-bar { flex-direction:column; gap:.6rem !important; align-items:stretch !important; }
+        .filter-bar .pill-group { width:100%; }
+        .filter-bar .pill-group a { flex:1; text-align:center; }
+        .filter-bar select { width:100% !important; min-width:0 !important; }
+        .evt-row { gap:.6rem; padding:.7rem .8rem; }
+        .evt-date-box { width:40px; height:40px; font-size:.78rem; }
+        .evt-badge { font-size:.68rem; padding:.2rem .5rem; }
+      }
     </style>
   </head>
 
   <body>
     <main class="main" id="top">
       <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
-        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;" /></a>
+        <div class="container">
+          <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;" /></a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"><i class="fa-solid fa-bars text-white fs-3"></i></button>
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ms-auto">
@@ -65,125 +142,140 @@
         </div>
       </nav>
 
-      <section class="py-8" style="min-height: 100vh;">
-        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 30vh; z-index: -1;"></div>
+      <section class="py-5" style="min-height:100vh;">
+        <div style="position:absolute;top:0;left:0;right:0;height:30vh;
+                     background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
 
-        <div class="container">
-          <div class="row justify-content-center">
-            <div class="col-lg-10">
-              <div class="bg-white p-4 shadow-lg" style="border-radius: 0;">
+        <div class="container" style="margin-top:80px;max-width:960px;">
 
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                  <h1 class="fw-bold mb-0"><i class="fa-solid fa-clock me-2"></i>Próximos Eventos</h1>
-                  <a href="{% url 'calendar_app:calendar' %}" class="btn btn-outline-dark" style="border-radius:0;">
-                    <i class="fa-solid fa-calendar me-1"></i>Voltar ao Calendário
+          <!-- HEADER -->
+          <div class="s-card fi" style="border:none;box-shadow:var(--shadow-h);">
+            <div style="padding:1.3rem 1.4rem;">
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 hdr-wrap">
+                <div class="d-flex align-items-center gap-3">
+                  <div style="width:40px;height:40px;border-radius:10px;background:var(--blue);color:#fff;
+                              display:flex;align-items:center;justify-content:center;font-size:1.1rem;">
+                    <i class="fa-solid fa-clock"></i>
+                  </div>
+                  <div>
+                    <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">Próximos Eventos</h4>
+                    <div style="font-size:.78rem;color:var(--muted);">Eventos nos próximos {{ days }} dias</div>
+                  </div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap hdr-btns">
+                  <a href="{% url 'calendar_app:calendar' %}" class="btn-a secondary">
+                    <i class="fa-solid fa-calendar"></i>Calendário
                   </a>
-                </div>
-
-                <!-- Filtros -->
-                <div class="filter-bar d-flex align-items-center gap-3 flex-wrap">
-                  <form method="get" class="d-flex gap-3 align-items-center flex-wrap">
-                    <div>
-                      <label class="fw-bold mb-1 d-block" style="font-size:0.85rem;">Período</label>
-                      <div class="btn-group" role="group">
-                        <a href="?days=7{% if seller_filter %}&seller={{ seller_filter }}{% endif %}{% if event_type %}&type={{ event_type }}{% endif %}"
-                           class="btn btn-sm {% if days == 7 %}btn-dark{% else %}btn-outline-dark{% endif %}" style="border-radius:0;">7 dias</a>
-                        <a href="?days=15{% if seller_filter %}&seller={{ seller_filter }}{% endif %}{% if event_type %}&type={{ event_type }}{% endif %}"
-                           class="btn btn-sm {% if days == 15 %}btn-dark{% else %}btn-outline-dark{% endif %}" style="border-radius:0;">15 dias</a>
-                        <a href="?days=30{% if seller_filter %}&seller={{ seller_filter }}{% endif %}{% if event_type %}&type={{ event_type }}{% endif %}"
-                           class="btn btn-sm {% if days == 30 %}btn-dark{% else %}btn-outline-dark{% endif %}" style="border-radius:0;">30 dias</a>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label class="fw-bold mb-1 d-block" style="font-size:0.85rem;">Tipo</label>
-                      <select name="type" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
-                        <option value="">Todos</option>
-                        {% for val, label in event_types %}
-                        <option value="{{ val }}" {% if event_type == val %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                      </select>
-                      <input type="hidden" name="days" value="{{ days }}">
-                      {% if seller_filter %}<input type="hidden" name="seller" value="{{ seller_filter }}">{% endif %}
-                    </div>
-
-                    {% if is_admin %}
-                    <div>
-                      <label class="fw-bold mb-1 d-block" style="font-size:0.85rem;">Vendedor</label>
-                      <select name="seller" class="form-select form-select-sm" style="width: auto; min-width: 180px;" onchange="this.form.submit()">
-                        <option value="">Todos</option>
-                        {% for s in sellers %}
-                        <option value="{{ s.id }}" {% if seller_filter == s.id|stringformat:"d" %}selected{% endif %}>{{ s.get_full_name|default:s.username }}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
-                    {% endif %}
-                  </form>
-                </div>
-
-                <!-- Lista de eventos -->
-                {% if events %}
-                  {% for event in events %}
-                  <div class="event-card evt-type-{{ event.event_type }}">
-                    <div class="d-flex justify-content-between align-items-start">
-                      <div>
-                        <h5 class="fw-bold mb-1">
-                          <a href="{% url 'calendar_app:event_detail' event.pk %}" class="text-decoration-none text-dark">
-                            {{ event.title }}
-                          </a>
-                        </h5>
-                        <div class="mb-1">
-                          <span class="badge badge-type-{{ event.event_type }}" style="font-size:0.75rem;">{{ event.get_event_type_display }}</span>
-                          {% if is_admin %}
-                          <span class="badge bg-secondary ms-1" style="font-size:0.75rem;">{{ event.assigned_to.get_full_name|default:event.assigned_to.username }}</span>
-                          {% endif %}
-                        </div>
-                        {% if event.customer %}
-                        <small class="text-muted"><i class="fa-solid fa-user me-1"></i>{{ event.customer.name }}</small>
-                        {% endif %}
-                        {% if event.description %}
-                        <p class="text-muted mb-0 mt-1" style="font-size:0.85rem;">{{ event.description|truncatechars:100 }}</p>
-                        {% endif %}
-                      </div>
-                      <div class="text-end">
-                        <div class="fw-bold" style="font-size:0.95rem;">{{ event.event_date|date:"d/m/Y" }}</div>
-                        {% if event.days_until == 0 %}
-                          <span class="days-badge days-today">HOJE</span>
-                        {% elif event.days_until <= 3 %}
-                          <span class="days-badge days-soon">{{ event.days_until }} dia{{ event.days_until|pluralize:"s" }}</span>
-                        {% else %}
-                          <span class="days-badge days-ok">{{ event.days_until }} dias</span>
-                        {% endif %}
-                      </div>
-                    </div>
-                  </div>
-                  {% endfor %}
-                {% else %}
-                  <div class="text-center py-5">
-                    <i class="fa-solid fa-calendar-check text-muted" style="font-size: 4rem;"></i>
-                    <h4 class="text-muted mt-3">Nenhum evento nos próximos {{ days }} dias</h4>
-                  </div>
-                {% endif %}
-
-                <div class="text-center mt-4">
-                  <a href="{% url 'calendar_app:calendar' %}" class="btn btn-outline-secondary" style="border-radius:0;">
-                    <i class="fa-solid fa-arrow-left me-2"></i>Voltar
+                  <a href="{% url 'calendar_app:overdue' %}" class="btn-a danger">
+                    <i class="fa-solid fa-triangle-exclamation"></i>Atrasados
                   </a>
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- FILTERS -->
+          <div class="s-card fi fi-1">
+            <div class="s-body" style="padding:.8rem 1.1rem;">
+              <form method="get" class="d-flex align-items-center gap-3 flex-wrap filter-bar" style="margin:0;">
+                <div>
+                  <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Período</div>
+                  <div class="pill-group">
+                    <a href="?days=7{% if seller_filter %}&seller={{ seller_filter }}{% endif %}{% if event_type %}&type={{ event_type }}{% endif %}"
+                       class="{% if days == 7 %}active{% endif %}">7 dias</a>
+                    <a href="?days=15{% if seller_filter %}&seller={{ seller_filter }}{% endif %}{% if event_type %}&type={{ event_type }}{% endif %}"
+                       class="{% if days == 15 %}active{% endif %}">15 dias</a>
+                    <a href="?days=30{% if seller_filter %}&seller={{ seller_filter }}{% endif %}{% if event_type %}&type={{ event_type }}{% endif %}"
+                       class="{% if days == 30 %}active{% endif %}">30 dias</a>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Tipo</div>
+                  <select name="type" class="form-select form-select-sm" style="width:auto;min-width:150px;border-radius:8px !important;font-size:.82rem;" onchange="this.form.submit()">
+                    <option value="">Todos</option>
+                    {% for val, label in event_types %}
+                    <option value="{{ val }}" {% if event_type == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                  <input type="hidden" name="days" value="{{ days }}">
+                  {% if seller_filter %}<input type="hidden" name="seller" value="{{ seller_filter }}">{% endif %}
+                </div>
+
+                {% if is_admin %}
+                <div>
+                  <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Vendedor</div>
+                  <select name="seller" class="form-select form-select-sm" style="width:auto;min-width:170px;border-radius:8px !important;font-size:.82rem;" onchange="this.form.submit()">
+                    <option value="">Todos</option>
+                    {% for s in sellers %}
+                    <option value="{{ s.id }}" {% if seller_filter == s.id|stringformat:"d" %}selected{% endif %}>{{ s.get_full_name|default:s.username }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                {% endif %}
+              </form>
+            </div>
+          </div>
+
+          <!-- EVENT LIST -->
+          <div class="s-card fi fi-2">
+            <div class="s-hdr">
+              <div class="s-icon blue"><i class="fa-solid fa-list"></i></div>
+              {{ events|length }} evento{{ events|length|pluralize:"s" }}
+            </div>
+            <div style="padding:0;">
+              {% for event in events %}
+              <a href="{% url 'calendar_app:event_detail' event.pk %}" class="evt-row">
+                <div class="evt-date-box {% if event.days_until == 0 %}today{% elif event.days_until <= 3 %}soon{% else %}ok{% endif %}">
+                  {{ event.event_date|date:"d" }}<small>{{ event.event_date|date:"M" }}</small>
+                </div>
+                <div class="evt-info">
+                  <div class="evt-title">{{ event.title }}</div>
+                  <div class="evt-sub">
+                    <span class="type-badge type-{{ event.event_type }}">{{ event.get_event_type_display }}</span>
+                    {% if is_admin %}
+                    <span style="margin-left:4px;">{{ event.assigned_to.get_full_name|default:event.assigned_to.username }}</span>
+                    {% endif %}
+                    {% if event.customer %}
+                    · {{ event.customer.name|truncatechars:25 }}
+                    {% endif %}
+                  </div>
+                </div>
+                {% if event.days_until == 0 %}
+                  <span class="evt-badge today">HOJE</span>
+                {% elif event.days_until <= 3 %}
+                  <span class="evt-badge soon">{{ event.days_until }} dia{{ event.days_until|pluralize:"s" }}</span>
+                {% else %}
+                  <span class="evt-badge ok">{{ event.days_until }} dias</span>
+                {% endif %}
+              </a>
+              {% empty %}
+              <div class="text-center py-5">
+                <i class="fa-solid fa-calendar-check" style="font-size:3rem;color:var(--muted);"></i>
+                <h5 style="color:var(--muted);margin-top:.8rem;font-weight:700;">Nenhum evento nos próximos {{ days }} dias</h5>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- BACK -->
+          <div class="text-center fi fi-3" style="margin-top:.5rem;">
+            <a href="{% url 'calendar_app:calendar' %}" class="btn-a secondary">
+              <i class="fa-solid fa-arrow-left"></i>Voltar ao Calendário
+            </a>
+          </div>
+
         </div>
       </section>
 
-      <section class="py-0 bg-dark">
+      <section class="py-0" style="background:var(--brand);">
         <div class="container">
           <div class="row justify-content-md-between justify-content-evenly py-4">
             <div class="col-12 col-sm-8 col-md-6 col-lg-auto text-center text-md-start">
-              <p class="fs--1 my-2 fw-light text-200">Todos os direitos reservados &copy; Roselar 2026</p>
+              <p class="fs--1 my-2 fw-light" style="color:rgba(255,255,255,.5);">Todos os direitos reservados &copy; Roselar 2026</p>
             </div>
             <div class="col-12 col-sm-8 col-md-6">
-              <p class="fs--1 my-2 text-center text-md-end text-200">Feito com &hearts; pela Roselar</p>
+              <p class="fs--1 my-2 text-center text-md-end" style="color:rgba(255,255,255,.5);">Feito com &hearts; pela Roselar</p>
             </div>
           </div>
         </div>

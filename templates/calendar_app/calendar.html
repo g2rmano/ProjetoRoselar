@@ -21,48 +21,207 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <style>
+      :root {
+        --brand:   #0A2640;
+        --brand-l: #163a5a;
+        --bg:      #f4f6f9;
+        --surface: #fff;
+        --green:   #198754;
+        --red:     #dc3545;
+        --orange:  #e67e22;
+        --blue:    #0d6efd;
+        --cyan:    #0dcaf0;
+        --muted:   #6c757d;
+        --border:  #dee2e6;
+        --radius:  10px;
+        --shadow:  0 1px 4px rgba(0,0,0,.06);
+        --shadow-h:0 4px 14px rgba(0,0,0,.09);
+      }
+      body { font-family: 'Manrope', sans-serif; background: var(--bg); }
+
+      .s-card {
+        background: var(--surface); border-radius: var(--radius);
+        box-shadow: var(--shadow); margin-bottom: 1rem;
+        overflow: hidden; border: 1px solid rgba(0,0,0,.04);
+        transition: box-shadow .2s;
+      }
+      .s-card:hover { box-shadow: var(--shadow-h); }
+      .s-hdr {
+        padding: .7rem 1.1rem; display: flex; align-items: center; gap: .55rem;
+        font-weight: 700; font-size: .88rem; color: var(--brand);
+        background: #fafbfc; border-bottom: 1px solid var(--border);
+      }
+      .s-icon {
+        width: 30px; height: 30px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .78rem; color: #fff; flex-shrink: 0;
+      }
+      .s-icon.brand  { background: var(--brand); }
+      .s-icon.green  { background: var(--green); }
+      .s-icon.red    { background: var(--red); }
+      .s-icon.blue   { background: var(--blue); }
+      .s-icon.muted  { background: var(--muted); }
+      .s-body { padding: 1.1rem; }
+
+      .btn-a {
+        display: inline-flex; align-items: center; gap: .35rem;
+        padding: .55rem 1.2rem; font-weight: 700; font-size: .85rem;
+        border: none; border-radius: 8px; cursor: pointer;
+        text-decoration: none; transition: all .2s;
+      }
+      .btn-a:hover { transform: translateY(-1px); box-shadow: var(--shadow-h); }
+      .btn-a.primary { background: var(--green); color: #fff; }
+      .btn-a.primary:hover { background: #146c43; color: #fff; }
+      .btn-a.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--border); }
+      .btn-a.secondary:hover { background: var(--bg); color: var(--brand); }
+      .btn-a.dark { background: var(--brand); color: #fff; }
+      .btn-a.dark:hover { background: var(--brand-l); color: #fff; }
+      .btn-a.danger { background: var(--red); color: #fff; }
+      .btn-a.danger:hover { background: #b02a37; color: #fff; }
+
       /* ── Calendar Grid ── */
-      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; border: 1px solid #dfe1e6; }
-      .cal-header { background: #0A2640; color: #fff; text-align: center; padding: 10px 0; font-weight: 600; font-size: 0.85rem; }
+      .cal-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
+      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; border: 1px solid var(--border); min-width: 700px; }
+      .cal-header { background: var(--brand); color: #fff; text-align: center; padding: 10px 0; font-weight: 700; font-size: 0.82rem; letter-spacing: .03em; }
       .cal-cell {
-        min-height: 110px; border: 1px solid #dfe1e6; padding: 4px 6px;
+        min-height: 110px; border: 1px solid #eef0f3; padding: 4px 6px;
         background: #fff; position: relative; transition: background 0.15s; cursor: default;
       }
-      .cal-cell.empty { background: #f4f5f7; }
-      .cal-cell.today { background: #e4f0ff; }
-      .cal-cell.past { background: #fafafa; }
+      .cal-cell.empty { background: #f8f9fb; }
+      .cal-cell.today { background: #e8f2ff; border-color: var(--blue); }
+      .cal-cell.past { background: #fbfbfc; }
       .day-num { font-weight: 700; font-size: 0.85rem; color: #333; display: inline-block; margin-bottom: 2px; }
-      .day-num.today-num { background: #0d6efd; color: #fff; border-radius: 50%; width: 26px; height: 26px; text-align: center; line-height: 26px; }
+      .day-num.today-num {
+        background: var(--blue); color: #fff; border-radius: 50%;
+        width: 28px; height: 28px; text-align: center; line-height: 28px; font-size: .8rem;
+      }
 
       /* ── Event card on grid ── */
       .evt-card {
-        background: #fff; border-radius: 4px; padding: 3px 6px;
+        background: #fff; border-radius: 5px; padding: 3px 6px;
         margin-bottom: 2px; cursor: pointer; font-size: 0.72rem;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
         border-left: 3px solid #bbb;
         transition: box-shadow 0.15s, transform 0.1s;
       }
-      .evt-card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.18); transform: translateY(-1px); }
+      .evt-card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.15); transform: translateY(-1px); }
       .evt-card .evt-title { font-weight: 600; color: #172b4d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .evt-card.overdue { border-left-color: #dc3545; background: #fff5f5; }
+      .evt-card.overdue { border-left-color: var(--red); background: #fff5f5; }
       .evt-tag-dots { display: flex; gap: 2px; margin-bottom: 1px; flex-wrap: wrap; }
       .evt-tag-dot { width: 28px; height: 5px; border-radius: 2px; }
 
-      .more-badge { font-size: 0.7rem; color: #0d6efd; cursor: pointer; font-weight: 600; text-align: center; padding: 2px 0; }
+      .more-badge { font-size: 0.7rem; color: var(--blue); cursor: pointer; font-weight: 700; text-align: center; padding: 2px 0; }
       .more-badge:hover { text-decoration: underline; }
 
-      /* ── Reminder toast ── */
-      .reminder-toast {
-        background: #fffbeb; border: 1px solid #fbbf24; border-left: 4px solid #f59e0b;
-        padding: 10px 14px; margin-bottom: 6px; border-radius: 4px;
-        display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;
+      /* ── Reminder banner ── */
+      .rem-banner {
+        background: #fffbeb; border: 1px solid #fbbf24; border-radius: var(--radius);
+        margin-bottom: .8rem; overflow: hidden;
       }
-      .reminder-toast .dismiss-x { cursor: pointer; color: #aaa; font-size: 1.1rem; }
-      .reminder-toast .dismiss-x:hover { color: #333; }
+      .rem-hdr {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: .5rem .9rem; cursor: pointer; user-select: none;
+      }
+      .rem-hdr:hover { background: #fff8e1; }
+      .rem-hdr-left { display: flex; align-items: center; gap: .4rem; font-weight: 700; font-size: .82rem; color: #92400e; }
+      .rem-count {
+        background: #f59e0b; color: #fff; font-size: .68rem; font-weight: 800;
+        width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      }
+      .rem-dismiss-all { font-size: .72rem; font-weight: 700; color: #b45309; background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+      .rem-dismiss-all:hover { background: rgba(0,0,0,.06); }
+      .rem-body { border-top: 1px solid #fde68a; max-height: 200px; overflow-y: auto; }
+      .rem-body.collapsed { display: none; }
+      .rem-row {
+        display: flex; align-items: center; gap: .5rem; padding: .4rem .9rem;
+        font-size: .78rem; border-bottom: 1px solid #fef3c7; transition: background .1s;
+      }
+      .rem-row:last-child { border-bottom: none; }
+      .rem-row:hover { background: #fef9e7; }
+      .rem-row .rem-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #78350f; font-weight: 600; }
+      .rem-row .rem-type { font-size: .68rem; color: #a16207; white-space: nowrap; flex-shrink: 0; }
+      .rem-row .rem-btn { padding: 2px 8px; font-size: .68rem; font-weight: 700; border-radius: 4px; border: 1px solid #d97706; color: #92400e; background: #fff; cursor: pointer; white-space: nowrap; }
+      .rem-row .rem-btn:hover { background: #fef3c7; }
+      .rem-row .rem-x { cursor: pointer; color: #ccc; font-size: .9rem; line-height: 1; padding: 0 2px; }
+      .rem-row .rem-x:hover { color: #92400e; }
 
-      .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
-      .filter-bar select { border-radius: 0 !important; }
+      .legend-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
       #dropdownUserButton { border-radius: 0.375rem !important; }
+
+      /* ── Month Nav ── */
+      .month-nav { display: flex; align-items: center; gap: .5rem; }
+      .month-nav a { color: var(--brand); font-size: 1.3rem; padding: 2px 6px; text-decoration: none; transition: color .15s; }
+      .month-nav a:hover { color: var(--blue); }
+      .month-nav h4 { min-width: 180px; text-align: center; font-weight: 800; margin: 0; color: var(--brand); }
+
+      @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+      .fi { animation: fadeIn .35s ease both; }
+      .fi-1 { animation-delay:.05s } .fi-2 { animation-delay:.1s }
+      .fi-3 { animation-delay:.15s } .fi-4 { animation-delay:.2s }
+
+      /* ── Mobile list view ── */
+      .mob-list { display: none; }
+      .mob-evt {
+        display: flex; align-items: center; gap: .7rem; padding: .7rem .9rem;
+        border-bottom: 1px solid var(--border); transition: background .15s; cursor: pointer;
+      }
+      .mob-evt:hover { background: #f4f6f9; }
+      .mob-evt:last-child { border-bottom: none; }
+      .mob-date {
+        width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-weight: 800; font-size: .82rem; line-height: 1.1; color: #fff; background: var(--brand);
+      }
+      .mob-date.overdue { background: var(--red); }
+      .mob-date.today { background: var(--blue); }
+      .mob-date small { font-size: .58rem; font-weight: 600; text-transform: uppercase; }
+      .mob-info { flex: 1; min-width: 0; }
+      .mob-info .mob-title { font-weight: 700; font-size: .88rem; color: #172b4d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .mob-info .mob-sub { font-size: .75rem; color: var(--muted); }
+      .mob-dots { display: flex; gap: 2px; }
+      .mob-dot { width: 8px; height: 8px; border-radius: 50%; }
+      .mob-empty { text-align: center; padding: 2rem 1rem; color: var(--muted); }
+      .mob-empty i { font-size: 2.2rem; margin-bottom: .5rem; display: block; }
+
+      .view-toggle { display: none; }
+      .view-toggle .vt-btn {
+        padding: .35rem .7rem; font-size: .78rem; font-weight: 700; border: 1.5px solid var(--border);
+        background: #fff; color: var(--brand); cursor: pointer; transition: all .15s;
+      }
+      .view-toggle .vt-btn:first-child { border-radius: 6px 0 0 6px; }
+      .view-toggle .vt-btn:last-child { border-radius: 0 6px 6px 0; }
+      .view-toggle .vt-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+      /* ── Responsive ── */
+      @media (max-width: 768px) {
+        .s-body { padding: .8rem; }
+        .hdr-wrap { flex-direction: column; gap: .6rem !important; }
+        .hdr-btns { width: 100%; display: flex; flex-direction: column; gap: .4rem; }
+        .hdr-btns .btn-a { width: 100%; justify-content: center; }
+        .month-bar { flex-direction: column; gap: .6rem !important; align-items: stretch !important; }
+        .month-bar .month-nav { justify-content: center; }
+        .month-bar .filter-group { width: 100%; }
+        .month-bar .filter-group form { width: 100%; }
+        .month-bar .filter-group select { width: 100% !important; min-width: 0 !important; }
+        /* Grid stays scrollable when shown */
+        .cal-grid { min-width: 700px; }
+        .cal-cell { min-height: 80px; padding: 3px 4px; }
+        .cal-header { padding: 6px 0; font-size: .72rem; }
+        .day-num { font-size: .78rem; }
+        .day-num.today-num { width: 24px; height: 24px; line-height: 24px; font-size: .72rem; }
+        .evt-card { font-size: .68rem; padding: 2px 4px; }
+        .evt-card .evt-title { font-size: .65rem; }
+        .evt-tag-dots { display: none; }
+        .more-badge { font-size: .65rem; }
+        .rem-row .rem-type { display: none; }
+        .view-toggle { display: inline-flex; }
+        /* Default: hide grid, show list on mobile */
+        .cal-scroll { display: none; }
+        .mob-list { display: block; }
+        /* Toggle classes override defaults */
+        .cal-scroll.show-mob { display: block; }
+        .mob-list.hide-mob { display: none; }
+      }
 
       /* ═══════════════════════════════════════════════════
          TRELLO-STYLE POPUP / MODAL
@@ -214,82 +373,118 @@
         </div>
       </nav>
 
-      <section style="min-height: 100vh; padding-top: 150px; padding-bottom: 3rem;">
-        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 30vh; z-index: -1;"></div>
+      <section class="py-5" style="min-height:100vh;">
+        <div style="position:absolute;top:0;left:0;right:0;height:30vh;
+                     background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
 
-        <div class="container-fluid px-4">
-          <div class="bg-white p-4 shadow-lg" style="border-radius: 6px;">
+        <div class="container" style="margin-top:80px;max-width:1100px;">
 
-            <!-- Top bar -->
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-              <h2 class="fw-bold mb-0" style="color:#0A2640;">
-                <i class="fa-solid fa-calendar-days me-2"></i>Calendário
-              </h2>
-              <div class="d-flex gap-2 flex-wrap">
-                <a href="{% url 'calendar_app:upcoming' %}" class="btn btn-sm btn-outline-dark" style="border-radius:4px;">
-                  <i class="fa-solid fa-clock me-1"></i>Próximos
-                </a>
-                <a href="{% url 'calendar_app:overdue' %}" class="btn btn-sm btn-outline-danger" style="border-radius:4px;">
-                  <i class="fa-solid fa-triangle-exclamation me-1"></i>Atrasados
-                </a>
-                <button class="btn btn-sm btn-dark" style="border-radius:4px;" onclick="openCreatePopup()">
-                  <i class="fa-solid fa-plus me-1"></i>Novo Evento
-                </button>
+          <!-- ═══ HEADER CARD ═══ -->
+          <div class="s-card fi" style="border:none;box-shadow:var(--shadow-h);">
+            <div style="padding:1.3rem 1.4rem;">
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 hdr-wrap">
+                <div class="d-flex align-items-center gap-3">
+                  <div style="width:40px;height:40px;border-radius:10px;background:var(--brand);color:#fff;
+                              display:flex;align-items:center;justify-content:center;font-size:1.1rem;">
+                    <i class="fa-solid fa-calendar-days"></i>
+                  </div>
+                  <div>
+                    <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">Calendário</h4>
+                    <div style="font-size:.78rem;color:var(--muted);">Gerencie seus eventos e compromissos</div>
+                  </div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap hdr-btns">
+                  <a href="{% url 'calendar_app:upcoming' %}" class="btn-a secondary">
+                    <i class="fa-solid fa-clock"></i>Próximos
+                  </a>
+                  <a href="{% url 'calendar_app:overdue' %}" class="btn-a danger">
+                    <i class="fa-solid fa-triangle-exclamation"></i>Atrasados
+                  </a>
+                  <button class="btn-a dark" onclick="openCreatePopup()">
+                    <i class="fa-solid fa-plus"></i>Novo Evento
+                  </button>
+                </div>
               </div>
             </div>
+          </div>
 
             <!-- Reminders -->
             {% if today_reminders %}
-            <div class="mb-3">
-              {% for reminder in today_reminders %}
-              <div class="reminder-toast" id="reminder-{{ reminder.id }}">
-                <div>
-                  <i class="fa-solid fa-bell text-warning me-1"></i>
-                  <strong>{{ reminder.message|default:reminder.event.title }}</strong>
-                  <small class="text-muted ms-2">{{ reminder.event.get_event_type_display }}</small>
+            <div class="rem-banner" id="remBanner">
+              <div class="rem-hdr" onclick="document.getElementById('remBody').classList.toggle('collapsed')">
+                <div class="rem-hdr-left">
+                  <i class="fa-solid fa-bell" style="color:#f59e0b;"></i>
+                  <span>Lembretes</span>
+                  <span class="rem-count" id="remCount">{{ today_reminders|length }}</span>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                  <button class="btn btn-sm btn-outline-dark" style="border-radius:4px; font-size:0.75rem;" onclick="openEventPopup({{ reminder.event_id }})">Ver</button>
-                  <span class="dismiss-x" onclick="dismissReminder({{ reminder.id }})">&times;</span>
-                </div>
+                <button class="rem-dismiss-all" onclick="event.stopPropagation(); dismissAllReminders()" title="Dispensar todos">
+                  Dispensar todos
+                </button>
               </div>
-              {% endfor %}
+              <div class="rem-body" id="remBody">
+                {% for reminder in today_reminders %}
+                <div class="rem-row" id="reminder-{{ reminder.id }}">
+                  <span class="rem-text">{{ reminder.message|default:reminder.event.title }}</span>
+                  <span class="rem-type">{{ reminder.event.get_event_type_display }}</span>
+                  <button class="rem-btn" onclick="openEventPopup({{ reminder.event_id }})">Ver</button>
+                  <span class="rem-x" onclick="dismissReminder({{ reminder.id }})">&times;</span>
+                </div>
+                {% endfor %}
+              </div>
             </div>
             {% endif %}
 
-            <!-- Month nav + filter -->
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-              <div class="d-flex align-items-center gap-2">
-                <a href="?year={{ prev_year }}&month={{ prev_month }}{% if seller_filter %}&seller={{ seller_filter }}{% endif %}" style="color:#0A2640; font-size:1.3rem; padding:2px 6px; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#0d6efd'" onmouseout="this.style.color='#0A2640'">
-                  <i class="fa-solid fa-circle-chevron-left"></i>
-                </a>
-                <h4 class="fw-bold mb-0" style="min-width: 180px; text-align:center;">{{ month_name }} {{ year }}</h4>
-                <a href="?year={{ next_year }}&month={{ next_month }}{% if seller_filter %}&seller={{ seller_filter }}{% endif %}" style="color:#0A2640; font-size:1.3rem; padding:2px 6px; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#0d6efd'" onmouseout="this.style.color='#0A2640'">
-                  <i class="fa-solid fa-circle-chevron-right"></i>
-                </a>
-              </div>
-
-              <div class="d-flex align-items-center gap-3 flex-wrap">
-                <div class="d-flex gap-2 align-items-center" style="font-size:0.78rem;">
-                  <span><span class="legend-dot" style="background:#dc3545;"></span> Atrasado</span>
+          <!-- ═══ MONTH NAV + FILTER ═══ -->
+          <div class="s-card fi fi-1">
+            <div class="s-body" style="padding:.8rem 1.1rem;">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 month-bar">
+                <div class="month-nav">
+                  <a href="?year={{ prev_year }}&month={{ prev_month }}{% if seller_filter %}&seller={{ seller_filter }}{% endif %}">
+                    <i class="fa-solid fa-circle-chevron-left"></i>
+                  </a>
+                  <h4>{{ month_name }} {{ year }}</h4>
+                  <a href="?year={{ next_year }}&month={{ next_month }}{% if seller_filter %}&seller={{ seller_filter }}{% endif %}">
+                    <i class="fa-solid fa-circle-chevron-right"></i>
+                  </a>
                 </div>
-                {% if is_admin %}
-                <form method="get" class="d-flex align-items-center gap-2 mb-0">
-                  <input type="hidden" name="year" value="{{ year }}">
-                  <input type="hidden" name="month" value="{{ month }}">
-                  <select name="seller" class="form-select form-select-sm" style="width:auto; min-width:170px; border-radius:4px !important; font-size:0.82rem;" onchange="this.form.submit()">
-                    <option value="">Todos vendedores</option>
-                    {% for s in sellers %}
-                    <option value="{{ s.id }}" {% if seller_filter == s.id|stringformat:"d" %}selected{% endif %}>{{ s.get_full_name|default:s.username }}</option>
-                    {% endfor %}
-                  </select>
-                </form>
-                {% endif %}
+
+                <div class="d-flex align-items-center gap-3 flex-wrap filter-group">
+                  <div class="d-flex gap-2 align-items-center" style="font-size:0.78rem;">
+                    <span><span class="legend-dot" style="background:var(--red);"></span> Atrasado</span>
+                  </div>
+                  {% if is_admin %}
+                  <form method="get" class="d-flex align-items-center gap-2 mb-0">
+                    <input type="hidden" name="year" value="{{ year }}">
+                    <input type="hidden" name="month" value="{{ month }}">
+                    <select name="seller" class="form-select form-select-sm" style="width:auto; min-width:170px; border-radius:8px !important; font-size:0.82rem;" onchange="this.form.submit()">
+                      <option value="">Todos vendedores</option>
+                      {% for s in sellers %}
+                      <option value="{{ s.id }}" {% if seller_filter == s.id|stringformat:"d" %}selected{% endif %}>{{ s.get_full_name|default:s.username }}</option>
+                      {% endfor %}
+                    </select>
+                  </form>
+                  {% endif %}
+                </div>
               </div>
             </div>
+          </div>
 
-            <!-- Calendar grid -->
-            <div class="cal-grid">
+          <!-- ═══ VIEW TOGGLE (mobile only) ═══ -->
+          <div class="text-center mb-2">
+            <div class="view-toggle" id="viewToggle">
+              <button class="vt-btn" data-view="grid" onclick="switchView('grid')">
+                <i class="fa-solid fa-table-cells"></i> Grade
+              </button>
+              <button class="vt-btn active" data-view="list" onclick="switchView('list')">
+                <i class="fa-solid fa-list"></i> Lista
+              </button>
+            </div>
+          </div>
+
+          <!-- ═══ CALENDAR GRID ═══ -->
+          <div class="s-card fi fi-2" style="overflow:visible;">
+            <div class="cal-scroll" id="calGrid">
+              <div class="cal-grid">
               {% for wd in weekday_names %}
               <div class="cal-header">{{ wd }}</div>
               {% endfor %}
@@ -331,14 +526,49 @@
                 </div>
                 {% endfor %}
               {% endfor %}
-            </div>
-
-            <div class="text-center mt-4">
-              <a href="{% url 'core:index' %}" class="btn btn-outline-secondary btn-sm" style="border-radius:4px;">
-                <i class="fa-solid fa-arrow-left me-1"></i>Voltar ao Início
-              </a>
+              </div>
             </div>
           </div>
+
+          <!-- ═══ MOBILE LIST VIEW ═══ -->
+          <div class="s-card mob-list" id="mobList">
+            <div class="s-hdr">
+              <div class="s-icon brand"><i class="fa-solid fa-list"></i></div>
+              Eventos de {{ month_name }}
+            </div>
+            <div class="s-body" style="padding:0;">
+              {% for week in weeks %}{% for cell in week %}{% for evt in cell.events %}
+              <div class="mob-evt" onclick="openEventPopup({{ evt.pk }})">
+                <div class="mob-date{% if evt.is_overdue %} overdue{% elif cell.is_today %} today{% endif %}">
+                  {{ cell.day }}<small>{{ month_name|truncatechars:3 }}</small>
+                </div>
+                <div class="mob-info">
+                  <div class="mob-title">{{ evt.title }}</div>
+                  <div class="mob-sub">
+                    {{ evt.get_event_type_display }}
+                    {% if evt.customer %} · {{ evt.customer.name|truncatechars:20 }}{% endif %}
+                  </div>
+                </div>
+                {% if evt.tags.all %}
+                <div class="mob-dots">
+                  {% for tag in evt.tags.all %}
+                  <span class="mob-dot" style="background:{{ tag.color }};"></span>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
+              {% endfor %}{% endfor %}{% endfor %}
+              <div class="mob-empty" id="mobEmpty"><i class="fa-solid fa-calendar-xmark"></i>Nenhum evento neste mês</div>
+            </div>
+          </div>
+
+          <!-- ═══ BACK ═══ -->
+          <div class="text-center fi fi-3" style="margin-top:.5rem;">
+            <a href="{% url 'core:index' %}" class="btn-a secondary">
+              <i class="fa-solid fa-arrow-left"></i>Voltar ao Início
+            </a>
+          </div>
+
         </div>
       </section>
 
@@ -914,8 +1144,27 @@
       fetch('/calendario/lembrete/' + id + '/dispensar/', {
         method: 'POST', headers: hdr({ 'Content-Type': 'application/json' }),
       }).then(r => r.json()).then(data => {
-        if (data.success) document.getElementById('reminder-' + id).style.display = 'none';
+        if (data.success) {
+          var row = document.getElementById('reminder-' + id);
+          if (row) row.remove();
+          updateRemCount();
+        }
       });
+    }
+    function dismissAllReminders() {
+      document.querySelectorAll('.rem-row').forEach(function(row) {
+        var id = row.id.replace('reminder-', '');
+        dismissReminder(parseInt(id));
+      });
+    }
+    function updateRemCount() {
+      var count = document.querySelectorAll('.rem-row').length;
+      var el = document.getElementById('remCount');
+      if (el) el.textContent = count;
+      if (count === 0) {
+        var banner = document.getElementById('remBanner');
+        if (banner) banner.remove();
+      }
     }
 
     /* ── Keyboard ── */
@@ -935,6 +1184,25 @@
         pop.classList.remove('show');
       }
     });
+
+    /* ── View Toggle (grid/list) ── */
+    function switchView(view) {
+      const grid = document.getElementById('calGrid');
+      const list = document.getElementById('mobList');
+      document.querySelectorAll('.vt-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+      if (view === 'list') {
+        grid.classList.remove('show-mob');
+        list.classList.remove('hide-mob');
+      } else {
+        grid.classList.add('show-mob');
+        list.classList.add('hide-mob');
+      }
+    }
+    // Hide empty state if there are events
+    (function() {
+      const empty = document.getElementById('mobEmpty');
+      if (empty && document.querySelectorAll('.mob-evt').length > 0) empty.style.display = 'none';
+    })();
     </script>
   </body>
 </html>

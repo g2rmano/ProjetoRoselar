@@ -1,432 +1,588 @@
 ﻿{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orçamento #{{ quote.number }} | Roselar</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
+  <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+  <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
+  <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --brand:   #0A2640;
+      --brand-l: #163a5a;
+      --bg:      #f4f6f9;
+      --surface: #fff;
+      --green:   #198754;
+      --red:     #dc3545;
+      --orange:  #e67e22;
+      --blue:    #0d6efd;
+      --cyan:    #0dcaf0;
+      --muted:   #6c757d;
+      --border:  #dee2e6;
+      --radius:  10px;
+      --shadow:  0 1px 4px rgba(0,0,0,.06);
+      --shadow-h:0 4px 14px rgba(0,0,0,.09);
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Manrope', sans-serif; background: var(--bg); }
 
-    <title>Orçamento #{{ quote.number }} | Roselar</title>
+    /* ── Section cards ── */
+    .s-card {
+      background: var(--surface); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 1rem;
+      overflow: hidden; border: 1px solid rgba(0,0,0,.04);
+      transition: box-shadow .2s;
+    }
+    .s-card:hover { box-shadow: var(--shadow-h); }
+    .s-hdr {
+      padding: .7rem 1.1rem; display: flex; align-items: center; gap: .55rem;
+      font-weight: 700; font-size: .88rem; color: var(--brand);
+      background: #fafbfc; border-bottom: 1px solid var(--border);
+    }
+    .s-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .78rem; color: #fff; flex-shrink: 0;
+    }
+    .s-icon.brand  { background: var(--brand); }
+    .s-icon.green  { background: var(--green); }
+    .s-icon.red    { background: var(--red); }
+    .s-icon.orange { background: var(--orange); }
+    .s-icon.blue   { background: var(--blue); }
+    .s-icon.cyan   { background: var(--cyan); }
+    .s-icon.muted  { background: var(--muted); }
+    .s-body { padding: 1.1rem; }
 
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
-    <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
-    <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
-    <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
-    <meta name="theme-color" content="#ffffff">
+    /* ── Stat boxes ── */
+    .stat {
+      background: var(--bg); border-radius: 8px;
+      padding: .7rem .85rem; text-align: center;
+    }
+    .stat-l { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; margin-bottom: .15rem; }
+    .stat-v { font-size: 1.1rem; font-weight: 800; color: var(--brand); line-height: 1.2; }
+    .stat-v.green { color: var(--green); }
+    .stat-v.red   { color: var(--red); }
 
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" rel="stylesheet">
-    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
-    <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    /* ── Highlight cards ── */
+    .hi {
+      color: #fff; padding: 1.2rem 1.3rem; border-radius: var(--radius);
+      position: relative; overflow: hidden;
+    }
+    .hi::before {
+      content:''; position:absolute; top:-30%; right:-10%;
+      width:120px; height:120px; border-radius:50%;
+      background:rgba(255,255,255,.06);
+    }
+    .hi .hi-l { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; opacity: .85; margin-bottom: .1rem; font-weight: 600; }
+    .hi .hi-v { font-size: 1.6rem; font-weight: 800; }
+    .hi.brand { background: linear-gradient(135deg, var(--brand), var(--brand-l)); }
+    .hi.green { background: linear-gradient(135deg, var(--green), #20a862); }
+    .hi.muted { background: linear-gradient(135deg, var(--muted), #5a6268); }
 
-    <style>
-      .status-badge {
-        padding: 0.5rem 1rem;
-        border-radius: 2rem;
-        font-weight: 600;
-        font-size: 0.875rem;
-      }
-      .status-DRAFT { background-color: #6c757d; color: white; }
-      .status-SENT { background-color: #0dcaf0; color: white; }
-      .status-APPROVED { background-color: #198754; color: white; }
-      .status-CONVERTED { background-color: #0d6efd; color: white; }
-      .status-CANCELED { background-color: #dc3545; color: white; }
-      
-      .info-card {
-        border-left: 4px solid #0A2640;
-        background-color: #f8f9fa;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1.5rem;
-      }
-      .info-label {
-        font-weight: 600;
-        color: #6c757d;
-        font-size: 0.875rem;
-        text-transform: uppercase;
-      }
-      .info-value {
-        font-size: 1.1rem;
-        color: #0A2640;
-        font-weight: 500;
-      }
-    </style>
-  </head>
+    /* ── Receipt line ── */
+    .r-line {
+      display: flex; justify-content: space-between; padding: .5rem 0;
+      border-bottom: 1px dashed var(--border); font-size: .86rem; color: var(--brand);
+    }
+    .r-line:last-child { border: none; }
+    .r-line .r-l { color: var(--muted); }
 
-  <body>
-    <main class="main" id="top">
-      <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
-        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;" /></a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars text-white fs-3"></i></button>
-          <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav ms-auto">
-              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'core:index' %}">Início</a></li>
-              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'calendar_app:calendar' %}">Calendário</a></li>
-              <li class="nav-item"><a class="nav-link" aria-current="page" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
-              <li class="nav-item">
-                <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
-                  <span class="me-2">{{ user.username }}</span>
-                  <svg class="w-2.5 h-2.5" style="width: 14px; height: 14px;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
-                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
-                  </svg>
-                </button>
-                <div id="dropdownUser" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-72">
-                  <div class="px-4 py-3 text-sm text-gray-900">
-                    <div class="font-medium">{{ user.username }}</div>
-                    <div class="truncate">{{ user.email }}</div>
-                  </div>
-                  <ul class="py-2 text-sm text-gray-700">
-                    <li>
-                      <a href="{% url 'core:dashboard' %}" class="block px-4 py-2 hover:bg-gray-100">
-                        <i class="fa-solid fa-user me-2"></i>Minha Conta
-                      </a>
-                    </li>
-                  </ul>
-                  <div class="py-2">
-                    <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">
-                      <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
+    /* ── Buttons ── */
+    .btn-a {
+      display: inline-flex; align-items: center; gap: .35rem;
+      padding: .55rem 1.2rem; font-weight: 700; font-size: .85rem;
+      border: none; border-radius: 8px; cursor: pointer;
+      text-decoration: none; transition: all .2s;
+    }
+    .btn-a:hover { transform: translateY(-1px); box-shadow: var(--shadow-h); }
+    .btn-a.primary { background: var(--green); color: #fff; }
+    .btn-a.primary:hover { background: #146c43; color: #fff; }
+    .btn-a.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--border); }
+    .btn-a.secondary:hover { background: var(--bg); color: var(--brand); }
+    .btn-a.dark { background: var(--brand); color: #fff; }
+    .btn-a.dark:hover { background: var(--brand-l); color: #fff; }
+    .btn-a.outline { background: transparent; color: var(--green); border: 1.5px solid var(--green); }
+    .btn-a.outline:hover { background: var(--green); color: #fff; }
+    .btn-a.warning { background: var(--orange); color: #fff; }
+    .btn-a.warning:hover { background: #cf6e14; color: #fff; }
+    .btn-a.info { background: var(--cyan); color: #fff; }
+    .btn-a.info:hover { background: #0bb5d4; color: #fff; }
+    .btn-a.danger { background: var(--red); color: #fff; }
+    .btn-a.danger:hover { background: #b02a37; color: #fff; }
+
+    /* ── Status badge ── */
+    .status-badge {
+      padding: .3rem .8rem; border-radius: 2rem; font-weight: 700;
+      font-size: .75rem; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .status-DRAFT     { background: #e9ecef; color: var(--muted); }
+    .status-SENT      { background: #e3f2fd; color: #0c5276; }
+    .status-APPROVED  { background: #e8f5e9; color: #0f5132; }
+    .status-CONVERTED { background: #e3f2fd; color: var(--blue); }
+    .status-CANCELED  { background: #fce4ec; color: #842029; }
+
+    /* ── Quote info strip ── */
+    .q-info {
+      display: flex; gap: 1.2rem; flex-wrap: wrap;
+      padding: .4rem 0; font-size: .82rem; color: var(--muted);
+    }
+    .q-info span { display: flex; align-items: center; gap: .3rem; }
+    .q-info span i { font-size: .72rem; opacity: .6; }
+
+    /* ── Table ── */
+    .items-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .items-table thead th {
+      background: var(--bg); color: var(--muted); font-size: .7rem;
+      text-transform: uppercase; letter-spacing: .04em; font-weight: 700;
+      padding: .6rem .75rem; border-bottom: 1.5px solid var(--border);
+    }
+    .items-table tbody td {
+      padding: .65rem .75rem; border-bottom: 1px solid #f0f0f0;
+      color: var(--brand); vertical-align: middle;
+    }
+    .items-table tbody tr:last-child td { border-bottom: none; }
+    .items-table tbody tr:hover { background: #fafbfc; }
+    .item-num {
+      background: var(--brand); color: #fff; font-size: .65rem; font-weight: 800;
+      padding: 1px 8px; border-radius: 6px; letter-spacing: .03em;
+    }
+    .supplier-badge {
+      background: var(--bg); color: var(--muted); font-size: .72rem; font-weight: 600;
+      padding: .2rem .6rem; border-radius: 6px;
+    }
+
+    /* ── Alerts ── */
+    .alert-convert {
+      background: #e3f2fd; border: 1.5px solid #90caf9; border-radius: var(--radius);
+      padding: 1rem 1.2rem; display: flex; justify-content: space-between; align-items: center;
+      gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .alert-convert .ac-text { font-size: .86rem; color: #0c5276; }
+    .alert-convert .ac-text strong { color: var(--brand); }
+
+    /* ── Modal override ── */
+    .modal-content { border-radius: var(--radius) !important; overflow: hidden; border: none !important; }
+    .modal-header.s-modal-hdr {
+      background: linear-gradient(135deg, var(--green), #20a862); color: #fff;
+      padding: 1rem 1.2rem; border: none;
+    }
+    .modal-header.s-modal-hdr .btn-close { filter: invert(1); }
+    .modal-body { padding: 1.2rem; }
+    .modal-footer { border-top: 1px solid var(--border); padding: .8rem 1.2rem; }
+    .form-control {
+      border: 1.5px solid var(--border); border-radius: 8px !important;
+      font-size: .88rem; font-weight: 500; color: var(--brand);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-control:focus {
+      border-color: var(--brand) !important;
+      box-shadow: 0 0 0 3px rgba(10,38,64,.1) !important;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .fi { animation: fadeIn .35s ease both; }
+    .fi-1 { animation-delay:.05s } .fi-2 { animation-delay:.1s }
+    .fi-3 { animation-delay:.15s } .fi-4 { animation-delay:.2s }
+    .fi-5 { animation-delay:.25s } .fi-6 { animation-delay:.3s }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .s-body { padding: .8rem; }
+      .hi .hi-v { font-size: 1.3rem; }
+      .stat-v { font-size: .95rem; }
+      .q-info { gap: .75rem; }
+      .hdr-wrap { flex-direction: column; }
+      .hdr-wrap .btn-a { width: 100%; justify-content: center; }
+      .action-btns { flex-direction: column; }
+      .action-btns .btn-a { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <main class="main" id="top">
+    <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+      <div class="container">
+        <a class="navbar-brand" href="{% url 'core:index' %}">
+          <img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+          <i class="fa-solid fa-bars text-white fs-3"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Início</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'calendar_app:calendar' %}">Calendário</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
+            <li class="nav-item">
+              <button id="dropdownUserButton" data-dropdown-toggle="dropdownUser" class="btn btn-light text-black d-flex align-items-center" type="button">
+                <span class="me-2">{{ user.username }}</span>
+                <svg class="w-2.5 h-2.5" style="width:14px;height:14px;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                </svg>
+              </button>
+              <div id="dropdownUser" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-72">
+                <div class="px-4 py-3 text-sm text-gray-900">
+                  <div class="font-medium">{{ user.username }}</div>
+                  <div class="truncate">{{ user.email }}</div>
+                </div>
+                <ul class="py-2 text-sm text-gray-700">
+                  <li>
+                    <a href="{% url 'core:dashboard' %}" class="block px-4 py-2 hover:bg-gray-100">
+                      <i class="fa-solid fa-user me-2"></i>Minha Conta
                     </a>
+                  </li>
+                </ul>
+                <div class="py-2">
+                  <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">
+                    <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
+                  </a>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <section class="py-5" style="min-height:100vh;">
+      <div style="position:absolute;top:0;left:0;right:0;height:30vh;
+                   background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
+
+      <div class="container" style="margin-top:80px;max-width:960px;">
+
+        <!-- ═══ HEADER CARD ═══ -->
+        <div class="s-card fi" style="border:none;box-shadow:var(--shadow-h);">
+          <div style="padding:1.3rem 1.4rem;">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 hdr-wrap">
+              <div>
+                <div class="d-flex align-items-center gap-3 mb-2">
+                  <div style="width:40px;height:40px;border-radius:10px;background:var(--brand);color:#fff;
+                              display:flex;align-items:center;justify-content:center;font-size:1.1rem;">
+                    <i class="fa-solid fa-file-invoice"></i>
+                  </div>
+                  <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">
+                        Orçamento #{{ quote.number }}
+                      </h4>
+                      <span class="status-badge status-{{ quote.status }}">{{ quote.get_status_display }}</span>
+                    </div>
+                    <div class="q-info" style="padding-top:.3rem;">
+                      <span><i class="fa-solid fa-user"></i>{{ quote.customer.name }}</span>
+                      <span><i class="fa-solid fa-user-tie"></i>{{ quote.seller.username }}</span>
+                      <span><i class="fa-solid fa-calendar"></i>{{ quote.quote_date|date:"d/m/Y" }}</span>
+                    </div>
                   </div>
                 </div>
-              </li>
-            </ul>
+              </div>
+              <a href="{% url 'sales:quote_list' %}" class="btn-a secondary" style="flex-shrink:0;">
+                <i class="fa-solid fa-arrow-left"></i>Voltar
+              </a>
+            </div>
           </div>
         </div>
-      </nav>
 
-      <section class="py-8" style="min-height: 100vh;">
-        <div class="bg-dark" style="position: absolute; top: 0; left: 0; right: 0; height: 30vh; z-index: -1;"></div>
-        
-        <div class="container">
+        <!-- ═══ ACTION BUTTONS ═══ -->
+        <div class="s-card fi fi-1">
+          <div class="s-body" style="padding:.8rem 1.1rem;">
+            <div class="d-flex flex-wrap gap-2 action-btns">
+              <a href="{% url 'sales:quote_simulate' quote.id %}" class="btn-a dark">
+                <i class="fa-solid fa-calculator"></i>Simular / Condições
+              </a>
+              <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-a primary" target="_blank">
+                <i class="fa-solid fa-file-pdf"></i>PDF Cliente
+              </a>
+              <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-a info" target="_blank">
+                <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
+              </a>
+              {% if quote.status != 'CONVERTED' and quote.status != 'CANCELED' %}
+                <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-a warning">
+                  <i class="fa-solid fa-edit"></i>Editar
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
 
-          <div class="row justify-content-center mt-5">
-            <div class="col-12 col-lg-10">
-              <div class="bg-white p-5 rounded-3 shadow-lg">
-                
-                <!-- Header -->
-                <div class="d-flex justify-content-between align-items-start mb-4">
-                  <div>
-                    <h1 class="fw-bold mb-2">
-                      <i class="fa-solid fa-file-invoice me-2"></i>
-                      Orçamento #{{ quote.number }}
-                    </h1>
-                    <span class="status-badge status-{{ quote.status }}">
-                      {{ quote.get_status_display }}
-                    </span>
-                  </div>
-                  <div class="d-flex gap-2">
-                    <a href="{% url 'sales:quote_simulate' quote.id %}" class="btn btn-primary">
-                      <i class="fa-solid fa-calculator me-2"></i>Simular / Condições
-                    </a>
-                    <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn btn-success" target="_blank">
-                      <i class="fa-solid fa-file-pdf me-2"></i>PDF Cliente
-                    </a>
-                    <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn btn-info text-white" target="_blank">
-                      <i class="fa-solid fa-file-pdf me-2"></i>PDF Fornecedor
-                    </a>
-                    {% if quote.status != 'CONVERTED' and quote.status != 'CANCELED' %}
-                      <a href="{% url 'sales:quote_edit' quote.id %}" class="btn btn-warning">
-                        <i class="fa-solid fa-edit me-2"></i>Editar
-                      </a>
-                    {% endif %}
-                    <a href="{% url 'sales:quote_list' %}" class="btn btn-outline-dark">
-                      <i class="fa-solid fa-arrow-left me-2"></i>Voltar
-                    </a>
-                  </div>
+        <!-- ═══ SUMMARY CARDS ═══ -->
+        <div class="row g-3 mb-1 fi fi-2">
+          <div class="col-md-4">
+            <div class="hi brand">
+              <div class="hi-l">Total Geral</div>
+              <div class="hi-v">R$ {{ quote.total_value_snapshot|floatformat:2 }}</div>
+              {% if quote.payment_fee_percent > 0 %}
+                <div style="font-size:.72rem;opacity:.8;margin-top:.2rem;">
+                  <i class="fa-solid fa-info-circle me-1"></i>Inclui taxa de {{ quote.payment_fee_percent }}%
                 </div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="hi green">
+              <div class="hi-l">Frete</div>
+              <div class="hi-v">R$ {{ quote.freight_value|floatformat:2 }}</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="hi muted">
+              <div class="hi-l">Desconto</div>
+              <div class="hi-v">{{ quote.discount_percent|floatformat:1 }}%</div>
+            </div>
+          </div>
+        </div>
 
-                <!-- Info Cards -->
-                <div class="row mb-4">
-                  <div class="col-md-6">
-                    <div class="info-card">
-                      <div class="info-label">Cliente</div>
-                      <div class="info-value">
-                        <i class="fa-solid fa-user me-2"></i>{{ quote.customer.name }}
-                      </div>
-                      {% if quote.customer.phone %}
-                        <small class="text-muted"><i class="fa-solid fa-phone me-1"></i>{{ quote.customer.phone }}</small>
-                      {% endif %}
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="info-card">
-                      <div class="info-label">Vendedor</div>
-                      <div class="info-value">
-                        <i class="fa-solid fa-user-tie me-2"></i>{{ quote.seller.username }}
-                      </div>
-                      <small class="text-muted"><i class="fa-solid fa-calendar me-1"></i>{{ quote.quote_date|date:"d/m/Y" }}</small>
-                    </div>
-                  </div>
+        <!-- ═══ DETAILS: CUSTOMER + PAYMENT ═══ -->
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="s-card fi fi-3">
+              <div class="s-hdr">
+                <div class="s-icon blue"><i class="fa-solid fa-user"></i></div>
+                Cliente
+              </div>
+              <div class="s-body">
+                <div style="font-weight:700;color:var(--brand);font-size:.95rem;margin-bottom:.3rem;">
+                  {{ quote.customer.name }}
                 </div>
-
-                <div class="row mb-4">
-                  <div class="col-md-4">
-                    <div class="info-card">
-                      <div class="info-label">Frete</div>
-                      <div class="info-value">R$ {{ quote.freight_value|floatformat:2 }}</div>
-                    </div>
-                  </div>
-                  <div class="col-md-4">
-                    <div class="info-card">
-                      <div class="info-label">Desconto</div>
-                      <div class="info-value">{{ quote.discount_percent|floatformat:3 }}%</div>
-                    </div>
-                  </div>
-                  <div class="col-md-4">
-                    <div class="info-card">
-                      <div class="info-label">Total Geral</div>
-                      <div class="info-value">R$ {{ quote.total_value_snapshot|floatformat:2 }}</div>
-                      {% if quote.payment_fee_percent > 0 %}
-                        <small class="text-muted d-block mt-1">
-                          <i class="fa-solid fa-info-circle me-1"></i>Inclui taxa de {{ quote.payment_fee_percent }}%
-                        </small>
-                      {% endif %}
-                    </div>
-                  </div>
-                </div>
-
-                {% if quote.payment_type %}
-                  <div class="info-card">
-                    <div class="info-label">Condição de Pagamento</div>
-                    <div class="info-value">
-                      {{ quote.get_payment_description }}
-                      {% if quote.payment_fee_percent > 0 %}
-                        <span class="badge bg-warning text-dark ms-2">
-                          <i class="fa-solid fa-percent me-1"></i>Taxa: {{ quote.payment_fee_percent }}%
-                        </span>
-                      {% endif %}
-                    </div>
+                {% if quote.customer.phone %}
+                  <div style="font-size:.82rem;color:var(--muted);">
+                    <i class="fa-solid fa-phone me-1" style="font-size:.72rem;"></i>{{ quote.customer.phone }}
                   </div>
                 {% endif %}
-
-                <!-- Items Table -->
-                <div class="card mb-4">
-                  <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fa-solid fa-box me-2"></i>Itens do Orçamento ({{ quote.items.count }})</h5>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="s-card fi fi-3">
+              <div class="s-hdr">
+                <div class="s-icon brand"><i class="fa-solid fa-credit-card"></i></div>
+                Pagamento
+              </div>
+              <div class="s-body">
+                {% if quote.payment_type %}
+                  <div style="font-weight:700;color:var(--brand);font-size:.95rem;margin-bottom:.3rem;">
+                    {{ quote.get_payment_description }}
                   </div>
-                  <div class="card-body p-0">
-                    <div class="table-responsive">
-                      <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                          <tr>
-                            <th>#</th>
-                            <th>Produto</th>
-                            <th>Fornecedor</th>
-                            <th>Descrição</th>
-                            <th class="text-center">Qtd</th>
-                            <th class="text-end">Valor Unit.</th>
-                            <th class="text-end">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {% for item in quote.items.all %}
-                            <tr>
-                              <td class="text-muted">{{ forloop.counter }}</td>
-                              <td class="fw-semibold">{{ item.product_name }}</td>
-                              <td>
-                                {% if item.supplier %}
-                                  <span class="badge bg-secondary">{{ item.supplier.name }}</span>
-                                {% else %}
-                                  <span class="text-muted small">Não definido</span>
-                                {% endif %}
-                              </td>
-                              <td>
-                                <small class="text-muted">{{ item.description|truncatewords:10 }}</small>
-                              </td>
-                              <td class="text-center">{{ item.quantity }}</td>
-                              <td class="text-end">R$ {{ item.unit_value|floatformat:2 }}</td>
-                              <td class="text-end fw-semibold">R$ {{ item.line_total|floatformat:2 }}</td>
-                            </tr>
-                          {% empty %}
-                            <tr>
-                              <td colspan="7" class="text-center text-muted py-4">
-                                <i class="fa-solid fa-inbox fa-2x mb-2"></i>
-                                <p class="mb-0">Nenhum item encontrado</p>
-                              </td>
-                            </tr>
-                          {% endfor %}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Orders Section -->
-                {% if quote.orders.exists %}
-                  <div class="card mb-4">
-                    <div class="card-header bg-success text-white">
-                      <h5 class="mb-0"><i class="fa-solid fa-shopping-cart me-2"></i>Pedidos Gerados ({{ quote.orders.count }})</h5>
-                    </div>
-                    <div class="card-body p-0">
-                      <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                          <thead class="table-light">
-                            <tr>
-                              <th>Tipo</th>
-                              <th>Fornecedor</th>
-                              <th class="text-center">Status</th>
-                              <th class="text-center">Itens</th>
-                              <th class="text-end">Ações</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for order in quote.orders.all %}
-                              <tr>
-                                <td>
-                                  {% if order.is_total_conference %}
-                                    <i class="fa-solid fa-clipboard-check text-primary me-2"></i>
-                                    <span class="fw-semibold">Conferência Total</span>
-                                  {% else %}
-                                    <i class="fa-solid fa-truck text-success me-2"></i>
-                                    <span class="fw-semibold">Pedido</span>
-                                  {% endif %}
-                                </td>
-                                <td>
-                                  {% if order.supplier %}
-                                    <span class="badge bg-secondary">{{ order.supplier.name }}</span>
-                                  {% else %}
-                                    <span class="text-muted">—</span>
-                                  {% endif %}
-                                </td>
-                                <td class="text-center">
-                                  <span class="badge bg-info">{{ order.get_status_display }}</span>
-                                </td>
-                                <td class="text-center">
-                                  {{ order.items.count }}
-                                </td>
-                                <td class="text-end">
-                                  <div class="btn-group btn-group-sm" role="group">
-                                    {% if not order.is_total_conference and order.supplier %}
-                                      <a href="{% url 'sales:order_pdf' order.id %}" class="btn btn-success" target="_blank" title="Baixar PDF">
-                                        <i class="fa-solid fa-file-pdf me-1"></i>PDF
-                                      </a>
-                                    {% endif %}
-                                    <a href="{% url 'sales:order_detail' order.id %}" class="btn btn-outline-info" title="Ver Detalhes">
-                                      <i class="fa-solid fa-eye me-1"></i>Ver
-                                    </a>
-                                  </div>
-                                </td>
-                              </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                {% else %}
-                  <!-- Convert to Orders Button -->
-                  {% if quote.status != 'CANCELED' and quote.status != 'CONVERTED' %}
-                    <div class="alert alert-info d-flex justify-content-between align-items-center" role="alert">
-                      <div>
-                        <i class="fa-solid fa-info-circle me-2"></i>
-                        <strong>Pronto para converter?</strong> Transforme este orçamento em pedidos por fornecedor.
-                      </div>
-                      <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#convertModal">
-                        <i class="fa-solid fa-exchange-alt me-2"></i>Converter em Pedidos
-                      </button>
-                    </div>
-
-                    <!-- Convert Modal -->
-                    <div class="modal fade" id="convertModal" tabindex="-1" aria-labelledby="convertModalLabel" aria-hidden="true">
-                      <div class="modal-dialog">
-                        <div class="modal-content" style="border-radius:0;">
-                          <div class="modal-header bg-success text-white">
-                            <h5 class="modal-title" id="convertModalLabel">
-                              <i class="fa-solid fa-exchange-alt me-2"></i>Converter em Pedidos
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                          </div>
-                          <form method="post" action="{% url 'sales:quote_convert' quote.id %}">
-                            {% csrf_token %}
-                            <div class="modal-body">
-                              <p class="text-muted mb-3">
-                                Defina a <strong>data real de entrega</strong> acordada com o cliente antes de confirmar.
-                              </p>
-                              <div class="mb-3">
-                                <label for="real-delivery-date" class="form-label fw-bold">
-                                  Data Real de Entrega <span class="text-danger">*</span>
-                                </label>
-                                <input type="date" id="real-delivery-date" name="delivery_deadline"
-                                       class="form-control" required
-                                       min="{{ today|date:'Y-m-d' }}">
-                                <small class="text-muted">
-                                  Prazo estimado no orçamento:
-                                  {% if quote.delivery_weeks %}
-                                    <strong>{{ quote.delivery_weeks }} semana{% if quote.delivery_weeks > 1 %}s{% endif %}</strong>
-                                  {% else %}
-                                    <em>não definido</em>
-                                  {% endif %}
-                                </small>
-                              </div>
-                            </div>
-                            <div class="modal-footer">
-                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                              <button type="submit" class="btn btn-success">
-                                <i class="fa-solid fa-check me-1"></i>Confirmar Conversão
-                              </button>
-                            </div>
-                          </form>
-                        </div>
-                      </div>
+                  {% if quote.payment_fee_percent > 0 %}
+                    <div style="font-size:.82rem;color:var(--orange);font-weight:600;">
+                      <i class="fa-solid fa-percent me-1" style="font-size:.72rem;"></i>Taxa: {{ quote.payment_fee_percent }}%
                     </div>
                   {% endif %}
+                {% else %}
+                  <div style="font-size:.86rem;color:var(--muted);">Não definida</div>
                 {% endif %}
-
-                <!-- Timeline/Activity -->
-                <div class="card">
-                  <div class="card-header bg-secondary text-white">
-                    <h6 class="mb-0"><i class="fa-solid fa-clock me-2"></i>Histórico</h6>
-                  </div>
-                  <div class="card-body">
-                    <ul class="list-unstyled mb-0">
-                      <li class="mb-2">
-                        <i class="fa-solid fa-circle-dot text-primary me-2"></i>
-                        <strong>Criado em:</strong> {{ quote.created_at|date:"d/m/Y H:i" }}
-                      </li>
-                      {% if quote.discount_authorized_by %}
-                        <li class="mb-2">
-                          <i class="fa-solid fa-circle-dot text-warning me-2"></i>
-                          <strong>Desconto autorizado por:</strong> {{ quote.discount_authorized_by.username }} em {{ quote.discount_authorized_at|date:"d/m/Y H:i" }}
-                        </li>
-                      {% endif %}
-                    </ul>
-                  </div>
-                </div>
-
               </div>
             </div>
           </div>
         </div>
-      </section>
 
-      <section class="pt-5 pb-4 bg-dark text-white">
-        <div class="container">
-          <div class="row">
-            <div class="col-12 text-center">
-              <p class="mb-0">© 2026 Roselar. Todos os direitos reservados.</p>
-            </div>
+        <!-- ═══ ITEMS TABLE ═══ -->
+        <div class="s-card fi fi-4">
+          <div class="s-hdr">
+            <div class="s-icon green"><i class="fa-solid fa-box"></i></div>
+            Itens do Orçamento ({{ quote.items.count }})
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Produto</th>
+                  <th>Fornecedor</th>
+                  <th>Descrição</th>
+                  <th style="text-align:center;">Qtd</th>
+                  <th style="text-align:right;">Valor Unit.</th>
+                  <th style="text-align:right;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in quote.items.all %}
+                  <tr>
+                    <td><span class="item-num">{{ forloop.counter }}</span></td>
+                    <td style="font-weight:700;">{{ item.product_name }}</td>
+                    <td>
+                      {% if item.supplier %}
+                        <span class="supplier-badge">{{ item.supplier.name }}</span>
+                      {% else %}
+                        <span style="color:var(--muted);font-size:.8rem;">—</span>
+                      {% endif %}
+                    </td>
+                    <td style="color:var(--muted);font-size:.8rem;">{{ item.description|truncatewords:10 }}</td>
+                    <td style="text-align:center;font-weight:600;">{{ item.quantity }}</td>
+                    <td style="text-align:right;">R$ {{ item.unit_value|floatformat:2 }}</td>
+                    <td style="text-align:right;font-weight:700;">R$ {{ item.line_total|floatformat:2 }}</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="7" style="text-align:center;padding:2rem;color:var(--muted);">
+                      <i class="fa-solid fa-inbox" style="font-size:1.5rem;display:block;margin-bottom:.5rem;opacity:.4;"></i>
+                      Nenhum item encontrado
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
-      </section>
-    </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/anchor-js@5.0.0/anchor.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/is_js@0.9.0/is.min.js"></script>
+        <!-- ═══ ORDERS SECTION ═══ -->
+        {% if quote.orders.exists %}
+          <div class="s-card fi fi-5">
+            <div class="s-hdr">
+              <div class="s-icon green"><i class="fa-solid fa-shopping-cart"></i></div>
+              Pedidos Gerados ({{ quote.orders.count }})
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Fornecedor</th>
+                    <th style="text-align:center;">Status</th>
+                    <th style="text-align:center;">Itens</th>
+                    <th style="text-align:right;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for order in quote.orders.all %}
+                    <tr>
+                      <td>
+                        {% if order.is_total_conference %}
+                          <i class="fa-solid fa-clipboard-check me-1" style="color:var(--blue);"></i>
+                          <span style="font-weight:700;">Conferência Total</span>
+                        {% else %}
+                          <i class="fa-solid fa-truck me-1" style="color:var(--green);"></i>
+                          <span style="font-weight:700;">Pedido</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if order.supplier %}
+                          <span class="supplier-badge">{{ order.supplier.name }}</span>
+                        {% else %}
+                          <span style="color:var(--muted);">—</span>
+                        {% endif %}
+                      </td>
+                      <td style="text-align:center;">
+                        <span class="status-badge status-SENT">{{ order.get_status_display }}</span>
+                      </td>
+                      <td style="text-align:center;font-weight:600;">{{ order.items.count }}</td>
+                      <td style="text-align:right;">
+                        <div class="d-flex gap-1 justify-content-end">
+                          {% if not order.is_total_conference and order.supplier %}
+                            <a href="{% url 'sales:order_pdf' order.id %}" class="btn-a primary" style="padding:.35rem .7rem;font-size:.75rem;" target="_blank">
+                              <i class="fa-solid fa-file-pdf"></i>PDF
+                            </a>
+                          {% endif %}
+                          <a href="{% url 'sales:order_detail' order.id %}" class="btn-a secondary" style="padding:.35rem .7rem;font-size:.75rem;">
+                            <i class="fa-solid fa-eye"></i>Ver
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        {% else %}
+          {% if quote.status != 'CANCELED' and quote.status != 'CONVERTED' %}
+            <div class="alert-convert fi fi-5">
+              <div class="ac-text">
+                <i class="fa-solid fa-info-circle me-2"></i>
+                <strong>Pronto para converter?</strong> Transforme este orçamento em pedidos por fornecedor.
+              </div>
+              <button type="button" class="btn-a primary" data-bs-toggle="modal" data-bs-target="#convertModal">
+                <i class="fa-solid fa-exchange-alt"></i>Converter em Pedidos
+              </button>
+            </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=window.scroll"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <script src="{% static 'assets/js/theme.js' %}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
-  </body>
+            <!-- Convert Modal -->
+            <div class="modal fade" id="convertModal" tabindex="-1" aria-labelledby="convertModalLabel" aria-hidden="true">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header s-modal-hdr">
+                    <h5 class="modal-title" id="convertModalLabel" style="font-weight:800;font-size:.95rem;">
+                      <i class="fa-solid fa-exchange-alt me-2"></i>Converter em Pedidos
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                  </div>
+                  <form method="post" action="{% url 'sales:quote_convert' quote.id %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                      <p style="font-size:.86rem;color:var(--muted);margin-bottom:1rem;">
+                        Defina a <strong style="color:var(--brand);">data real de entrega</strong> acordada com o cliente antes de confirmar.
+                      </p>
+                      <div class="mb-3">
+                        <label for="real-delivery-date" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.3rem;display:block;">
+                          Data Real de Entrega <span style="color:var(--red);">*</span>
+                        </label>
+                        <input type="date" id="real-delivery-date" name="delivery_deadline"
+                               class="form-control" required
+                               min="{{ today|date:'Y-m-d' }}">
+                        <small style="font-size:.78rem;color:var(--muted);">
+                          Prazo estimado no orçamento:
+                          {% if quote.delivery_weeks %}
+                            <strong>{{ quote.delivery_weeks }} semana{% if quote.delivery_weeks > 1 %}s{% endif %}</strong>
+                          {% else %}
+                            <em>não definido</em>
+                          {% endif %}
+                        </small>
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn-a secondary" data-bs-dismiss="modal">Cancelar</button>
+                      <button type="submit" class="btn-a primary">
+                        <i class="fa-solid fa-check"></i>Confirmar Conversão
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endif %}
+
+        <!-- ═══ HISTORY ═══ -->
+        <div class="s-card fi fi-6">
+          <div class="s-hdr">
+            <div class="s-icon muted"><i class="fa-solid fa-clock-rotate-left"></i></div>
+            Histórico
+          </div>
+          <div class="s-body">
+            <div class="r-line">
+              <span class="r-l"><i class="fa-solid fa-circle-dot me-2" style="color:var(--blue);font-size:.6rem;"></i>Criado em</span>
+              <span style="font-weight:700;">{{ quote.created_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            {% if quote.discount_authorized_by %}
+              <div class="r-line">
+                <span class="r-l"><i class="fa-solid fa-circle-dot me-2" style="color:var(--orange);font-size:.6rem;"></i>Desconto autorizado por</span>
+                <span style="font-weight:700;">{{ quote.discount_authorized_by.username }} — {{ quote.discount_authorized_at|date:"d/m/Y H:i" }}</span>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+  <script src="{% static 'assets/js/theme.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+</body>
 </html>
