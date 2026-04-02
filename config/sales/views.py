@@ -1503,7 +1503,7 @@ def _build_simulation_context(
     max_discount_allowed = MAX_DISCOUNT_ABSOLUTE
     fixed_costs = store_fee_percent + architect_cost_pct + sim_discount
 
-    seller_commission_percent = max(COMMISSION_FLOOR, effective_margin - fixed_costs).quantize(Decimal("0.1"))
+    seller_commission_percent = max(COMMISSION_FLOOR, min(effective_margin - fixed_costs, COMMISSION_MAX)).quantize(Decimal("0.1"))
 
     original_commission_percent = COMMISSION_MAX
 
