@@ -4,6 +4,7 @@ from django.db import models
 
 class Role(models.TextChoices):
     SELLER = "SELLER", "Vendedor"
+    STAFF = "STAFF", "Equipe Interna"
     ADMIN = "ADMIN", "Admin"
     OWNER = "OWNER", "Dono"
 

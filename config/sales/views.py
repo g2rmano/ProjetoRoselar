@@ -35,20 +35,32 @@ def _is_admin(user):
     return user.is_superuser or user.role in (Role.ADMIN, Role.OWNER)
 
 
+def _is_staff_or_admin(user):
+    """True for STAFF, ADMIN, OWNER or superuser."""
+    from accounts.models import Role
+    return user.is_superuser or user.role in (Role.STAFF, Role.ADMIN, Role.OWNER)
+
+
+def _is_seller(user):
+    """True only for SELLER role (no elevated permissions)."""
+    from accounts.models import Role
+    return user.role == Role.SELLER and not user.is_superuser
+
+
 def _get_quote_or_403(request, quote_id, **extra_filters):
-    """Fetch a quote by ID; non-admin users must own it."""
+    """Fetch a quote by ID; sellers can only see their own."""
     from django.http import HttpResponseForbidden
     quote = get_object_or_404(Quote, id=quote_id, **extra_filters)
-    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+    if not _is_staff_or_admin(request.user) and quote.seller_id != request.user.id:
         return None, HttpResponseForbidden("Acesso negado.")
     return quote, None
 
 
 def _get_order_or_403(request, order_id, **extra_filters):
-    """Fetch an order by ID; non-admin users must own the parent quote."""
+    """Fetch an order by ID; sellers can only see their own."""
     from django.http import HttpResponseForbidden
     order = get_object_or_404(Order, pk=order_id, **extra_filters)
-    if not _is_admin(request.user) and order.quote.seller_id != request.user.id:
+    if not _is_staff_or_admin(request.user) and order.quote.seller_id != request.user.id:
         return None, HttpResponseForbidden("Acesso negado.")
     return order, None
 
@@ -220,7 +232,7 @@ def get_architect_commission_api(request: HttpRequest) -> JsonResponse:
 def quote_list(request: HttpRequest) -> HttpResponse:
     """List all quotes with search functionality."""
     quotes = Quote.objects.select_related('customer', 'seller').order_by('-created_at')
-    if not _is_admin(request.user):
+    if not _is_staff_or_admin(request.user):
         quotes = quotes.filter(seller=request.user)
     
     # Search functionality
@@ -346,13 +358,13 @@ def quote_edit(request: HttpRequest, quote_id: int) -> HttpResponse:
     Edita orçamento + itens.
     """
     quote = get_object_or_404(Quote, id=quote_id)
-    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+    if not _is_staff_or_admin(request.user) and quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:quote_list")
 
     if request.method == "POST":
         form = QuoteForm(request.POST, instance=quote)
-        formset = QuoteItemFormSet(request.POST, instance=quote)
+        formset = QuoteItemFormSet(request.POST, request.FILES, instance=quote)
 
         if form.is_valid() and formset.is_valid():
             with transaction.atomic():
@@ -430,11 +442,15 @@ def quote_detail(request: HttpRequest, quote_id: int) -> HttpResponse:
         .prefetch_related("items", "items__supplier", "orders", "orders__items"),
         id=quote_id,
     )
-    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+    if not _is_staff_or_admin(request.user) and quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:quote_list")
 
-    return render(request, "sales/quote_detail.html", {"quote": quote, "today": timezone.localdate()})
+    return render(request, "sales/quote_detail.html", {
+        "quote": quote,
+        "today": timezone.localdate(),
+        "is_seller": _is_seller(request.user),
+    })
 
 
 @login_required
@@ -451,7 +467,7 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
         Quote.objects.prefetch_related("items", "items__supplier"),
         id=quote_id,
     )
-    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+    if not _is_staff_or_admin(request.user) and quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:quote_list")
 
@@ -624,7 +640,7 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
                      .prefetch_related("items", "items__images"),
         id=quote_id,
     )
-    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+    if not _is_staff_or_admin(request.user) and quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:quote_list")
 
@@ -1035,7 +1051,7 @@ def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
         Quote.objects.select_related("customer", "seller").prefetch_related("items", "items__supplier"),
         id=quote_id
     )
-    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+    if not _is_staff_or_admin(request.user) and quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:quote_list")
     
@@ -1170,7 +1186,7 @@ def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
 def order_list(request: HttpRequest) -> HttpResponse:
     """List all orders with search functionality."""
     orders = Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller').order_by('-created_at')
-    if not _is_admin(request.user):
+    if not _is_staff_or_admin(request.user):
         orders = orders.filter(quote__seller=request.user)
     
     # Search functionality
@@ -1199,6 +1215,7 @@ def order_list(request: HttpRequest) -> HttpResponse:
         'search_query': search_query,
         'status_filter': status_filter,
         'supplier_filter': supplier_filter,
+        'is_seller': _is_seller(request.user),
     }
     
     return render(request, 'sales/order_list.html', context)
@@ -1211,7 +1228,7 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller'),
         pk=order_id
     )
-    if not _is_admin(request.user) and order.quote.seller_id != request.user.id:
+    if not _is_staff_or_admin(request.user) and order.quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:order_list")
     
@@ -1224,6 +1241,7 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         'order': order,
         'items': items,
         'total': total,
+        'is_seller': _is_seller(request.user),
     }
     
     return render(request, 'sales/order_detail.html', context)
@@ -1236,7 +1254,10 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
         Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller'),
         pk=order_id
     )
-    if not _is_admin(request.user) and order.quote.seller_id != request.user.id:
+    if _is_seller(request.user):
+        messages.error(request, "Vendedores não podem baixar PDFs de pedidos.")
+        return redirect("sales:order_list")
+    if not _is_staff_or_admin(request.user) and order.quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:order_list")
     
@@ -1522,7 +1543,7 @@ def _build_simulation_context(
     if margin_limit_exceeded:
         needed = total_cost_pct - (margin_limit + price_increase_pct)
         if needed > Decimal("0"):
-            min_increase_to_unblock = needed.quantize(Decimal("1"), rounding=ROUND_CEILING)
+            min_increase_to_unblock = needed.quantize(Decimal("0.1"), rounding=ROUND_CEILING)
 
     suggested_increase = Decimal("0")
     if margin_exceeded:
@@ -1648,7 +1669,7 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
     quote = get_object_or_404(
         Quote.objects.select_related('customer', 'seller'), id=quote_id
     )
-    if not _is_admin(request.user) and quote.seller_id != request.user.id:
+    if not _is_staff_or_admin(request.user) and quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:quote_list")
 
@@ -1845,7 +1866,7 @@ def standalone_simulation(request: HttpRequest) -> HttpResponse:
 def quote_duplicate(request, quote_id):
     """Duplicar um orçamento existente."""
     original = get_object_or_404(Quote, id=quote_id)
-    if not _is_admin(request.user) and original.seller_id != request.user.id:
+    if not _is_staff_or_admin(request.user) and original.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:quote_list")
     from core.models import AuditLog, AuditAction

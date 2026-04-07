@@ -482,7 +482,7 @@
                       <td style="text-align:center;font-weight:600;">{{ order.items.count }}</td>
                       <td style="text-align:right;">
                         <div class="d-flex gap-1 justify-content-end">
-                          {% if not order.is_total_conference and order.supplier %}
+                          {% if not order.is_total_conference and order.supplier and not is_seller %}
                             <a href="{% url 'sales:order_pdf' order.id %}" class="btn-a primary" style="padding:.35rem .7rem;font-size:.75rem;" target="_blank">
                               <i class="fa-solid fa-file-pdf"></i>PDF
                             </a>

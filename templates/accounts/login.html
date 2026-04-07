@@ -39,7 +39,7 @@
     <!-- Flowbite CSS -->
     <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
 
-    <style>
+  <style>
       @keyframes shake {
         0%, 100% { transform: translateX(0); }
         20%, 60% { transform: translateX(-8px); }
@@ -48,6 +48,26 @@
       .shake { animation: shake 0.4s ease-in-out; }
       #togglePassword { border-left: 0; }
       #togglePassword:focus { box-shadow: none; }
+      .btn-login {
+        background-color: #0A2640;
+        border-color: #0A2640;
+        color: #fff;
+        --bs-btn-bg: #0A2640;
+        --bs-btn-border-color: #0A2640;
+        --bs-btn-hover-bg: #163a5a;
+        --bs-btn-hover-border-color: #163a5a;
+        --bs-btn-hover-color: #fff;
+        --bs-btn-active-bg: #071a2d;
+        --bs-btn-active-border-color: #071a2d;
+        --bs-btn-active-color: #fff;
+        --bs-btn-disabled-bg: #0A2640;
+        --bs-btn-disabled-border-color: #0A2640;
+      }
+      .btn-login:hover, .btn-login:focus, .btn-login:active {
+        background-color: #163a5a !important;
+        border-color: #163a5a !important;
+        color: #fff !important;
+      }
     </style>
 
   </head>
@@ -174,7 +194,7 @@
                     <a href="#" class="text-decoration-none">Esqueceu a Senha?</a>
                   </div>
 
-                  <button type="submit" class="btn btn-primary w-100 btn-lg fw-bold" style="background-color: #0A2640; border-color: #0A2640;">
+                  <button type="submit" class="btn btn-login w-100 btn-lg fw-bold">
                     Entrar
                   </button>
                   </div>

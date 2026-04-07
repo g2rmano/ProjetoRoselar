@@ -801,7 +801,7 @@
               document.getElementById('customer-register').classList.remove('d-none');
               
               // Pre-fill the document field
-              const searchDoc = document.getElementById('customer-document').value.replace(/\D/g, '');
+              const searchDoc = document.getElementById('customer-unified-search').value.replace(/\D/g, '');
               const newDocInput = document.getElementById('new-customer-document');
               newDocInput.value = searchDoc;
               
@@ -1291,7 +1291,7 @@
           return false;
         }
 
-        // ── Item validation ──
+        // ── Item validation (do NOT convert values yet) ──
         const rows = document.querySelectorAll('[data-formset-row]');
         let hasValidItem = false;
         let hasIncompleteItem = false;
@@ -1336,11 +1336,6 @@
             }
           } else if (allFilled) {
             hasValidItem = true;
-            if (unitValue) {
-              let val = unitValue.value;
-              val = val.replace(/\./g, '').replace(',', '.');
-              unitValue.value = val;
-            }
           } else {
             hasIncompleteItem = true;
             const missing = [];
@@ -1353,12 +1348,6 @@
           }
         });
 
-        // Convert freight_value from display format to decimal
-        const fvInput = document.querySelector('input[name="freight_value"]');
-        if (fvInput && fvInput.value) {
-          fvInput.value = fvInput.value.replace(/\./g, '').replace(',', '.');
-        }
-
         if (hasIncompleteItem) {
           e.preventDefault();
           showFormWarning(incompleteMsg);
@@ -1369,6 +1358,23 @@
           e.preventDefault();
           showFormWarning('Adicione pelo menos um item completo ao orçamento.');
           return false;
+        }
+
+        // ── All validation passed — now convert values for submission ──
+        rows.forEach(row => {
+          const delCb = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+          if (delCb && delCb.checked) return;
+          if (row.style.display === 'none') return;
+          const unitValue = row.querySelector('input[name$="-unit_value"]');
+          if (unitValue && unitValue.value) {
+            unitValue.value = unitValue.value.replace(/\./g, '').replace(',', '.');
+          }
+        });
+
+        // Convert freight_value from display format to decimal
+        const fvInput = document.querySelector('input[name="freight_value"]');
+        if (fvInput && fvInput.value) {
+          fvInput.value = fvInput.value.replace(/\./g, '').replace(',', '.');
         }
       });
 

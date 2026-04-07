@@ -42,6 +42,7 @@ def home(request):
         today = timezone.localdate()
         month_start = today.replace(day=1)
         is_admin = user.role in (Role.ADMIN, Role.OWNER) or user.is_superuser
+        is_staff_or_admin = user.role in (Role.STAFF, Role.ADMIN, Role.OWNER) or user.is_superuser
 
         my_quotes = Quote.objects.filter(seller=user)
         my_quotes_month = my_quotes.filter(quote_date__gte=month_start)
@@ -85,7 +86,7 @@ def home(request):
 
         # Pending quotes
         pending_quotes = Quote.objects.filter(status=QuoteStatus.DRAFT)
-        if not is_admin:
+        if not is_staff_or_admin:
             pending_quotes = pending_quotes.filter(seller=user)
         pending_quotes = (
             pending_quotes
@@ -100,7 +101,7 @@ def home(request):
             event_date__gte=today,
             event_date__lte=today + timedelta(days=7),
         )
-        if not is_admin:
+        if not is_staff_or_admin:
             upcoming_deliveries = upcoming_deliveries.filter(assigned_to=user)
         upcoming_deliveries = upcoming_deliveries.order_by("event_date")[:5]
 
@@ -109,7 +110,7 @@ def home(request):
             status=EventStatus.PENDING,
             event_date__lt=today,
         )
-        if not is_admin:
+        if not is_staff_or_admin:
             overdue_events = overdue_events.filter(assigned_to=user)
         overdue_events = overdue_events.order_by("event_date")[:5]
 
@@ -237,6 +238,7 @@ def home(request):
         context = {
             "today": today,
             "is_admin": is_admin,
+            "is_staff_or_admin": is_staff_or_admin,
             "my_total_sold_month": my_total_sold_month,
             "my_quotes_count_month": my_quotes_count_month,
             "my_converted_count_month": my_converted_count_month,
@@ -288,6 +290,7 @@ def dashboard(request):
     today = timezone.localdate()
     month_start = today.replace(day=1)
     is_admin = user.role in (Role.ADMIN, Role.OWNER) or user.is_superuser
+    is_staff_or_admin = user.role in (Role.STAFF, Role.ADMIN, Role.OWNER) or user.is_superuser
 
     # ── Personal Stats ──
     my_quotes = Quote.objects.filter(seller=user)
@@ -386,7 +389,7 @@ def dashboard(request):
 
     # ── Pending quotes ──
     pending_quotes = Quote.objects.filter(status=QuoteStatus.DRAFT)
-    if not is_admin:
+    if not is_staff_or_admin:
         pending_quotes = pending_quotes.filter(seller=user)
     pending_quotes = (
         pending_quotes
@@ -401,7 +404,7 @@ def dashboard(request):
         event_date__gte=today,
         event_date__lte=today + timedelta(days=7),
     )
-    if not is_admin:
+    if not is_staff_or_admin:
         upcoming_deliveries = upcoming_deliveries.filter(assigned_to=user)
     upcoming_deliveries = (
         upcoming_deliveries
@@ -414,7 +417,7 @@ def dashboard(request):
         status=EventStatus.PENDING,
         event_date__lt=today,
     )
-    if not is_admin:
+    if not is_staff_or_admin:
         overdue_events = overdue_events.filter(assigned_to=user)
     overdue_events = (
         overdue_events
@@ -433,6 +436,7 @@ def dashboard(request):
     context = {
         "today": today,
         "is_admin": is_admin,
+        "is_staff_or_admin": is_staff_or_admin,
         # Personal
         "my_total_sold_month": my_total_sold_month,
         "my_quotes_count_month": my_quotes_count_month,
@@ -726,6 +730,11 @@ def add_communication(request):
 def _is_admin_user(user):
     """True for ADMIN, OWNER, or superuser."""
     return user.is_superuser or user.role in (Role.ADMIN, Role.OWNER)
+
+
+def _is_staff_or_admin_user(user):
+    """True for STAFF, ADMIN, OWNER or superuser."""
+    return user.is_superuser or user.role in (Role.STAFF, Role.ADMIN, Role.OWNER)
 
 
 @login_required
