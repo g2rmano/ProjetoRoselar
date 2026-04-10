@@ -15,6 +15,7 @@ urlpatterns = [
     path("quotes/<int:quote_id>/pdf/client/", views.quote_pdf_client, name="quote_pdf_client"),
     path("quotes/<int:quote_id>/pdf/supplier/", views.quote_pdf_supplier, name="quote_pdf_supplier"),
     path("quotes/<int:quote_id>/duplicate/", views.quote_duplicate, name="quote_duplicate"),
+    path("quotes/<int:quote_id>/delete/", views.quote_delete, name="quote_delete"),
     
     # Standalone simulator
     path("simulador/", views.standalone_simulation, name="standalone_simulation"),

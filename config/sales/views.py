@@ -450,6 +450,7 @@ def quote_detail(request: HttpRequest, quote_id: int) -> HttpResponse:
         "quote": quote,
         "today": timezone.localdate(),
         "is_seller": _is_seller(request.user),
+        "is_admin": _is_admin(request.user),
     })
 
 
@@ -1535,7 +1536,7 @@ def _build_simulation_context(
     margin_excess = total_cost_pct - effective_margin if margin_exceeded else Decimal("0")
 
     # Bloqueio: custo > limite + ajuste
-    margin_limit_exceeded = total_cost_pct >= (margin_limit + price_increase_pct)
+    margin_limit_exceeded = total_cost_pct > (margin_limit + price_increase_pct)
     controls_blocked = margin_limit_exceeded
 
     # Ajuste mínimo para desbloquear
@@ -1907,3 +1908,21 @@ def quote_duplicate(request, quote_id):
 
     messages.success(request, f"Orçamento duplicado: {new_quote.number}")
     return redirect("sales:quote_edit", quote_id=new_quote.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def quote_delete(request, quote_id):
+    """Excluir um orçamento. Apenas admins/donos podem excluir."""
+    if not _is_admin(request.user):
+        messages.error(request, "Apenas administradores podem excluir orçamentos.")
+        return redirect("sales:quote_detail", quote_id=quote_id)
+
+    quote = get_object_or_404(Quote, id=quote_id)
+    number = quote.number
+    from core.models import AuditLog, AuditAction
+    AuditLog.log(request.user, AuditAction.DELETE_QUOTE,
+                 f"Orçamento excluído: {number}", obj=None)
+    quote.delete()
+    messages.success(request, f"Orçamento {number} excluído com sucesso.")
+    return redirect("sales:quote_list")

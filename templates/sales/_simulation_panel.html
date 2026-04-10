@@ -1,0 +1,853 @@
+{# ─────────────────────────────────────────────────────────────────
+   Shared simulation panel — included by both:
+     • quote_simulation.html  (standalone is falsy / absent)
+     • standalone_simulation.html  (standalone=True)
+
+   Required context variables: all produced by _build_simulation_context()
+   plus:
+     payment_type_choices, tariffs_by_type_json,
+     sim_payment_type, sim_installments, sim_has_architect,
+     sim_architect_id, selected_architect, architect_percent,
+     discount_percent, max_discount_allowed, price_increase_pct,
+     controls_blocked, margin_exceeded, margin_limit_exceeded,
+     margin_base, margin_exceeded (bool), suggested_increase,
+     min_increase_to_unblock, seller_commission_percent,
+     seller_commission_value, adj_subtotal, freight_value,
+     total_before_discount, discount_value, client_surcharge_value,
+     client_surcharge_percent, final_total, sim_payment_description,
+     sim_installments, installment_value, target_mode,
+     target_final_input, target_installment_mode,
+     target_installment_input, valor_avista, architect_commission_value,
+     payment_fee_percent.
+   Quote-only:  quote (object with .get_freight_responsible_display)
+   Standalone-only: subtotal (numeric, 0 when no values entered),
+                    sim_subtotal, sim_freight.
+───────────────────────────────────────────────────────────────── #}
+
+            <!-- Desconto -->
+            <div class="s-card fi fi-1">
+              <div class="s-hdr">
+                <div class="s-icon red"><i class="fa-solid fa-tag"></i></div>
+                Desconto
+              </div>
+              <div class="s-body">
+                <div class="slider-box">
+                  <div class="slider-row">
+                    <span class="s-min">0%</span>
+                    <span class="s-cur" id="lbl-discount"
+                          style="{% if discount_percent > 0 %}color:var(--red);background:#fce4ec;{% else %}color:var(--brand);background:var(--bg);{% endif %}">
+                      {% if discount_percent > 0 %}-{{ discount_percent }}%{% else %}Sem desconto{% endif %}
+                    </span>
+                    <span class="s-max" id="lbl-max-discount">{{ max_discount_allowed|floatformat:0 }}%</span>
+                  </div>
+                  <input type="range" class="sl-disc" id="discount-slider"
+                         min="0" max="{{ max_discount_allowed|floatformat:1 }}" step="0.1"
+                         value="{{ discount_percent }}"
+                         oninput="onDiscountChange(this.value); scheduleSubmit()">
+                </div>
+                {% if controls_blocked %}
+                <div class="sim-msg bad">
+                  <i class="fa-solid fa-lock"></i>
+                  <div><strong>Limite atingido!</strong> Desconto limitado a {{ max_discount_allowed|floatformat:1 }}%.</div>
+                </div>
+                {% endif %}
+                <div class="row g-2">
+                  <div class="col-6">
+                    <div class="stat"><div class="stat-l">Desconto</div><div class="stat-v red" id="live-discount-val">{{ discount_percent }}%</div></div>
+                  </div>
+                  <div class="col-6">
+                    <div class="stat"><div class="stat-l">Valor</div><div class="stat-v red" id="live-discount-amount">R$ {{ discount_value|floatformat:2 }}</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ajuste de Preço -->
+            <div class="s-card fi fi-4">
+              <div class="s-hdr" style="cursor:pointer;" onclick="this.querySelector('.col-toggle').click()">
+                <div class="s-icon green"><i class="fa-solid fa-chart-line"></i></div>
+                <button type="button" class="col-toggle"
+                        data-bs-toggle="collapse" data-bs-target="#increase-collapse"
+                        aria-expanded="false" aria-controls="increase-collapse"
+                        onclick="event.stopPropagation();">
+                  <span>Ajuste de Preço</span>
+                  <i class="fa-solid fa-chevron-down arr"></i>
+                </button>
+              </div>
+              <div class="collapse" id="increase-collapse">
+                <div class="s-body">
+                  <div class="slider-box">
+                    <div class="slider-row">
+                      <span class="s-min">0%</span>
+                      <span class="s-cur" id="lbl-increase"
+                            style="{% if price_increase_pct > 0 %}color:var(--green);background:#e8f5e9;{% else %}color:var(--brand);background:var(--bg);{% endif %}">
+                        {% if price_increase_pct > 0 %}+{{ price_increase_pct }}%{% else %}Sem ajuste{% endif %}
+                      </span>
+                      <span class="s-max">30%</span>
+                    </div>
+                    <input type="range" class="sl-inc" id="increase-slider"
+                           min="0" max="30" step="0.1"
+                           value="{{ price_increase_pct }}"
+                           oninput="onIncreaseChange(this.value); scheduleSubmit()">
+                  </div>
+                  <hr style="border-color:var(--border);margin:.8rem 0;">
+                  <div id="margin-zone">
+                  {% if margin_limit_exceeded %}
+                  <div class="sim-msg bad">
+                    <i class="fa-solid fa-ban"></i>
+                    <div>
+                      <strong>Bloqueado!</strong>
+                      {% if min_increase_to_unblock > 0 %}Adicione no mínimo <strong>+{{ min_increase_to_unblock }}%</strong> de ajuste para desbloquear.{% elif standalone %}Reduza o desconto, remova o arquiteto ou aumente o preço.{% else %}Reduza o desconto, o número de parcelas ou aumente o preço.{% endif %}
+                    </div>
+                  </div>
+                  {% elif margin_exceeded %}
+                  <div class="sim-msg warn">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div>
+                      <strong>Atenção!</strong>
+                      {% if suggested_increase > 0 %}Sugestão: aumente <strong>+{{ suggested_increase }}%</strong> no ajuste de preço.{% else %}Considere aumentar o ajuste de preço ou reduzir o desconto.{% endif %}
+                    </div>
+                  </div>
+                  {% else %}
+                  <div class="sim-msg ok">
+                    <i class="fa-solid fa-check-circle"></i>
+                    <div><strong>Condições OK!</strong></div>
+                  </div>
+                  {% endif %}
+                  <div class="row g-2 mt-2">
+                    <div class="col-6"><div class="stat"><div class="stat-l">Comissão</div><div class="stat-v" style="font-size:.95rem;">{{ seller_commission_percent }}%</div></div></div>
+                    <div class="col-6"><div class="stat"><div class="stat-l">Valor Comissão</div><div class="stat-v green" style="font-size:.95rem;">R$ {{ seller_commission_value|floatformat:2 }}</div></div></div>
+                  </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /LEFT -->
+
+          <!-- ═══ RIGHT COLUMN ═══ -->
+          <div class="col-lg-6">
+
+            <!-- Pagamento -->
+            <div class="s-card fi fi-1">
+              <div class="s-hdr">
+                <div class="s-icon brand"><i class="fa-solid fa-credit-card"></i></div>
+                Pagamento
+              </div>
+              <div class="s-body">
+                <div class="row g-3 mb-3">
+                  <div class="col-sm-7">
+                    <label class="f-label"><i class="fa-solid fa-wallet me-1"></i>Forma</label>
+                    <select id="sel-ptype" class="f-select" onchange="onPaymentTypeChange()">
+                      <option value="">-- Selecione --</option>
+                      {% for value, label in payment_type_choices %}
+                        <option value="{{ value }}" {% if value == sim_payment_type %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-sm-5" id="inst-dropdown-row">
+                    <label class="f-label"><i class="fa-solid fa-hashtag me-1"></i>Parcelas</label>
+                    <select id="inst-select" class="f-select" onchange="onInstChange(this.value); scheduleSubmit();"></select>
+                  </div>
+                </div>
+                <div class="stat" style="border-left:3px solid var(--brand);text-align:left;">
+                  <div class="stat-l">Taxa do pagamento</div>
+                  <div class="stat-v" id="fee-display">{{ payment_fee_percent }}%</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Arquiteto -->
+            <div class="s-card fi fi-2">
+              <div class="s-hdr">
+                <div class="s-icon muted"><i class="fa-solid fa-drafting-compass"></i></div>
+                Arquiteto
+              </div>
+              <div class="s-body" style="padding:.65rem 1.1rem;">
+                <label class="sw" for="chk-architect">
+                  <input type="checkbox" id="chk-architect" value="1"
+                         {% if sim_has_architect %}checked{% endif %}
+                         onchange="toggleArchitectPanel(); scheduleSubmit()">
+                  <span class="track"></span>
+                  <span>
+                    <span class="sw-t">Cliente possui Arquiteto</span><br>
+                    <span class="sw-s">{{ architect_percent }}% sobre valor à vista</span>
+                  </span>
+                </label>
+
+                <!-- Architect search / select / register -->
+                <div id="architect-panel" style="display:{% if sim_has_architect %}block{% else %}none{% endif %}; margin-top:.6rem;">
+                  <!-- Selected architect -->
+                  <div id="arch-selected" class="{% if not selected_architect %}d-none{% endif %}" style="background:#e8f5e9;border-radius:8px;padding:.5rem .7rem;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between;">
+                    <span>
+                      <i class="fa-solid fa-check-circle" style="color:#388e3c;margin-right:.3rem;"></i>
+                      <strong id="arch-selected-name">{% if selected_architect %}{{ selected_architect.name }}{% endif %}</strong>
+                      <small id="arch-selected-pix" style="display:block;color:#666;margin-left:1.3rem;">{% if selected_architect %}PIX: {{ selected_architect.pix }}{% endif %}</small>
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deselectArchitect()" style="font-size:.75rem;">
+                      <i class="fa-solid fa-xmark"></i> Trocar
+                    </button>
+                  </div>
+
+                  <!-- Search input -->
+                  <div id="arch-search-box" class="{% if selected_architect %}d-none{% endif %}">
+                    <input type="text" id="arch-search-input" class="form-control form-control-sm" placeholder="Buscar arquiteto por nome..." autocomplete="off" oninput="searchArchitectDebounce()">
+                  </div>
+
+                  <!-- Search results -->
+                  <div id="arch-results" class="d-none" style="margin-top:.4rem;">
+                    <div id="arch-results-list" style="display:flex;flex-direction:column;gap:.25rem;"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-1 w-100" onclick="showArchitectRegister()">
+                      <i class="fa-solid fa-plus me-1"></i>Cadastrar novo arquiteto
+                    </button>
+                  </div>
+
+                  <!-- Register form -->
+                  <div id="arch-register" class="d-none" style="margin-top:.5rem;padding:.5rem;background:#f5f5f5;border-radius:8px;">
+                    <div class="mb-2">
+                      <label class="form-label mb-0" style="font-size:.82rem;font-weight:600;">Nome <span class="text-danger">*</span></label>
+                      <input type="text" id="arch-new-name" class="form-control form-control-sm" placeholder="Nome completo">
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label mb-0" style="font-size:.82rem;font-weight:600;">Chave PIX <span class="text-danger">*</span></label>
+                      <input type="text" id="arch-new-pix" class="form-control form-control-sm" placeholder="CPF, e-mail, telefone ou chave aleatória">
+                    </div>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="btn btn-sm btn-success" onclick="createArchitect()">
+                        <i class="fa-solid fa-check me-1"></i>Cadastrar
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideArchitectRegister()">Cancelar</button>
+                    </div>
+                  </div>
+                </div>
+
+                {% if sim_has_architect and not margin_limit_exceeded %}
+                <div class="stat mt-2" style="text-align:left;">
+                  <div class="stat-l">Base do cálculo</div>
+                  <div class="stat-v">R$ {{ valor_avista|floatformat:2 }}</div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div id="sim-results">
+            <span id="sim-data"
+                  data-max-discount="{{ max_discount_allowed|floatformat:1 }}"
+                  data-controls-blocked="{{ controls_blocked|yesno:'1,0' }}"
+                  data-discount-clamped="{{ discount_percent|floatformat:1 }}"
+                  data-price-increase="{{ price_increase_pct|floatformat:1 }}"
+                  data-target-mode="{{ target_mode|yesno:'1,0' }}"
+                  data-margin-exceeded="{{ margin_exceeded|yesno:'1,0' }}"
+                  data-margin-limit-exceeded="{{ margin_limit_exceeded|yesno:'1,0' }}"
+                  style="display:none;"></span>
+
+            <div class="s-card fi fi-1" style="border:none;box-shadow:var(--shadow-h);">
+              <div class="s-hdr">
+                <div class="s-icon brand"><i class="fa-solid fa-receipt"></i></div>
+                Resumo dos Valores
+              </div>
+              <div class="s-body">
+                {% if standalone and not subtotal %}
+                <div class="text-center py-4" style="color:var(--muted);">
+                  <i class="fa-solid fa-info-circle fa-2x mb-2"></i>
+                  <p class="mb-0">Insira o valor dos produtos para ver os resultados.</p>
+                </div>
+                {% else %}
+                <div class="r-line">
+                  <span class="r-l">Subtotal dos itens</span>
+                  <strong>R$ {{ adj_subtotal|floatformat:2 }}</strong>
+                </div>
+                {% if standalone %}
+                {% if freight_value > 0 %}
+                <div class="r-line">
+                  <span class="r-l"><i class="fa-solid fa-truck me-1" style="font-size:.7rem;"></i>Frete</span>
+                  <strong>R$ {{ freight_value|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="r-line">
+                  <span class="r-l">
+                    <i class="fa-solid fa-truck me-1" style="font-size:.7rem;"></i>
+                    Frete ({{ quote.get_freight_responsible_display }})
+                  </span>
+                  <strong>R$ {{ freight_value|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
+                <div class="r-line">
+                  <span class="r-l">Total antes do desconto</span>
+                  <strong>R$ {{ total_before_discount|floatformat:2 }}</strong>
+                </div>
+                {% if discount_percent > 0 %}
+                <div class="r-line">
+                  <span style="color:var(--red);"><i class="fa-solid fa-arrow-down me-1" style="font-size:.7rem;"></i>Desconto ({{ discount_percent }}%)</span>
+                  <strong style="color:var(--red);">– R$ {{ discount_value|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
+                {% if client_surcharge_value > 0 %}
+                <div class="r-line">
+                  <span class="r-l"><i class="fa-solid fa-percent me-1" style="font-size:.7rem;"></i>Juros parcela ({{ client_surcharge_percent }}%)</span>
+                  <strong>+ R$ {{ client_surcharge_value|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
+
+                {% if margin_limit_exceeded %}
+                <!-- Blocked: hide values -->
+                <div class="hi mt-3" style="background:#fff3f3;border:2px dashed var(--red);padding:1.2rem;text-align:center;border-radius:10px;">
+                  <i class="fa-solid fa-lock" style="font-size:1.5rem;color:var(--red);margin-bottom:.4rem;"></i>
+                  <div style="font-weight:700;color:var(--red);font-size:1rem;">Condições Bloqueadas</div>
+                  <div style="font-size:.82rem;color:var(--muted);margin-top:.3rem;">Ajuste as condições para desbloquear.</div>
+                  {% if min_increase_to_unblock > 0 %}
+                  <div style="font-size:.85rem;margin-top:.5rem;color:var(--brand);font-weight:600;">
+                    <i class="fa-solid fa-lightbulb me-1"></i>Adicione no mínimo <strong>+{{ min_increase_to_unblock }}%</strong> de ajuste para desbloquear.
+                  </div>
+                  {% endif %}
+                </div>
+                {% else %}
+                <!-- Total Final -->
+                <div class="hi brand mt-3">
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                      <div class="hi-l">Total para o Cliente</div>
+                      <div class="hi-v">R$ {{ final_total|floatformat:2 }}</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="hi-l">{{ sim_payment_description }}</div>
+                      {% if sim_installments > 1 %}
+                      <div style="font-size:1.1rem;font-weight:800;margin-top:.1rem;">
+                        {{ sim_installments }}x de R$ {{ installment_value|floatformat:2 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Target Final (collapsible) -->
+                <div class="mt-3" style="background:var(--bg);border-radius:8px;overflow:hidden;">
+                  <div style="padding:.55rem .9rem;cursor:pointer;" onclick="this.querySelector('.col-toggle').click()">
+                    <button type="button" class="col-toggle"
+                            data-bs-toggle="collapse" data-bs-target="#target-final-collapse"
+                            aria-expanded="false" aria-controls="target-final-collapse"
+                            onclick="event.stopPropagation();">
+                      <span style="display:flex;align-items:center;gap:.4rem;">
+                        <i class="fa-solid fa-bullseye" style="font-size:.75rem;color:var(--brand);"></i>
+                        Valor Final Desejado
+                      </span>
+                      <i class="fa-solid fa-chevron-down arr"></i>
+                    </button>
+                  </div>
+                  <div class="collapse" id="target-final-collapse">
+                    <div style="padding:0 .9rem .75rem;">
+                      <div class="d-flex gap-2 align-items-center">
+                        <span style="font-weight:700;color:var(--brand);">R$</span>
+                        <input type="text" id="target-final-input" class="form-control form-control-sm"
+                               placeholder="Digitar valor desejado..."
+                               value="{% if target_mode %}{{ target_final_input|floatformat:2 }}{% endif %}"
+                               style="max-width:200px;font-weight:700;font-size:1rem;border-radius:8px;"
+                               inputmode="decimal" oninput="maskCurrency(this)">
+                        <button type="button" class="btn-a dark" style="padding:.35rem .8rem;font-size:.8rem;" onclick="applyTargetFinal()">
+                          <i class="fa-solid fa-calculator"></i>Calcular
+                        </button>
+                        {% if target_mode %}
+                        <button type="button" class="btn-a secondary" style="padding:.35rem .6rem;font-size:.8rem;" onclick="clearTargetFinal()">
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        {% endif %}
+                      </div>
+                      {% if target_mode %}
+                      <div style="font-size:.75rem;color:var(--green);margin-top:.35rem;">
+                        <i class="fa-solid fa-check-circle me-1"></i>
+                        Condições ajustadas para atingir R$ {{ target_final_input|floatformat:2 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Target Installment (collapsible, card only) -->
+                <div class="mt-2" id="target-installment-section" style="background:var(--bg);border-radius:8px;overflow:hidden;{% if sim_payment_type != 'CREDIT_CARD' and sim_payment_type != 'BOLETO' or sim_installments <= 1 %}display:none;{% endif %}">
+                  <div style="padding:.55rem .9rem;cursor:pointer;" onclick="this.querySelector('.col-toggle').click()">
+                    <button type="button" class="col-toggle"
+                            data-bs-toggle="collapse" data-bs-target="#target-installment-collapse"
+                            aria-expanded="false" aria-controls="target-installment-collapse"
+                            onclick="event.stopPropagation();">
+                      <span style="display:flex;align-items:center;gap:.4rem;">
+                        <i class="fa-solid fa-money-bill-wave" style="font-size:.75rem;color:var(--brand);"></i>
+                        Valor Final da Parcela Desejado
+                      </span>
+                      <i class="fa-solid fa-chevron-down arr"></i>
+                    </button>
+                  </div>
+                  <div class="collapse" id="target-installment-collapse">
+                    <div style="padding:0 .9rem .75rem;">
+                      <div class="d-flex gap-2 align-items-center">
+                        <span style="font-weight:700;color:var(--brand);">R$</span>
+                        <input type="text" id="target-installment-input" class="form-control form-control-sm"
+                               placeholder="Valor da parcela..."
+                               value="{% if target_installment_mode %}{{ target_installment_input|floatformat:2 }}{% endif %}"
+                               style="max-width:200px;font-weight:700;font-size:1rem;border-radius:8px;"
+                               inputmode="decimal" oninput="maskCurrency(this)">
+                        <button type="button" class="btn-a dark" style="padding:.35rem .8rem;font-size:.8rem;" onclick="applyTargetInstallment()">
+                          <i class="fa-solid fa-calculator"></i>Calcular
+                        </button>
+                        {% if target_installment_mode %}
+                        <button type="button" class="btn-a secondary" style="padding:.35rem .6rem;font-size:.8rem;" onclick="clearTargetInstallment()">
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        {% endif %}
+                      </div>
+                      {% if target_installment_mode %}
+                      <div style="font-size:.75rem;color:var(--green);margin-top:.35rem;">
+                        <i class="fa-solid fa-check-circle me-1"></i>
+                        Condições ajustadas para parcela de R$ {{ target_installment_input|floatformat:2 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Commissions -->
+                <div class="row g-2 mt-2">
+                  {% if sim_has_architect %}
+                  <div class="col-12">
+                    <div class="hi muted" style="padding:.9rem 1.1rem;">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                          <div class="hi-l">Comissão Arquiteto ({{ architect_percent }}%)</div>
+                          <div class="hi-v" style="font-size:1.2rem;">R$ {{ architect_commission_value|floatformat:2 }}</div>
+                        </div>
+                        <div style="font-size:.75rem;opacity:.85;text-align:right;">sobre R$ {{ valor_avista|floatformat:2 }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
+                  <div class="col-12">
+                  </div>
+                </div>
+                {% endif %}
+                {% endif %}{# end standalone empty-state check #}
+              </div>
+            </div>
+            </div><!-- /sim-results -->
+
+            {% if not standalone %}
+            <!-- Actions (quote-only) -->
+            <div class="fi fi-2" style="margin-bottom:1rem;">
+              <div class="d-flex flex-column gap-2">
+                {% if margin_limit_exceeded %}
+                <button type="button" class="btn-a dark w-100" disabled
+                        style="justify-content:center;padding:.75rem;opacity:.5;cursor:not-allowed;">
+                  <i class="fa-solid fa-ban"></i>
+                  Condições Bloqueadas
+                </button>
+                {% else %}
+                <button type="button" class="btn-a primary w-100" onclick="saveConditions()" style="justify-content:center;padding:.75rem;">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  Salvar Condições no Orçamento
+                </button>
+                {% endif %}
+                <div class="d-flex gap-2">
+                  <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-a secondary flex-fill" target="_blank"
+                     style="justify-content:center;font-size:.82rem;">
+                    <i class="fa-solid fa-file-pdf"></i>PDF Cliente
+                  </a>
+                  <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-a secondary flex-fill" target="_blank"
+                     style="justify-content:center;font-size:.82rem;">
+                    <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
+                  </a>
+                </div>
+                <div class="d-flex gap-2">
+                  <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-a secondary flex-fill"
+                     style="justify-content:center;font-size:.82rem;">
+                    <i class="fa-solid fa-pencil"></i>Editar
+                  </a>
+                  <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-a secondary flex-fill"
+                     style="justify-content:center;font-size:.82rem;">
+                    <i class="fa-solid fa-eye"></i>Ver Orçamento
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <!-- Actions (standalone-only) -->
+            <div class="fi fi-2" style="margin-bottom:1rem;">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <button type="button" class="btn-a dark" onclick="resetSimulation()">
+                  <i class="fa-solid fa-rotate-left"></i>Nova Simulação
+                </button>
+                <a href="{% url 'core:index' %}" class="btn-a secondary"><i class="fa-solid fa-home"></i>Início</a>
+              </div>
+            </div>
+            {% endif %}
+
+          </div><!-- /RIGHT -->
+        </div><!-- /row -->
+
+<script>
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+var tariffsByType = JSON.parse('{{ tariffs_by_type_json|escapejs }}');
+var initDiscount  = parseFloat('{{ discount_percent }}');
+var initPriceInc  = parseFloat('{{ price_increase_pct }}');
+var initInstall   = parseInt('{{ sim_installments }}');
+var initPType     = '{{ sim_payment_type }}';
+var MARGIN_BASE   = parseFloat('{{ margin_base }}');
+var loadingBar    = document.getElementById('loading-bar');
+
+function showLoading() { loadingBar.classList.add('on'); }
+function hideLoading() { loadingBar.classList.remove('on'); }
+
+function maskCurrency(el) {
+  var raw = el.value.replace(/\D/g, '');
+  if (!raw) { el.value = ''; return; }
+  raw = raw.replace(/^0+/, '') || '0';
+  while (raw.length < 3) raw = '0' + raw;
+  var intPart = raw.slice(0, -2), decPart = raw.slice(-2);
+  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  el.value = intPart + ',' + decPart;
+  try { el.setSelectionRange(el.value.length, el.value.length); } catch(e) {}
+}
+
+function formatInitialValue(el) {
+  if (!el || !el.value) return;
+  var v = parseFloat(el.value);
+  if (v > 0) el.value = v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  else el.value = '';
+}
+
+function parseBRL(str) {
+  if (!str) return 0;
+  str = str.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.');
+  return parseFloat(str) || 0;
+}
+
+var _prevMarginExceeded = {{ margin_exceeded|yesno:'true,false' }};
+var _prevBlocked = {{ margin_limit_exceeded|yesno:'true,false' }};
+function showMarginToast(msg) {
+  var t = document.getElementById('margin-toast');
+  if (msg) document.getElementById('margin-toast-msg').textContent = msg;
+  t.classList.add('show');
+}
+function hideMarginToast() {
+  document.getElementById('margin-toast').classList.remove('show');
+}
+
+function onDiscountChange(val) {
+  val = parseFloat(val);
+  document.getElementById('h-discount').value = val.toFixed(1);
+  document.getElementById('live-discount-val').textContent = val.toFixed(1) + '%';
+  var lbl = document.getElementById('lbl-discount');
+  if (val > 0) {
+    lbl.textContent = '-' + val.toFixed(1) + '%';
+    lbl.style.color = 'var(--red)'; lbl.style.background = '#fce4ec';
+  } else {
+    lbl.textContent = 'Sem desconto';
+    lbl.style.color = 'var(--brand)'; lbl.style.background = 'var(--bg)';
+  }
+}
+
+function onIncreaseChange(val) {
+  val = parseFloat(val);
+  document.getElementById('h-price-inc').value = val.toFixed(1);
+  var lbl = document.getElementById('lbl-increase');
+  if (val > 0) {
+    lbl.textContent = '+' + val.toFixed(1) + '%';
+    lbl.style.color = 'var(--green)'; lbl.style.background = '#e8f5e9';
+  } else {
+    lbl.textContent = 'Sem ajuste';
+    lbl.style.color = 'var(--brand)'; lbl.style.background = 'var(--bg)';
+  }
+}
+
+function onInstChange(val) {
+  document.getElementById('h-installments').value = parseInt(val);
+  updateFeeDisplay(parseInt(val));
+  toggleInstallmentTarget();
+}
+
+function onPaymentTypeChange() {
+  var pt = document.getElementById('sel-ptype').value;
+  document.getElementById('h-ptype').value = pt;
+  var hasInst = (pt === 'CREDIT_CARD' || pt === 'BOLETO');
+  document.getElementById('inst-dropdown-row').style.display = hasInst ? '' : 'none';
+  if (!hasInst) { document.getElementById('inst-select').value = 1; document.getElementById('h-installments').value = 1; }
+  rebuildInstOptions();
+  updateFeeDisplay(parseInt(document.getElementById('inst-select').value) || 1);
+  toggleInstallmentTarget();
+  scheduleSubmit();
+}
+
+function rebuildInstOptions() {
+  var pt = document.getElementById('sel-ptype').value;
+  var opts = tariffsByType[pt] || [];
+  var sel = document.getElementById('inst-select');
+  var cur = parseInt(sel.value) || 1;
+  sel.innerHTML = '';
+  opts.forEach(function(o) {
+    var opt = document.createElement('option');
+    opt.value = o.installments; opt.textContent = o.label;
+    if (o.installments === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  if (!sel.value) sel.value = 1;
+}
+
+function updateFeeDisplay(inst) {
+  var pt = document.getElementById('sel-ptype').value;
+  var opts = tariffsByType[pt] || [];
+  var fee = 0;
+  opts.forEach(function(o) { if (o.installments === inst) fee = o.fee; });
+  document.getElementById('fee-display').textContent = fee.toFixed(2) + '%';
+}
+
+var submitTimer = null, pendingTargetFinal = '', pendingTargetInstallment = '';
+
+function scheduleSubmit() {
+  pendingTargetFinal = '';
+  pendingTargetInstallment = '';
+  clearTimeout(submitTimer);
+  submitTimer = setTimeout(doSubmit, 400);
+}
+
+function doSubmit() {
+  showLoading();
+  var discount = parseFloat(document.getElementById('discount-slider').value) || 0;
+  var priceInc = parseFloat(document.getElementById('increase-slider').value) || 0;
+  document.getElementById('h-discount').value     = discount.toFixed(1);
+  document.getElementById('h-price-inc').value     = priceInc.toFixed(1);
+  document.getElementById('h-installments').value  = document.getElementById('inst-select').value;
+  document.getElementById('h-ptype').value         = document.getElementById('sel-ptype').value;
+  document.getElementById('h-architect').value     = document.getElementById('chk-architect').checked ? '1' : '0';
+  var archId = document.getElementById('h-architect-id').value;
+
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+  fd.append('_ajax', '1');
+  {% if standalone %}
+  var subtotal = parseBRL(document.getElementById('input-subtotal').value);
+  var freight  = parseBRL(document.getElementById('input-freight').value);
+  fd.append('sim_subtotal', subtotal.toFixed(2));
+  fd.append('sim_freight',  freight.toFixed(2));
+  {% endif %}
+  fd.append('discount_percent',       discount.toFixed(1));
+  fd.append('price_increase_percent', priceInc.toFixed(1));
+  fd.append('sim_installments',       document.getElementById('inst-select').value);
+  fd.append('sim_payment_type',       document.getElementById('sel-ptype').value);
+  fd.append('sim_has_architect',      document.getElementById('chk-architect').checked ? '1' : '0');
+  if (archId) fd.append('sim_architect_id', archId);
+  if (pendingTargetFinal) fd.append('target_final', pendingTargetFinal);
+  if (pendingTargetInstallment) fd.append('target_installment', pendingTargetInstallment);
+
+  fetch(window.location.href, {method:'POST', body:fd})
+    .then(function(r) { return r.text(); })
+    .then(function(html) { applyZones(html); hideLoading(); })
+    .catch(function(e) { console.error('Sim error:', e); hideLoading(); });
+}
+
+function applyZones(html) {
+  var doc = new DOMParser().parseFromString(html, 'text/html');
+  ['sim-results','margin-zone'].forEach(function(id) {
+    var n = doc.getElementById(id), c = document.getElementById(id);
+    if (n && c) c.outerHTML = n.outerHTML;
+  });
+  var nDA = doc.getElementById('live-discount-amount'), cDA = document.getElementById('live-discount-amount');
+  if (nDA && cDA) cDA.textContent = nDA.textContent;
+
+  var sd = document.getElementById('sim-data');
+  if (sd) {
+    var maxD = parseFloat(sd.dataset.maxDiscount) || 30;
+    var clD  = parseFloat(sd.dataset.discountClamped) || 0;
+    var sl   = document.getElementById('discount-slider');
+    sl.max = maxD;
+    if (parseFloat(sl.value) > maxD) { sl.value = clD; onDiscountChange(clD); }
+    var lm = document.getElementById('lbl-max-discount');
+    if (lm) lm.textContent = Math.round(maxD) + '%';
+    if (sd.dataset.targetMode === '1') {
+      var nd = parseFloat(sd.dataset.discountClamped) || 0;
+      var np = parseFloat(sd.dataset.priceIncrease) || 0;
+      sl.max = maxD; sl.value = nd; onDiscountChange(nd);
+      var is = document.getElementById('increase-slider');
+      is.value = np; onIncreaseChange(np);
+    }
+    var nowExceeded = sd.dataset.marginExceeded === '1';
+    var nowBlocked = sd.dataset.marginLimitExceeded === '1';
+    if (nowBlocked && !_prevBlocked) showMarginToast('O custo total ultrapassou o limite de margem. Ajuste as condições.');
+    if (!nowBlocked && _prevBlocked) hideMarginToast();
+    _prevMarginExceeded = nowExceeded;
+    _prevBlocked = nowBlocked;
+  }
+}
+
+function applyTargetFinal() {
+  var inp = document.getElementById('target-final-input');
+  var val = inp.value.replace(/\./g, '').replace(',', '.').trim();
+  if (!val || isNaN(parseFloat(val)) || parseFloat(val) <= 0) { inp.focus(); return; }
+  pendingTargetFinal = val; doSubmit();
+}
+
+function clearTargetFinal() {
+  document.getElementById('target-final-input').value = '';
+  pendingTargetFinal = ''; scheduleSubmit();
+}
+
+function applyTargetInstallment() {
+  var inp = document.getElementById('target-installment-input');
+  var val = inp.value.replace(/\./g, '').replace(',', '.').trim();
+  if (!val || isNaN(parseFloat(val)) || parseFloat(val) <= 0) { inp.focus(); return; }
+  pendingTargetInstallment = val; doSubmit();
+}
+
+function clearTargetInstallment() {
+  document.getElementById('target-installment-input').value = '';
+  pendingTargetInstallment = ''; scheduleSubmit();
+}
+
+function toggleInstallmentTarget() {
+  var pt = document.getElementById('sel-ptype').value;
+  var inst = parseInt(document.getElementById('inst-select').value) || 1;
+  var sec = document.getElementById('target-installment-section');
+  if (sec) sec.style.display = ((pt === 'CREDIT_CARD' || pt === 'BOLETO') && inst > 1) ? '' : 'none';
+}
+
+/* ── Architect search / select / register ────────────────── */
+var _archSearchTimer = null;
+
+function toggleArchitectPanel() {
+  var panel = document.getElementById('architect-panel');
+  if (panel) panel.style.display = document.getElementById('chk-architect').checked ? 'block' : 'none';
+}
+
+function searchArchitectDebounce() {
+  clearTimeout(_archSearchTimer);
+  var q = document.getElementById('arch-search-input').value.trim();
+  if (q.length < 2) { document.getElementById('arch-results').classList.add('d-none'); return; }
+  _archSearchTimer = setTimeout(function() { searchArchitect(q); }, 400);
+}
+
+function searchArchitect(query) {
+  fetch('/api/search-architect/?query=' + encodeURIComponent(query))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var list = document.getElementById('arch-results-list');
+      list.innerHTML = '';
+      if (data.results && data.results.length) {
+        data.results.forEach(function(a) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn btn-sm btn-outline-secondary text-start';
+          btn.innerHTML = '<strong>' + a.name + '</strong><br><small class="text-muted">PIX: ' + a.pix + '</small>';
+          btn.onclick = function() { selectArchitect(a.id, a.name, a.pix); };
+          list.appendChild(btn);
+        });
+      } else {
+        list.innerHTML = '<small class="text-muted">Nenhum arquiteto encontrado.</small>';
+      }
+      document.getElementById('arch-results').classList.remove('d-none');
+      document.getElementById('arch-register').classList.add('d-none');
+    });
+}
+
+function selectArchitect(id, name, pix) {
+  document.getElementById('h-architect-id').value = id;
+  document.getElementById('arch-selected-name').textContent = name;
+  document.getElementById('arch-selected-pix').textContent = 'PIX: ' + pix;
+  document.getElementById('arch-selected').classList.remove('d-none');
+  document.getElementById('arch-search-box').classList.add('d-none');
+  document.getElementById('arch-results').classList.add('d-none');
+  document.getElementById('arch-register').classList.add('d-none');
+  document.getElementById('arch-search-input').value = '';
+  scheduleSubmit();
+}
+
+function deselectArchitect() {
+  document.getElementById('h-architect-id').value = '';
+  document.getElementById('arch-selected').classList.add('d-none');
+  document.getElementById('arch-search-box').classList.remove('d-none');
+  document.getElementById('arch-search-input').value = '';
+}
+
+function showArchitectRegister() {
+  document.getElementById('arch-register').classList.remove('d-none');
+  document.getElementById('arch-results').classList.add('d-none');
+}
+
+function hideArchitectRegister() {
+  document.getElementById('arch-register').classList.add('d-none');
+  document.getElementById('arch-new-name').value = '';
+  document.getElementById('arch-new-pix').value = '';
+}
+
+function createArchitect() {
+  var name = document.getElementById('arch-new-name').value.trim();
+  var pix = document.getElementById('arch-new-pix').value.trim();
+  if (!name) { document.getElementById('arch-new-name').focus(); return; }
+  if (!pix) { document.getElementById('arch-new-pix').focus(); return; }
+  fetch('/api/create-architect/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value},
+    body: JSON.stringify({name: name, pix: pix})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      selectArchitect(data.architect.id, data.architect.name, data.architect.pix);
+      hideArchitectRegister();
+    } else {
+      alert(data.error || 'Erro ao cadastrar arquiteto.');
+    }
+  })
+  .catch(function(e) { alert('Erro ao cadastrar arquiteto.'); });
+}
+
+{% if not standalone %}
+function saveConditions() {
+  document.getElementById('save-ptype').value = document.getElementById('sel-ptype').value;
+  document.getElementById('save-inst').value  = document.getElementById('inst-select').value;
+  document.getElementById('save-arch').value  = document.getElementById('chk-architect').checked ? '1' : '0';
+  document.getElementById('save-arch-id').value = document.getElementById('h-architect-id').value;
+  document.getElementById('save-disc').value  = document.getElementById('h-discount').value;
+  document.getElementById('save-pi').value    = document.getElementById('h-price-inc').value;
+  document.getElementById('save-form').submit();
+}
+{% else %}
+function resetSimulation() {
+  document.getElementById('input-subtotal').value = '';
+  document.getElementById('input-freight').value = '';
+  document.getElementById('discount-slider').value = 0;
+  document.getElementById('increase-slider').value = 0;
+  document.getElementById('sel-ptype').value = '';
+  document.getElementById('chk-architect').checked = false;
+  deselectArchitect();
+  toggleArchitectPanel();
+  onDiscountChange(0); onIncreaseChange(0); onPaymentTypeChange();
+  scheduleSubmit();
+}
+{% endif %}
+
+(function init() {
+  document.getElementById('h-discount').value    = initDiscount.toFixed(1);
+  document.getElementById('h-price-inc').value    = initPriceInc.toFixed(1);
+  document.getElementById('h-installments').value = initInstall;
+  document.getElementById('h-ptype').value        = initPType;
+  document.getElementById('h-architect').value    = '{{ sim_has_architect|yesno:"1,0" }}';
+  document.getElementById('h-architect-id').value = '{{ sim_architect_id }}';
+  document.getElementById('discount-slider').value = initDiscount;
+  document.getElementById('increase-slider').value = initPriceInc;
+  rebuildInstOptions();
+  document.getElementById('inst-select').value = initInstall;
+  document.getElementById('inst-dropdown-row').style.display =
+    (initPType === 'CREDIT_CARD' || initPType === 'BOLETO') ? '' : 'none';
+  updateFeeDisplay(initInstall);
+  {% if standalone %}
+  formatInitialValue(document.getElementById('input-subtotal'));
+  formatInitialValue(document.getElementById('input-freight'));
+  {% endif %}
+  formatInitialValue(document.getElementById('target-final-input'));
+  formatInitialValue(document.getElementById('target-installment-input'));
+  document.getElementById('target-final-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); applyTargetFinal(); }
+  });
+  var tii = document.getElementById('target-installment-input');
+  if (tii) tii.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); applyTargetInstallment(); } });
+  toggleInstallmentTarget();
+})();
+</script>

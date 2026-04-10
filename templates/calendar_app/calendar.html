@@ -85,11 +85,20 @@
       .cal-header { background: var(--brand); color: #fff; text-align: center; padding: 10px 0; font-weight: 700; font-size: 0.82rem; letter-spacing: .03em; }
       .cal-cell {
         min-height: 110px; border: 1px solid #eef0f3; padding: 4px 6px;
-        background: #fff; position: relative; transition: background 0.15s; cursor: default;
+        background: #fff; position: relative; transition: background 0.15s; cursor: pointer;
       }
-      .cal-cell.empty { background: #f8f9fb; }
+      .cal-cell.empty { background: #f8f9fb; cursor: default; }
       .cal-cell.today { background: #e8f2ff; border-color: var(--blue); }
       .cal-cell.past { background: #fbfbfc; }
+      .cal-cell:not(.empty):hover { background: #f0f5ff; }
+      .cal-cell:not(.empty) .day-add {
+        position: absolute; top: 4px; right: 6px; width: 22px; height: 22px;
+        border-radius: 50%; background: var(--green); color: #fff; font-size: .7rem;
+        display: none; align-items: center; justify-content: center; cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0,0,0,.15); transition: transform .1s;
+      }
+      .cal-cell:not(.empty):hover .day-add { display: flex; }
+      .cal-cell:not(.empty) .day-add:hover { transform: scale(1.15); }
       .day-num { font-weight: 700; font-size: 0.85rem; color: #333; display: inline-block; margin-bottom: 2px; }
       .day-num.today-num {
         background: var(--blue); color: #fff; border-radius: 50%;
@@ -180,8 +189,16 @@
       .mob-info .mob-sub { font-size: .75rem; color: var(--muted); }
       .mob-dots { display: flex; gap: 2px; }
       .mob-dot { width: 8px; height: 8px; border-radius: 50%; }
-      .mob-empty { text-align: center; padding: 2rem 1rem; color: var(--muted); }
-      .mob-empty i { font-size: 2.2rem; margin-bottom: .5rem; display: block; }
+      .mob-empty { text-align: center; padding: 2.5rem 1rem; color: var(--muted); }
+      .mob-empty i { font-size: 2.5rem; margin-bottom: .6rem; display: block; opacity:.5; }
+      .mob-empty p { font-size:.85rem; margin:.3rem 0 0; }
+      .mob-empty .mob-empty-btn {
+        display: inline-flex; align-items: center; gap: .35rem; margin-top: .8rem;
+        padding: .45rem 1rem; font-weight: 700; font-size: .82rem;
+        border: none; border-radius: 8px; cursor: pointer;
+        background: var(--green); color: #fff; text-decoration: none; transition: all .2s;
+      }
+      .mob-empty .mob-empty-btn:hover { background: #146c43; transform: translateY(-1px); }
 
       .view-toggle { display: none; }
       .view-toggle .vt-btn {
@@ -449,6 +466,10 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-3 flex-wrap filter-group">
+                  <a href="?year={{ today.year }}&month={{ today.month }}{% if seller_filter %}&seller={{ seller_filter }}{% endif %}"
+                     class="btn-a secondary" style="padding:.35rem .8rem; font-size:.78rem;">
+                    <i class="fa-solid fa-crosshairs"></i>Hoje
+                  </a>
                   <div class="d-flex gap-2 align-items-center" style="font-size:0.78rem;">
                     <span><span class="legend-dot" style="background:var(--red);"></span> Atrasado</span>
                   </div>
@@ -493,12 +514,14 @@
                 {% for cell in week %}
                 <div class="cal-cell{% if cell.day == 0 %} empty{% endif %}{% if cell.is_today %} today{% endif %}{% if cell.is_past and not cell.is_today %} past{% endif %}"
                      data-day="{{ cell.day }}" data-date="{{ year }}-{{ month|stringformat:'02d' }}-{{ cell.day|stringformat:'02d' }}"
-                     data-event-ids="{% for e in cell.events %}{{ e.pk }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                     data-event-ids="{% for e in cell.events %}{{ e.pk }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                     onclick="if(event.target===this || event.target.classList.contains('day-num')) openCreatePopup(this.dataset.date)">
 
                   {% if cell.day != 0 %}
                     <div class="d-flex justify-content-between align-items-start">
                       <span class="day-num{% if cell.is_today %} today-num{% endif %}">{{ cell.day }}</span>
                     </div>
+                    <span class="day-add" onclick="event.stopPropagation(); openCreatePopup(this.closest('.cal-cell').dataset.date)" title="Novo evento"><i class="fa-solid fa-plus"></i></span>
 
                     {% for evt in cell.events %}
                       {% if forloop.counter <= 3 %}
@@ -558,7 +581,12 @@
                 {% endif %}
               </div>
               {% endfor %}{% endfor %}{% endfor %}
-              <div class="mob-empty" id="mobEmpty"><i class="fa-solid fa-calendar-xmark"></i>Nenhum evento neste mês</div>
+              <div class="mob-empty" id="mobEmpty">
+                <i class="fa-solid fa-calendar-xmark"></i>
+                Nenhum evento neste mês
+                <p>Toque no botão abaixo para criar um.</p>
+                <button class="mob-empty-btn" onclick="openCreatePopup()"><i class="fa-solid fa-plus"></i> Novo Evento</button>
+              </div>
             </div>
           </div>
 
@@ -627,6 +655,16 @@
                   </label>
                   <span class="text-muted" style="font-size:0.72rem;">Máx. 10 MB</span>
                 </div>
+              </div>
+
+              <!-- Tipo de evento (só no modo criação) -->
+              <div class="mb-3" id="popupTypeSection" style="display:none;">
+                <div class="section-label"><i class="fa-solid fa-tag me-1"></i> Tipo</div>
+                <select class="form-select form-select-sm" id="popupEventType" style="border-radius:6px; font-size:.85rem; max-width:220px;">
+                  {% for val, label in event_types %}
+                  <option value="{{ val }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
               </div>
 
               <!-- Lembretes (só no modo criação) -->
@@ -769,7 +807,8 @@
       document.getElementById('popupBtnDelete').style.display = '';
       document.getElementById('popupFileInput').parentElement.style.display = '';
 
-      // Esconder lembretes no modo edição
+      // Esconder tipo + lembretes no modo edição
+      document.getElementById('popupTypeSection').style.display = 'none';
       document.getElementById('popupRemindersSection').style.display = 'none';
     }
 
@@ -1027,7 +1066,9 @@
       document.getElementById('popupBtnDelete').style.display = 'none';
       document.getElementById('popupFileInput').parentElement.style.display = 'none';
 
-      // Mostrar seção de lembretes no modo criação
+      // Mostrar tipo + lembretes no modo criação
+      document.getElementById('popupTypeSection').style.display = '';
+      document.getElementById('popupEventType').value = 'CUSTOM';
       document.getElementById('popupRemindersSection').style.display = '';
       // Resetar checkboxes para padrão (3, 1, 0 marcados)
       document.querySelectorAll('.popup-reminder-cb').forEach(cb => {
@@ -1068,6 +1109,8 @@
         reminders.push(parseInt(cb.value));
       });
 
+      const eventType = document.getElementById('popupEventType').value;
+
       fetch('/calendario/api/evento/criar/', {
         method: 'POST',
         headers: hdr({ 'Content-Type': 'application/json' }),
@@ -1075,6 +1118,7 @@
           title: title,
           description: document.getElementById('popupDesc').value,
           event_date: eventDate,
+          event_type: eventType,
           reminders: reminders,
         }),
       }).then(r => r.json()).then(data => {

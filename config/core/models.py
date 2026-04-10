@@ -346,6 +346,7 @@ class Notification(models.Model):
 class AuditAction(models.TextChoices):
     CREATE_QUOTE = "CREATE_QUOTE", "Criar orçamento"
     EDIT_QUOTE = "EDIT_QUOTE", "Editar orçamento"
+    DELETE_QUOTE = "DELETE_QUOTE", "Excluir orçamento"
     APPROVE_DISCOUNT = "APPROVE_DISCOUNT", "Aprovar desconto"
     CONVERT_ORDER = "CONVERT_ORDER", "Converter em pedido"
     EDIT_VALUES = "EDIT_VALUES", "Editar valores"

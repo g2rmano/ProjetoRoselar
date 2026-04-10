@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Quote, QuoteItem, Order, OrderItem, ProposalConfig
-from core.admin_helpers import AdminOnly, SellerAccess
+from core.admin_helpers import AdminOnly, SellerAccess, _is_admin
 
 
 class QuoteItemInline(admin.TabularInline):
@@ -24,6 +24,9 @@ class QuoteAdmin(SellerAccess, admin.ModelAdmin):
         "payment_type", "payment_installments", "payment_fee_percent",
         "has_architect",
     )
+
+    def has_delete_permission(self, request, obj=None):
+        return _is_admin(request.user)
 
 
 @admin.register(Order)

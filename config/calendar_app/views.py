@@ -551,10 +551,14 @@ def api_event_create(request: HttpRequest) -> JsonResponse:
         except (Customer.DoesNotExist, ValueError, TypeError):
             pass
 
+    event_type = body.get("event_type", EventType.CUSTOM)
+    if event_type not in dict(EventType.choices):
+        event_type = EventType.CUSTOM
+
     event = CalendarEvent.objects.create(
         title=title,
         description=body.get("description", "").strip(),
-        event_type=body.get("event_type", EventType.CUSTOM),
+        event_type=event_type,
         event_date=event_date,
         assigned_to=request.user,
         customer=customer,
