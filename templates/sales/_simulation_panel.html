@@ -1,4 +1,4 @@
-{# ─────────────────────────────────────────────────────────────────
+{% comment %}
    Shared simulation panel — included by both:
      • quote_simulation.html  (standalone is falsy / absent)
      • standalone_simulation.html  (standalone=True)
@@ -22,7 +22,7 @@
    Quote-only:  quote (object with .get_freight_responsible_display)
    Standalone-only: subtotal (numeric, 0 when no values entered),
                     sim_subtotal, sim_freight.
-───────────────────────────────────────────────────────────────── #}
+{% endcomment %}
 
             <!-- Desconto -->
             <div class="s-card fi fi-1">
