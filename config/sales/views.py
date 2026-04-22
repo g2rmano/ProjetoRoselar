@@ -5,6 +5,7 @@ import logging
 import re
 import unicodedata
 from collections import defaultdict
+from datetime import date as date_type, time as time_type
 from decimal import Decimal, ROUND_CEILING
 from io import BytesIO
 from urllib.parse import quote as url_quote
@@ -78,6 +79,35 @@ def _safe_content_disposition(filename: str) -> str:
     )
 
 
+def _persist_item_images_from_formset(formset) -> None:
+    """Save uploaded item images from form-only field into QuoteItemImage model."""
+    for item_form in formset.forms:
+        if not hasattr(item_form, "cleaned_data"):
+            continue
+        if item_form.cleaned_data.get("DELETE"):
+            continue
+
+        item = item_form.instance
+        if not item or not item.pk:
+            continue
+
+        uploaded_image = item_form.cleaned_data.get("item_image")
+        if not uploaded_image:
+            continue
+
+        # Keep a single current image per item to avoid stale/duplicate images.
+        existing_images = QuoteItemImage.objects.filter(item=item)
+        for old_image in existing_images:
+            if old_image.image:
+                try:
+                    old_image.image.delete(save=False)
+                except Exception:
+                    pass
+        existing_images.delete()
+
+        QuoteItemImage.objects.create(item=item, image=uploaded_image)
+
+
 from .forms import QuoteForm, QuoteItemFormSet
 from .models import (
     Quote,
@@ -90,9 +120,10 @@ from .models import (
     ProposalConfig,
 )
 from calendar_app.models import (
-    create_quote_followup_events,
-    create_delivery_events_for_quote,
-    create_architect_payment_event,
+    CalendarEvent,
+    EventStatus,
+    EventType,
+    Reminder,
 )
 
 
@@ -311,12 +342,7 @@ def quote_create(request: HttpRequest) -> HttpResponse:
 
                 formset.instance = quote
                 formset.save()
-
-            # Criar eventos de follow-up no calendário (fora da transação)
-            try:
-                create_quote_followup_events(quote)
-            except Exception:
-                pass  # Não impede o fluxo principal
+                _persist_item_images_from_formset(formset)
 
             # Audit log
             from core.models import AuditLog, AuditAction
@@ -397,6 +423,7 @@ def quote_edit(request: HttpRequest, quote_id: int) -> HttpResponse:
                 
                 quote_obj.save()
                 formset.save()
+                _persist_item_images_from_formset(formset)
 
             # Atualizar evento de follow-up no calendário
             try:
@@ -455,6 +482,115 @@ def quote_detail(request: HttpRequest, quote_id: int) -> HttpResponse:
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
+def quote_reminders(request: HttpRequest, quote_id: int) -> HttpResponse:
+    """
+    Cria lembretes manuais vinculados ao orçamento.
+    Permite cadastrar um ou mais lembretes de uma vez.
+    """
+    quote = get_object_or_404(
+        Quote.objects.select_related("customer", "seller"),
+        id=quote_id,
+    )
+    if not _is_staff_or_admin(request.user) and quote.seller_id != request.user.id:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:quote_list")
+
+    # Limpa follow-ups automáticos legados para manter somente o fluxo manual.
+    auto_followup_titles = [
+        "Follow-up: orçamento sem resposta (3 dias)",
+        "Follow-up: orçamento ainda em rascunho (7 dias)",
+    ]
+    CalendarEvent.objects.filter(
+        quote=quote,
+        event_type=EventType.QUOTE_FOLLOWUP,
+        title__in=auto_followup_titles,
+    ).delete()
+
+    if request.method == "POST":
+        titles = request.POST.getlist("reminder_title[]")
+        dates = request.POST.getlist("reminder_date[]")
+        times = request.POST.getlist("reminder_time[]")
+        descriptions = request.POST.getlist("reminder_description[]")
+
+        created_count = 0
+        invalid_rows: list[int] = []
+
+        total_rows = max(len(titles), len(dates), len(times), len(descriptions))
+        for idx in range(total_rows):
+            title = (titles[idx] if idx < len(titles) else "").strip()
+            date_str = (dates[idx] if idx < len(dates) else "").strip()
+            time_str = (times[idx] if idx < len(times) else "").strip()
+            description = (descriptions[idx] if idx < len(descriptions) else "").strip()
+
+            if not title and not date_str and not time_str and not description:
+                continue
+
+            if not title or not date_str:
+                invalid_rows.append(idx + 1)
+                continue
+
+            try:
+                event_date = date_type.fromisoformat(date_str)
+            except ValueError:
+                invalid_rows.append(idx + 1)
+                continue
+
+            event_time = None
+            if time_str:
+                try:
+                    event_time = time_type.fromisoformat(time_str)
+                except ValueError:
+                    invalid_rows.append(idx + 1)
+                    continue
+
+            event = CalendarEvent.objects.create(
+                title=title,
+                description=description,
+                event_type=EventType.QUOTE_FOLLOWUP,
+                status=EventStatus.PENDING,
+                event_date=event_date,
+                event_time=event_time,
+                assigned_to=quote.seller,
+                quote=quote,
+                customer=quote.customer,
+            )
+
+            Reminder.objects.create(
+                event=event,
+                remind_date=event_date,
+                message=title,
+            )
+            created_count += 1
+
+        if invalid_rows:
+            messages.warning(
+                request,
+                f"Algumas linhas foram ignoradas por dados inválidos: {', '.join(str(x) for x in invalid_rows)}.",
+            )
+
+        if created_count > 0:
+            messages.success(request, f"{created_count} lembrete(s) criado(s) com sucesso.")
+            return redirect("sales:quote_reminders", quote_id=quote.id)
+
+        if not invalid_rows:
+            messages.error(request, "Preencha ao menos um lembrete com título e data.")
+
+    reminder_events = (
+        CalendarEvent.objects.filter(quote=quote, event_type=EventType.QUOTE_FOLLOWUP)
+        .select_related("assigned_to")
+        .prefetch_related("reminders")
+        .order_by("event_date", "event_time", "id")
+    )
+
+    return render(request, "sales/quote_reminders.html", {
+        "quote": quote,
+        "reminder_events": reminder_events,
+        "is_admin": _is_admin(request.user),
+    })
+
+
+@login_required
 @require_http_methods(["POST"])
 def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse:
     """
@@ -473,7 +609,6 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
         return redirect("sales:quote_list")
 
     # Parse the required real delivery date from the modal form
-    from datetime import date as date_type
     delivery_deadline_str = request.POST.get("delivery_deadline", "").strip()
     try:
         real_deadline = date_type.fromisoformat(delivery_deadline_str) if delivery_deadline_str else None
@@ -571,18 +706,7 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                         pass
             imgs.delete()
         
-        # 8) Criar eventos de entrega no calendário para cada pedido (fora da transação)
-        for order in created_orders:
-            try:
-                create_delivery_events_for_quote(order)
-            except Exception:
-                pass  # Não impede o fluxo principal
-            try:
-                create_architect_payment_event(order)
-            except Exception:
-                pass
-
-        # 9) Gerar PDFs para cada fornecedor (fora da transação, após commit)
+        # 8) Gerar PDFs para cada fornecedor (fora da transação, após commit)
         pdf_count = 0
         for order in created_orders:
             if not order.is_total_conference and order.supplier:
@@ -978,7 +1102,7 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
         if disc_pct > 0:
             c.setFillColor(NAVY)
             c.setFont("Helvetica", 9.5)
-            c.drawString(MX, ty, "Valor do investimento à vista")
+            c.drawString(MX, ty, "Valor normal do investimento")
             c.setFont("Helvetica-Bold", 11)
             c.drawRightString(MX + CW, ty, _fmt_brl(avista))
             ty -= 18
@@ -999,10 +1123,14 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
         c.line(MX, ty, MX + CW, ty)
         ty -= 16
 
-        # Grand total (= sum of all item lines, no discount)
+        # Grand total line shown as discounted value when discount exists.
         c.setFillColor(NAVY)
         c.setFont("Helvetica", 10)
-        c.drawString(MX, ty, "Valor do investimento:")
+        c.drawString(
+            MX,
+            ty,
+            "Valor do investimento com desconto:" if disc_pct > 0 else "Valor do investimento:",
+        )
         c.setFont("Helvetica-Bold", 14)
         c.drawRightString(MX + CW, ty, _fmt_brl(subtotal))
 
@@ -1732,10 +1860,14 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
         target_installment=target_installment,
     )
 
+    save_session_key = f"quote_sim_saved_{quote.id}"
+    quote_actions_unlocked = bool(request.session.get(save_session_key, False))
+
     if request.method == "POST" and request.POST.get('action') == 'save_conditions':
         if ctx['margin_limit_exceeded']:
             messages.error(request, "Condições bloqueadas. Ajuste o preço antes de salvar.")
             ctx['quote'] = quote
+            ctx['quote_actions_unlocked'] = quote_actions_unlocked
             return render(request, 'sales/quote_simulation.html', ctx)
         with transaction.atomic():
             quote.discount_percent     = ctx['discount_percent']
@@ -1745,6 +1877,7 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
             quote.has_architect        = ctx['sim_has_architect']
             quote.architect            = selected_architect
             quote.save()
+        request.session[save_session_key] = True
         messages.success(request, f"Condições do orçamento {quote.number} salvas com sucesso.")
         return redirect("sales:quote_detail", quote_id=quote.id)
 
@@ -1754,6 +1887,7 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
     ctx['quote'] = quote
     ctx['selected_architect'] = selected_architect
     ctx['sim_architect_id']   = sim_architect_id
+    ctx['quote_actions_unlocked'] = quote_actions_unlocked
     return render(request, 'sales/quote_simulation.html', ctx)
 
 
