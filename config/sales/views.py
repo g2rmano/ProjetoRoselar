@@ -2048,15 +2048,32 @@ def quote_duplicate(request, quote_id):
 @require_http_methods(["POST"])
 def quote_delete(request, quote_id):
     """Excluir um orçamento. Apenas admins/donos podem excluir."""
+    from django.db.models.deletion import ProtectedError
+
     if not _is_admin(request.user):
         messages.error(request, "Apenas administradores podem excluir orçamentos.")
         return redirect("sales:quote_detail", quote_id=quote_id)
 
     quote = get_object_or_404(Quote, id=quote_id)
     number = quote.number
+    try:
+        with transaction.atomic():
+            # Order.quote is PROTECT; remove dependent orders first.
+            deleted_orders = quote.orders.count()
+            quote.orders.all().delete()
+            quote.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "Não foi possível excluir o orçamento por dependências vinculadas.",
+        )
+        return redirect("sales:quote_detail", quote_id=quote_id)
+
     from core.models import AuditLog, AuditAction
     AuditLog.log(request.user, AuditAction.DELETE_QUOTE,
-                 f"Orçamento excluído: {number}", obj=None)
-    quote.delete()
-    messages.success(request, f"Orçamento {number} excluído com sucesso.")
+                 f"Orçamento excluído: {number} (pedidos removidos: {deleted_orders})", obj=None)
+    if deleted_orders:
+        messages.success(request, f"Orçamento {number} excluído com sucesso (incluindo {deleted_orders} pedido(s) vinculado(s)).")
+    else:
+        messages.success(request, f"Orçamento {number} excluído com sucesso.")
     return redirect("sales:quote_list")
