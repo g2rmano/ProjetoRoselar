@@ -68,6 +68,26 @@
         border-color: #163a5a !important;
         color: #fff !important;
       }
+      .btn-link-brand {
+        color: #0A2640;
+        font-weight: 700;
+      }
+      .btn-link-brand:hover {
+        color: #163a5a;
+      }
+      .modal-brand .modal-content {
+        border: 0;
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+      .modal-brand .modal-header {
+        background: #2670b6;
+        color: #fff;
+        border-bottom: 0;
+      }
+      .modal-brand .btn-close {
+        filter: invert(1);
+      }
     </style>
 
   </head>
@@ -191,7 +211,12 @@
                         Lembrar de mim
                       </label>
                     </div>
-                    <a href="#" class="text-decoration-none">Esqueceu a Senha?</a>
+                    <button type="button"
+                            class="btn btn-link p-0 text-decoration-none btn-link-brand"
+                            data-bs-toggle="modal"
+                            data-bs-target="#changePasswordModal">
+                      Alterar Senha
+                    </button>
                   </div>
 
                   <button type="submit" class="btn btn-login w-100 btn-lg fw-bold">
@@ -205,6 +230,43 @@
         </div>
 
       </section>
+
+      <div class="modal fade modal-brand" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title fw-bold" id="changePasswordModalLabel">Alterar senha</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="post" action="{% url 'accounts:change_password' %}" id="changePasswordForm" autocomplete="off">
+              <div class="modal-body">
+                {% csrf_token %}
+                <div class="mb-3">
+                  <label for="cp-username" class="form-label fw-bold">Usuário</label>
+                  <input type="text" class="form-control" id="cp-username" name="username" placeholder="Seu usuário" required>
+                </div>
+                <div class="mb-3">
+                  <label for="cp-old-password" class="form-label fw-bold">Senha atual</label>
+                  <input type="password" class="form-control" id="cp-old-password" name="old_password" required>
+                </div>
+                <div class="mb-3">
+                  <label for="cp-new-password1" class="form-label fw-bold">Nova senha</label>
+                  <input type="password" class="form-control" id="cp-new-password1" name="new_password1" required>
+                </div>
+                <div class="mb-1">
+                  <label for="cp-new-password2" class="form-label fw-bold">Confirmar nova senha</label>
+                  <input type="password" class="form-control" id="cp-new-password2" name="new_password2" required>
+                </div>
+                <small id="cp-error" class="text-danger d-none">As novas senhas precisam ser iguais.</small>
+              </div>
+              <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-login">Salvar nova senha</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
       <!-- <section> close ============================-->
       <!-- ============================================-->
 
@@ -257,6 +319,33 @@
         loginCard.addEventListener('animationend', () => loginCard.classList.remove('shake'), { once: true });
       }
       {% endif %}
+
+      // Change-password modal helpers
+      const loginUsername = document.getElementById('username');
+      const cpUsername = document.getElementById('cp-username');
+      const cpForm = document.getElementById('changePasswordForm');
+      const cpNew1 = document.getElementById('cp-new-password1');
+      const cpNew2 = document.getElementById('cp-new-password2');
+      const cpError = document.getElementById('cp-error');
+      const cpModal = document.getElementById('changePasswordModal');
+
+      if (cpModal && loginUsername && cpUsername) {
+        cpModal.addEventListener('show.bs.modal', function () {
+          cpUsername.value = (loginUsername.value || '').trim();
+        });
+      }
+
+      if (cpForm && cpNew1 && cpNew2) {
+        cpForm.addEventListener('submit', function (event) {
+          if (cpNew1.value !== cpNew2.value) {
+            event.preventDefault();
+            cpError.classList.remove('d-none');
+            cpNew2.focus();
+            return;
+          }
+          cpError.classList.add('d-none');
+        });
+      }
     </script>
 
   </body>

@@ -87,8 +87,11 @@
                 <label class="form-label fw-bold">Vendedor</label>
                 <select name="seller_id" class="form-control">
                   <option value="">Selecione...</option>
-                  <!-- Populated dynamically or use template -->
+                  {% for seller in sellers %}
+                  <option value="{{ seller.id }}">{{ seller.username }}</option>
+                  {% endfor %}
                 </select>
+                <small class="text-muted">Obrigatório para meta individual.</small>
               </div>
               <div class="row">
                 <div class="col-md-6 mb-3"><label class="form-label fw-bold">Período</label><select name="period" class="form-control"><option value="MONTHLY">Mensal</option><option value="QUARTERLY">Trimestral</option><option value="YEARLY">Anual</option></select></div>
