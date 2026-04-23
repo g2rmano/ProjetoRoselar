@@ -5,7 +5,7 @@ import logging
 import re
 import unicodedata
 from collections import defaultdict
-from datetime import date as date_type, time as time_type
+from datetime import date as date_type, time as time_type, timedelta
 from decimal import Decimal, ROUND_CEILING
 from io import BytesIO
 from urllib.parse import quote as url_quote
@@ -509,7 +509,7 @@ def quote_detail(request: HttpRequest, quote_id: int) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def quote_reminders(request: HttpRequest, quote_id: int) -> HttpResponse:
     """
-    Cria lembretes manuais vinculados ao orçamento.
+    Cria lembretes vinculados ao orçamento.
     Permite cadastrar um ou mais lembretes de uma vez.
     """
     quote = get_object_or_404(
@@ -719,6 +719,44 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
             # 6) atualizar status do orçamento
             quote.status = QuoteStatus.CONVERTED
             quote.save(update_fields=["status"])
+
+            # 6.1) lembrete automático de pagamento de arquiteto (30 dias após emissão)
+            if quote.has_architect:
+                reminder_date = timezone.localdate() + timedelta(days=30)
+                architect_label = quote.architect.name if quote.architect_id else "Arquiteto"
+                reminder_title = f"Pagamento arquiteto - Orçamento {quote.number}"
+                reminder_description = (
+                    f"Lembrar pagamento do arquiteto ({architect_label}) referente ao orçamento {quote.number}."
+                )
+
+                from django.contrib.auth import get_user_model
+
+                User = get_user_model()
+                recipients = [
+                    user for user in User.objects.filter(is_active=True)
+                    if _can_view_all_orders(user)
+                ]
+
+                for recipient in recipients:
+                    event, created = CalendarEvent.objects.get_or_create(
+                        quote=quote,
+                        order=total_order,
+                        event_type=EventType.ARCHITECT_PAYMENT,
+                        assigned_to=recipient,
+                        defaults={
+                            "title": reminder_title,
+                            "description": reminder_description,
+                            "status": EventStatus.PENDING,
+                            "event_date": reminder_date,
+                            "customer": quote.customer,
+                        },
+                    )
+                    if created:
+                        Reminder.objects.create(
+                            event=event,
+                            remind_date=reminder_date,
+                            message=reminder_title,
+                        )
 
             # 7) limpar imagens temporárias (arquivo + registro)
             imgs = QuoteItemImage.objects.filter(item__quote=quote)
@@ -1128,7 +1166,7 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
             c.setFont("Helvetica", 9.5)
             c.drawString(MX, ty, "Valor normal do investimento")
             c.setFont("Helvetica-Bold", 11)
-            c.drawRightString(MX + CW, ty, _fmt_brl(avista))
+            c.drawRightString(MX + CW, ty, _fmt_brl(subtotal))
             ty -= 18
 
         # Installment line
@@ -1156,7 +1194,7 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
             "Valor do investimento com desconto:" if disc_pct > 0 else "Valor do investimento:",
         )
         c.setFont("Helvetica-Bold", 14)
-        c.drawRightString(MX + CW, ty, _fmt_brl(subtotal))
+        c.drawRightString(MX + CW, ty, _fmt_brl(avista if disc_pct > 0 else subtotal))
 
     # ── render items ─────────────────────────────────────────────
     _items_page_bg()

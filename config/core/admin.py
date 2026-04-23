@@ -39,10 +39,22 @@ class ShippingCompanyAdmin(AdminOnly, admin.ModelAdmin):
 
 @admin.register(PaymentTariff)
 class PaymentTariffAdmin(AdminOnly, admin.ModelAdmin):
-    list_display = ("payment_type", "installments", "fee_percent")
+    list_display = ("payment_type_label", "installment_label", "fee_percent")
     list_editable = ("fee_percent",)
+    list_filter = ("payment_type",)
+    search_fields = ("payment_type",)
     ordering = ("payment_type", "installments")
     fields = ("payment_type", "installments", "fee_percent")
+    list_per_page = 50
+    change_list_template = "admin/core/paymenttariff/change_list.html"
+
+    @admin.display(description="Tipo de Pagamento", ordering="payment_type")
+    def payment_type_label(self, obj):
+        return obj.get_payment_type_display()
+
+    @admin.display(description="Parcelas", ordering="installments")
+    def installment_label(self, obj):
+        return "A vista" if obj.installments == 1 else f"{obj.installments}x"
 
 
 @admin.register(ArchitectCommission)
