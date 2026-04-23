@@ -29,7 +29,7 @@ ENV/
 *.swo
 *~
 .DS_Store
-
+#SAFADA
 # Environment variables
 .env
 .env.local
