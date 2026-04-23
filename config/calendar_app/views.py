@@ -30,8 +30,8 @@ from .models import (
 
 
 def _is_admin(user: User) -> bool:
-    """Verifica se o usuário é admin ou dono (pode ver todos os calendários)."""
-    return user.role in (Role.ADMIN, Role.OWNER) or user.is_superuser
+    """Verifica se o usuário é admin (pode ver todos os calendários)."""
+    return user.role == Role.ADMIN or user.is_superuser
 
 
 def _get_events_qs(user: User):

@@ -294,7 +294,7 @@
                 </div>
               </div>
               <div class="q-actions">
-                {% if not order.is_total_conference and order.supplier and not is_seller %}
+                {% if not order.is_total_conference and order.supplier and can_generate_order_pdf %}
                   <a href="{% url 'sales:order_pdf' order.id %}" class="btn-a primary" style="padding:.4rem .9rem;font-size:.78rem;" target="_blank">
                     <i class="fa-solid fa-file-pdf"></i>PDF
                   </a>

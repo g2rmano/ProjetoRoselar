@@ -30,6 +30,5 @@ class UserAdmin(AdminOnly, DjangoUserAdmin):
     def save_model(self, request, obj, form, change):
         # Auto-set is_staff so users can access admin panel
         obj.is_staff = True
-        if obj.role in ("ADMIN", "OWNER"):
-            obj.is_superuser = True
+        obj.is_superuser = (obj.role == "ADMIN")
         super().save_model(request, obj, form, change)

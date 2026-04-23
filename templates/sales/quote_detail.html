@@ -310,9 +310,11 @@
               <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-a primary" target="_blank">
                 <i class="fa-solid fa-file-pdf"></i>PDF Cliente
               </a>
+              {% if can_view_supplier_pdf %}
               <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-a info" target="_blank">
                 <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
               </a>
+              {% endif %}
               {% if quote.status != 'CONVERTED' and quote.status != 'CANCELED' %}
                 <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-a warning">
                   <i class="fa-solid fa-edit"></i>Editar
@@ -490,7 +492,7 @@
                       <td style="text-align:center;font-weight:600;">{{ order.items.count }}</td>
                       <td style="text-align:right;">
                         <div class="d-flex gap-1 justify-content-end">
-                          {% if not order.is_total_conference and order.supplier and not is_seller %}
+                          {% if not order.is_total_conference and order.supplier and can_generate_order_pdf %}
                             <a href="{% url 'sales:order_pdf' order.id %}" class="btn-a primary" style="padding:.35rem .7rem;font-size:.75rem;" target="_blank">
                               <i class="fa-solid fa-file-pdf"></i>PDF
                             </a>

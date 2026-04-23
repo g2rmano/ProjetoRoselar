@@ -31,21 +31,42 @@ logger = logging.getLogger(__name__)
 
 
 def _is_admin(user):
-    """True for ADMIN, OWNER or superuser."""
+    """True for ADMIN or superuser."""
     from accounts.models import Role
-    return user.is_superuser or user.role in (Role.ADMIN, Role.OWNER)
+    return user.is_superuser or user.role == Role.ADMIN
+
+
+def _is_finance(user):
+    """True for FINANCE role (non-admin)."""
+    from accounts.models import Role
+    return (not user.is_superuser) and user.role == Role.FINANCE
 
 
 def _is_staff_or_admin(user):
-    """True for STAFF, ADMIN, OWNER or superuser."""
+    """True for ADMIN or superuser (full quote visibility)."""
     from accounts.models import Role
-    return user.is_superuser or user.role in (Role.STAFF, Role.ADMIN, Role.OWNER)
+    return user.is_superuser or user.role == Role.ADMIN
 
 
 def _is_seller(user):
     """True only for SELLER role (no elevated permissions)."""
     from accounts.models import Role
     return user.role == Role.SELLER and not user.is_superuser
+
+
+def _can_view_all_orders(user):
+    """Admins and finance can view all purchase orders."""
+    return _is_admin(user) or _is_finance(user)
+
+
+def _can_generate_order_pdf(user):
+    """Admins and finance can generate supplier purchase-order PDFs."""
+    return _is_admin(user) or _is_finance(user)
+
+
+def _can_view_commission(user):
+    """Finance cannot see commission values."""
+    return not _is_finance(user)
 
 
 def _get_quote_or_403(request, quote_id, **extra_filters):
@@ -61,7 +82,7 @@ def _get_order_or_403(request, order_id, **extra_filters):
     """Fetch an order by ID; sellers can only see their own."""
     from django.http import HttpResponseForbidden
     order = get_object_or_404(Order, pk=order_id, **extra_filters)
-    if not _is_staff_or_admin(request.user) and order.quote.seller_id != request.user.id:
+    if not _can_view_all_orders(request.user) and order.quote.seller_id != request.user.id:
         return None, HttpResponseForbidden("Acesso negado.")
     return order, None
 
@@ -477,7 +498,10 @@ def quote_detail(request: HttpRequest, quote_id: int) -> HttpResponse:
         "quote": quote,
         "today": timezone.localdate(),
         "is_seller": _is_seller(request.user),
+        "is_finance": _is_finance(request.user),
         "is_admin": _is_admin(request.user),
+        "can_generate_order_pdf": _can_generate_order_pdf(request.user),
+        "can_view_supplier_pdf": _is_admin(request.user),
     })
 
 
@@ -1183,6 +1207,9 @@ def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
     if not _is_staff_or_admin(request.user) and quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:quote_list")
+    if not _is_admin(request.user):
+        messages.error(request, "Apenas administradores podem baixar o PDF de fornecedor.")
+        return redirect("sales:quote_detail", quote_id=quote.id)
     
     # Create PDF in memory
     buffer = BytesIO()
@@ -1315,7 +1342,7 @@ def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
 def order_list(request: HttpRequest) -> HttpResponse:
     """List all orders with search functionality."""
     orders = Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller').order_by('-created_at')
-    if not _is_staff_or_admin(request.user):
+    if not _can_view_all_orders(request.user):
         orders = orders.filter(quote__seller=request.user)
     
     # Search functionality
@@ -1345,6 +1372,7 @@ def order_list(request: HttpRequest) -> HttpResponse:
         'status_filter': status_filter,
         'supplier_filter': supplier_filter,
         'is_seller': _is_seller(request.user),
+        'can_generate_order_pdf': _can_generate_order_pdf(request.user),
     }
     
     return render(request, 'sales/order_list.html', context)
@@ -1357,7 +1385,7 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller'),
         pk=order_id
     )
-    if not _is_staff_or_admin(request.user) and order.quote.seller_id != request.user.id:
+    if not _can_view_all_orders(request.user) and order.quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:order_list")
     
@@ -1371,6 +1399,7 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         'items': items,
         'total': total,
         'is_seller': _is_seller(request.user),
+        'can_generate_order_pdf': _can_generate_order_pdf(request.user),
     }
     
     return render(request, 'sales/order_detail.html', context)
@@ -1383,10 +1412,10 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
         Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller'),
         pk=order_id
     )
-    if _is_seller(request.user):
-        messages.error(request, "Vendedores não podem baixar PDFs de pedidos.")
+    if not _can_generate_order_pdf(request.user):
+        messages.error(request, "Seu perfil não pode baixar PDFs de pedidos.")
         return redirect("sales:order_list")
-    if not _is_staff_or_admin(request.user) and order.quote.seller_id != request.user.id:
+    if not _can_view_all_orders(request.user) and order.quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:order_list")
     
@@ -1888,6 +1917,7 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
     ctx['selected_architect'] = selected_architect
     ctx['sim_architect_id']   = sim_architect_id
     ctx['quote_actions_unlocked'] = quote_actions_unlocked
+    ctx['can_view_commission'] = _can_view_commission(request.user)
     return render(request, 'sales/quote_simulation.html', ctx)
 
 
@@ -1989,6 +2019,7 @@ def standalone_simulation(request: HttpRequest) -> HttpResponse:
     ctx['sim_customer_id']    = customer_id
     ctx['selected_architect'] = selected_architect
     ctx['sim_architect_id']   = sim_architect_id
+    ctx['can_view_commission'] = _can_view_commission(request.user)
 
     return render(request, 'sales/standalone_simulation.html', ctx)
 

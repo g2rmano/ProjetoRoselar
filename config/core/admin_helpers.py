@@ -4,11 +4,10 @@ Shared permission helpers for all admin.py files.
 
 
 def _is_admin(user):
-    """True for staff, ADMIN, OWNER or Django superuser."""
+    """True for ADMIN or Django superuser."""
     return (
         user.is_superuser
-        or user.is_staff
-        or getattr(user, "role", None) in ("ADMIN", "OWNER")
+        or getattr(user, "role", None) == "ADMIN"
     )
 
 

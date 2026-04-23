@@ -4,9 +4,8 @@ from django.db import models
 
 class Role(models.TextChoices):
     SELLER = "SELLER", "Vendedor"
-    STAFF = "STAFF", "Equipe Interna"
+    FINANCE = "FINANCE", "Financeiro"
     ADMIN = "ADMIN", "Admin"
-    OWNER = "OWNER", "Dono"
 
 
 class User(AbstractUser):

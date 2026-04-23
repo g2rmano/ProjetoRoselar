@@ -41,8 +41,8 @@ def home(request):
         user = request.user
         today = timezone.localdate()
         month_start = today.replace(day=1)
-        is_admin = user.role in (Role.ADMIN, Role.OWNER) or user.is_superuser
-        is_staff_or_admin = user.role in (Role.STAFF, Role.ADMIN, Role.OWNER) or user.is_superuser
+        is_admin = user.role == Role.ADMIN or user.is_superuser
+        is_staff_or_admin = is_admin
 
         my_quotes = Quote.objects.filter(seller=user)
         my_quotes_month = my_quotes.filter(quote_date__gte=month_start)
@@ -289,8 +289,8 @@ def dashboard(request):
     user = request.user
     today = timezone.localdate()
     month_start = today.replace(day=1)
-    is_admin = user.role in (Role.ADMIN, Role.OWNER) or user.is_superuser
-    is_staff_or_admin = user.role in (Role.STAFF, Role.ADMIN, Role.OWNER) or user.is_superuser
+    is_admin = user.role == Role.ADMIN or user.is_superuser
+    is_staff_or_admin = is_admin
 
     # ── Personal Stats ──
     my_quotes = Quote.objects.filter(seller=user)
@@ -728,13 +728,13 @@ def add_communication(request):
 # Reports
 # ──────────────────────────────────────────────────────────────────────
 def _is_admin_user(user):
-    """True for ADMIN, OWNER, or superuser."""
-    return user.is_superuser or user.role in (Role.ADMIN, Role.OWNER)
+    """True for ADMIN or superuser."""
+    return user.is_superuser or user.role == Role.ADMIN
 
 
 def _is_staff_or_admin_user(user):
-    """True for STAFF, ADMIN, OWNER or superuser."""
-    return user.is_superuser or user.role in (Role.STAFF, Role.ADMIN, Role.OWNER)
+    """True for FINANCE, ADMIN or superuser."""
+    return user.is_superuser or user.role in (Role.FINANCE, Role.ADMIN)
 
 
 @login_required
@@ -933,7 +933,7 @@ def report_csv_export(request):
 @login_required
 def audit_log_list(request):
     user = request.user
-    is_admin = user.role in (Role.ADMIN, Role.OWNER) or user.is_superuser
+    is_admin = user.role == Role.ADMIN or user.is_superuser
     if not is_admin:
         messages.error(request, "Acesso negado.")
         return redirect("core:dashboard")
@@ -956,7 +956,7 @@ def audit_log_list(request):
 @login_required
 def goals_list(request):
     user = request.user
-    is_admin = user.role in (Role.ADMIN, Role.OWNER) or user.is_superuser
+    is_admin = user.role == Role.ADMIN or user.is_superuser
 
     if is_admin:
         goals = SalesGoal.objects.select_related("seller").all()
@@ -973,7 +973,7 @@ def goals_list(request):
 @require_http_methods(["POST"])
 def goal_create(request):
     user = request.user
-    is_admin = user.role in (Role.ADMIN, Role.OWNER) or user.is_superuser
+    is_admin = user.role == Role.ADMIN or user.is_superuser
     if not is_admin:
         messages.error(request, "Apenas administradores podem criar metas.")
         return redirect("core:goals_list")
