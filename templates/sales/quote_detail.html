@@ -304,6 +304,9 @@
               <a href="{% url 'sales:quote_simulate' quote.id %}" class="btn-a dark">
                 <i class="fa-solid fa-calculator"></i>Simular / Condições
               </a>
+              <a href="{% url 'sales:quote_reminders' quote.id %}" class="btn-a secondary">
+                <i class="fa-solid fa-bell"></i>Lembretes Manuais
+              </a>
               <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-a primary" target="_blank">
                 <i class="fa-solid fa-file-pdf"></i>PDF Cliente
               </a>

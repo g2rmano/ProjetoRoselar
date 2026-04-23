@@ -1,0 +1,254 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lembretes | Orçamento #{{ quote.number }} | Roselar</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+    <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+      :root {
+        --brand: #0A2640;
+        --brand-l: #163a5a;
+        --bg: #f4f6f9;
+        --surface: #ffffff;
+        --muted: #6c757d;
+        --border: #dee2e6;
+        --ok: #198754;
+        --warn: #e67e22;
+        --shadow: 0 1px 4px rgba(0,0,0,.06);
+      }
+      body { font-family: 'Manrope', sans-serif; background: var(--bg); }
+      .cardx {
+        background: var(--surface);
+        border: 1px solid rgba(0,0,0,.05);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+      }
+      .btn-a {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .55rem 1rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 700;
+        font-size: .85rem;
+        text-decoration: none;
+      }
+      .btn-brand { background: var(--brand); color: #fff; }
+      .btn-brand:hover { color: #fff; background: var(--brand-l); }
+      .btn-ok { background: var(--ok); color: #fff; }
+      .btn-ok:hover { color: #fff; background: #146c43; }
+      .btn-soft { background: #fff; color: var(--brand); border: 1.5px solid var(--border); }
+      .btn-soft:hover { color: var(--brand); background: #f8f9fa; }
+      .row-reminder {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: .9rem;
+        background: #fbfcfd;
+      }
+      .field-label {
+        font-size: .72rem;
+        color: var(--muted);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+      }
+      .badge-type {
+        background: #e3f2fd;
+        color: #0c5276;
+        border-radius: 999px;
+        font-size: .68rem;
+        font-weight: 700;
+        padding: .2rem .55rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="main" id="top">
+      <section class="py-5" style="min-height:100vh;">
+        <div style="position:absolute;top:0;left:0;right:0;height:30vh;background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
+
+        <div class="container" style="margin-top:80px;max-width:980px;">
+          <div class="cardx mb-3 p-3 p-md-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div>
+                <h4 class="mb-1" style="font-weight:800;color:var(--brand);">Lembretes Manuais</h4>
+                <div style="font-size:.86rem;color:var(--muted);">
+                  Orçamento #{{ quote.number }} - {{ quote.customer.name }}
+                </div>
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-a btn-soft">
+                  <i class="fa-solid fa-arrow-left"></i>Voltar ao Orçamento
+                </a>
+                <a href="{% url 'calendar_app:calendar' %}" class="btn-a btn-brand">
+                  <i class="fa-solid fa-calendar"></i>Calendário
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+
+          <div class="cardx mb-3 p-3 p-md-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="mb-0" style="font-weight:800;color:var(--brand);">Criar um ou mais lembretes</h5>
+              <button id="add-row" type="button" class="btn-a btn-soft">
+                <i class="fa-solid fa-plus"></i>Adicionar Linha
+              </button>
+            </div>
+
+            <form method="post">
+              {% csrf_token %}
+              <div id="rows-wrap" class="d-flex flex-column gap-2">
+                <div class="row-reminder">
+                  <div class="row g-2">
+                    <div class="col-md-4">
+                      <label class="field-label">Titulo</label>
+                      <input type="text" name="reminder_title[]" class="form-control" placeholder="Ex: Ligar para cliente">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="field-label">Data</label>
+                      <input type="date" name="reminder_date[]" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                      <label class="field-label">Horario</label>
+                      <input type="time" name="reminder_time[]" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="field-label">Descricao</label>
+                      <input type="text" name="reminder_description[]" class="form-control" placeholder="Opcional">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <button type="submit" class="btn-a btn-ok">
+                  <i class="fa-solid fa-floppy-disk"></i>Salvar Lembretes
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="cardx p-3 p-md-4">
+            <h5 class="mb-3" style="font-weight:800;color:var(--brand);">Lembretes ja cadastrados</h5>
+
+            {% if reminder_events %}
+              <div class="table-responsive">
+                <table class="table align-middle">
+                  <thead>
+                    <tr>
+                      <th>Titulo</th>
+                      <th>Data</th>
+                      <th>Horario</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for ev in reminder_events %}
+                      <tr>
+                        <td>
+                          <div style="font-weight:700;color:var(--brand);">{{ ev.title }}</div>
+                          {% if ev.description %}
+                            <div style="font-size:.82rem;color:var(--muted);">{{ ev.description }}</div>
+                          {% endif %}
+                        </td>
+                        <td>{{ ev.event_date|date:"d/m/Y" }}</td>
+                        <td>{% if ev.event_time %}{{ ev.event_time|time:"H:i" }}{% else %}-{% endif %}</td>
+                        <td>
+                          <span class="badge-type">{{ ev.get_status_display }}</span>
+                        </td>
+                        <td class="text-end">
+                          <a href="{% url 'calendar_app:event_detail' ev.id %}" class="btn-a btn-soft">
+                            <i class="fa-solid fa-eye"></i>Ver
+                          </a>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="alert alert-warning mb-0">
+                Nenhum lembrete manual cadastrado para este orçamento.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        const wrap = document.getElementById('rows-wrap');
+        const addBtn = document.getElementById('add-row');
+
+        function buildRow() {
+          const row = document.createElement('div');
+          row.className = 'row-reminder';
+          row.innerHTML = `
+            <div class="d-flex justify-content-end mb-2">
+              <button type="button" class="btn btn-sm btn-outline-danger remove-row">
+                <i class="fa-solid fa-xmark"></i> Remover
+              </button>
+            </div>
+            <div class="row g-2">
+              <div class="col-md-4">
+                <label class="field-label">Titulo</label>
+                <input type="text" name="reminder_title[]" class="form-control" placeholder="Ex: Retornar proposta">
+              </div>
+              <div class="col-md-3">
+                <label class="field-label">Data</label>
+                <input type="date" name="reminder_date[]" class="form-control">
+              </div>
+              <div class="col-md-2">
+                <label class="field-label">Horario</label>
+                <input type="time" name="reminder_time[]" class="form-control">
+              </div>
+              <div class="col-md-3">
+                <label class="field-label">Descricao</label>
+                <input type="text" name="reminder_description[]" class="form-control" placeholder="Opcional">
+              </div>
+            </div>
+          `;
+          return row;
+        }
+
+        addBtn.addEventListener('click', function () {
+          wrap.appendChild(buildRow());
+        });
+
+        wrap.addEventListener('click', function (event) {
+          const btn = event.target.closest('.remove-row');
+          if (!btn) return;
+          const row = btn.closest('.row-reminder');
+          if (!row) return;
+          row.remove();
+        });
+      })();
+    </script>
+  </body>
+</html>

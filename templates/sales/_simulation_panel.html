@@ -34,10 +34,14 @@
                 <div class="slider-box">
                   <div class="slider-row">
                     <span class="s-min">0%</span>
-                    <span class="s-cur" id="lbl-discount"
-                          style="{% if discount_percent > 0 %}color:var(--red);background:#fce4ec;{% else %}color:var(--brand);background:var(--bg);{% endif %}">
-                      {% if discount_percent > 0 %}-{{ discount_percent }}%{% else %}Sem desconto{% endif %}
-                    </span>
+                    <div class="d-flex align-items-center gap-1">
+                      <input type="number" id="discount-input"
+                             min="0" max="{{ max_discount_allowed|floatformat:1 }}" step="0.1"
+                             value="{{ discount_percent|floatformat:1 }}"
+                             class="form-control form-control-sm"
+                             style="width:88px;text-align:right;font-weight:700;">
+                      <span class="s-max" style="font-size:.8rem;">%</span>
+                    </div>
                     <span class="s-max" id="lbl-max-discount">{{ max_discount_allowed|floatformat:0 }}%</span>
                   </div>
                   <input type="range" class="sl-disc" id="discount-slider"
@@ -79,10 +83,14 @@
                   <div class="slider-box">
                     <div class="slider-row">
                       <span class="s-min">0%</span>
-                      <span class="s-cur" id="lbl-increase"
-                            style="{% if price_increase_pct > 0 %}color:var(--green);background:#e8f5e9;{% else %}color:var(--brand);background:var(--bg);{% endif %}">
-                        {% if price_increase_pct > 0 %}+{{ price_increase_pct }}%{% else %}Sem ajuste{% endif %}
-                      </span>
+                      <div class="d-flex align-items-center gap-1">
+                        <input type="number" id="increase-input"
+                               min="0" max="30" step="0.1"
+                               value="{{ price_increase_pct|floatformat:1 }}"
+                               class="form-control form-control-sm"
+                               style="width:88px;text-align:right;font-weight:700;">
+                        <span class="s-max" style="font-size:.8rem;">%</span>
+                      </div>
                       <span class="s-max">30%</span>
                     </div>
                     <input type="range" class="sl-inc" id="increase-slider"
@@ -445,25 +453,55 @@
                   Salvar Condições no Orçamento
                 </button>
                 {% endif %}
+                {% if not quote_actions_unlocked %}
+                <div class="sim-msg warn" style="margin:0;">
+                  <i class="fa-solid fa-lock"></i>
+                  <div>
+                    Salve as condições primeiro para liberar: PDF Cliente, PDF Fornecedor, Editar e Ver Orçamento.
+                  </div>
+                </div>
+                {% endif %}
                 <div class="d-flex gap-2">
-                  <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-a secondary flex-fill" target="_blank"
-                     style="justify-content:center;font-size:.82rem;">
-                    <i class="fa-solid fa-file-pdf"></i>PDF Cliente
-                  </a>
-                  <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-a secondary flex-fill" target="_blank"
-                     style="justify-content:center;font-size:.82rem;">
-                    <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
-                  </a>
+                  {% if quote_actions_unlocked %}
+                    <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-a secondary flex-fill" target="_blank"
+                       style="justify-content:center;font-size:.82rem;">
+                      <i class="fa-solid fa-file-pdf"></i>PDF Cliente
+                    </a>
+                    <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-a secondary flex-fill" target="_blank"
+                       style="justify-content:center;font-size:.82rem;">
+                      <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
+                    </a>
+                  {% else %}
+                    <button type="button" class="btn-a secondary flex-fill" disabled
+                            style="justify-content:center;font-size:.82rem;opacity:.55;cursor:not-allowed;">
+                      <i class="fa-solid fa-file-pdf"></i>PDF Cliente
+                    </button>
+                    <button type="button" class="btn-a secondary flex-fill" disabled
+                            style="justify-content:center;font-size:.82rem;opacity:.55;cursor:not-allowed;">
+                      <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
+                    </button>
+                  {% endif %}
                 </div>
                 <div class="d-flex gap-2">
-                  <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-a secondary flex-fill"
-                     style="justify-content:center;font-size:.82rem;">
-                    <i class="fa-solid fa-pencil"></i>Editar
-                  </a>
-                  <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-a secondary flex-fill"
-                     style="justify-content:center;font-size:.82rem;">
-                    <i class="fa-solid fa-eye"></i>Ver Orçamento
-                  </a>
+                  {% if quote_actions_unlocked %}
+                    <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-a secondary flex-fill"
+                       style="justify-content:center;font-size:.82rem;">
+                      <i class="fa-solid fa-pencil"></i>Editar
+                    </a>
+                    <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-a secondary flex-fill"
+                       style="justify-content:center;font-size:.82rem;">
+                      <i class="fa-solid fa-eye"></i>Ver Orçamento
+                    </a>
+                  {% else %}
+                    <button type="button" class="btn-a secondary flex-fill" disabled
+                            style="justify-content:center;font-size:.82rem;opacity:.55;cursor:not-allowed;">
+                      <i class="fa-solid fa-pencil"></i>Editar
+                    </button>
+                    <button type="button" class="btn-a secondary flex-fill" disabled
+                            style="justify-content:center;font-size:.82rem;opacity:.55;cursor:not-allowed;">
+                      <i class="fa-solid fa-eye"></i>Ver Orçamento
+                    </button>
+                  {% endif %}
                 </div>
               </div>
             </div>
@@ -533,29 +571,48 @@ function hideMarginToast() {
 
 function onDiscountChange(val) {
   val = parseFloat(val);
+  if (isNaN(val)) val = 0;
+  var sl = document.getElementById('discount-slider');
+  var maxD = parseFloat(sl.max) || 30;
+  val = Math.max(0, Math.min(maxD, val));
+  val = Math.round(val * 10) / 10;
+  sl.value = val;
+  var di = document.getElementById('discount-input');
+  if (di) di.value = val.toFixed(1);
   document.getElementById('h-discount').value = val.toFixed(1);
   document.getElementById('live-discount-val').textContent = val.toFixed(1) + '%';
-  var lbl = document.getElementById('lbl-discount');
-  if (val > 0) {
-    lbl.textContent = '-' + val.toFixed(1) + '%';
-    lbl.style.color = 'var(--red)'; lbl.style.background = '#fce4ec';
-  } else {
-    lbl.textContent = 'Sem desconto';
-    lbl.style.color = 'var(--brand)'; lbl.style.background = 'var(--bg)';
-  }
 }
 
 function onIncreaseChange(val) {
   val = parseFloat(val);
+  if (isNaN(val)) val = 0;
+  var sl = document.getElementById('increase-slider');
+  val = Math.max(0, Math.min(30, val));
+  val = Math.round(val * 10) / 10;
+  sl.value = val;
+  var ii = document.getElementById('increase-input');
+  if (ii) ii.value = val.toFixed(1);
   document.getElementById('h-price-inc').value = val.toFixed(1);
-  var lbl = document.getElementById('lbl-increase');
-  if (val > 0) {
-    lbl.textContent = '+' + val.toFixed(1) + '%';
-    lbl.style.color = 'var(--green)'; lbl.style.background = '#e8f5e9';
-  } else {
-    lbl.textContent = 'Sem ajuste';
-    lbl.style.color = 'var(--brand)'; lbl.style.background = 'var(--bg)';
-  }
+}
+
+function onDiscountInputEdit() {
+  var di = document.getElementById('discount-input');
+  if (!di) return;
+  var raw = String(di.value || '').replace(',', '.');
+  var val = parseFloat(raw);
+  if (isNaN(val)) return;
+  onDiscountChange(val);
+  scheduleSubmit();
+}
+
+function onIncreaseInputEdit() {
+  var ii = document.getElementById('increase-input');
+  if (!ii) return;
+  var raw = String(ii.value || '').replace(',', '.');
+  var val = parseFloat(raw);
+  if (isNaN(val)) return;
+  onIncreaseChange(val);
+  scheduleSubmit();
 }
 
 function onInstChange(val) {
@@ -659,6 +716,8 @@ function applyZones(html) {
     var sl   = document.getElementById('discount-slider');
     sl.max = maxD;
     if (parseFloat(sl.value) > maxD) { sl.value = clD; onDiscountChange(clD); }
+    var di = document.getElementById('discount-input');
+    if (di) di.max = maxD.toFixed(1);
     var lm = document.getElementById('lbl-max-discount');
     if (lm) lm.textContent = Math.round(maxD) + '%';
     if (sd.dataset.targetMode === '1') {
@@ -832,6 +891,22 @@ function resetSimulation() {
   document.getElementById('h-architect-id').value = '{{ sim_architect_id }}';
   document.getElementById('discount-slider').value = initDiscount;
   document.getElementById('increase-slider').value = initPriceInc;
+  var discountInput = document.getElementById('discount-input');
+  if (discountInput) {
+    discountInput.value = initDiscount.toFixed(1);
+    discountInput.addEventListener('input', onDiscountInputEdit);
+    discountInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); onDiscountInputEdit(); }
+    });
+  }
+  var increaseInput = document.getElementById('increase-input');
+  if (increaseInput) {
+    increaseInput.value = initPriceInc.toFixed(1);
+    increaseInput.addEventListener('input', onIncreaseInputEdit);
+    increaseInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); onIncreaseInputEdit(); }
+    });
+  }
   rebuildInstOptions();
   document.getElementById('inst-select').value = initInstall;
   document.getElementById('inst-dropdown-row').style.display =
