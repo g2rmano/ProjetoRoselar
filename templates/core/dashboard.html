@@ -137,7 +137,7 @@
                 <div class="col-4"><div class="metric-card py-2 px-2 text-center"><div class="label">Orcamentos</div><div class="value" style="font-size:1.1rem;">{{ team_quotes_month }}</div></div></div>
                 <div class="col-4"><div class="metric-card py-2 px-2 text-center"><div class="label">Conversao</div><div class="value" style="font-size:1.1rem;">{{ team_conversion_rate }}%</div></div></div>
               </div>
-              {% if collective_goal %}<div class="d-flex justify-content-between mb-1"><span class="fw-bold small" style="color:var(--brand);">Meta Coletiva: R$ {{ collective_goal.target_value|floatformat:0 }}</span><span style="color:var(--gray);font-size:.8rem;">{{ collective_goal_pct }}%</span></div><div class="goal-bar"><div class="fill" style="width:{{ collective_goal_pct }}%;"></div></div>{% endif %}
+              {% if collective_goal %}<div class="d-flex justify-content-between mb-1"><span class="fw-bold small" style="color:var(--brand);">Meta Coletiva: R$ {{ collective_goal|floatformat:0 }}</span><span style="color:var(--gray);font-size:.8rem;">{{ collective_goal_pct }}%</span></div><div class="goal-bar"><div class="fill" style="width:{{ collective_goal_pct }}%;"></div></div>{% endif %}
             </div>
           </div>
           <div class="col-lg-6">

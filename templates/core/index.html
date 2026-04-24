@@ -367,7 +367,7 @@
                 <div class="kpi-label"><i class="fa-solid fa-bullseye me-1"></i>Meta Coletiva</div>
                 <div class="kpi-val {% if collective_goal_pct >= 100 %}green{% endif %}">{{ collective_goal_pct }}%</div>
                 <div class="kpi-goal-bar mt-1"><div class="fill" style="width:{{ collective_goal_pct }}%;"></div></div>
-                <div class="kpi-sub mt-1">R$ {{ team_total_sold_month|floatformat:0 }} / R$ {{ collective_goal.target_value|floatformat:0 }}</div>
+                <div class="kpi-sub mt-1">R$ {{ team_total_sold_month|floatformat:0 }} / R$ {{ collective_goal|floatformat:0 }}</div>
                 {% else %}
                 <div class="kpi-label"><i class="fa-solid fa-bullseye me-1"></i>Meta Coletiva</div>
                 <div class="kpi-val" style="font-size:1rem;color:#9ca3af;">Não definida</div>

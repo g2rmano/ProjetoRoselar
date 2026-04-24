@@ -233,12 +233,16 @@ def home(request):
                  for _b in _buckets.values()],
                 key=lambda x: x["total"], reverse=True,
             )[:10]
-            collective_goal = SalesGoal.objects.filter(
-                goal_type=GoalType.COLLECTIVE, period_start__lte=today, period_end__gte=today,
-            ).first()
-            if collective_goal and collective_goal.target_value:
+            _collective_goal_sum = SalesGoal.objects.filter(
+                goal_type=GoalType.INDIVIDUAL,
+                period_start__lte=today,
+                period_end__gte=today,
+                seller__role=Role.SELLER,
+            ).aggregate(total=Sum("target_value"))["total"] or Decimal("0")
+            collective_goal = _collective_goal_sum if _collective_goal_sum > 0 else None
+            if collective_goal:
                 collective_goal_pct = round(
-                    float(team_total_sold_month) / float(collective_goal.target_value) * 100, 1
+                    float(team_total_sold_month) / float(collective_goal) * 100, 1
                 )
 
             # ── BI: Team monthly evolution (last 6 months) — net values ──
@@ -430,15 +434,17 @@ def dashboard(request):
             key=lambda x: x["total"], reverse=True,
         )[:10]
 
-        # Collective goal
-        collective_goal = SalesGoal.objects.filter(
-            goal_type=GoalType.COLLECTIVE,
+        # Collective goal = sum of individual seller goals
+        _collective_goal_sum = SalesGoal.objects.filter(
+            goal_type=GoalType.INDIVIDUAL,
             period_start__lte=today,
             period_end__gte=today,
-        ).first()
-        if collective_goal and collective_goal.target_value:
+            seller__role=Role.SELLER,
+        ).aggregate(total=Sum("target_value"))["total"] or Decimal("0")
+        collective_goal = _collective_goal_sum if _collective_goal_sum > 0 else None
+        if collective_goal:
             collective_goal_pct = round(
-                float(team_total_sold_month) / float(collective_goal.target_value) * 100, 1
+                float(team_total_sold_month) / float(collective_goal) * 100, 1
             )
 
     # ── Monthly evolution (last 6 months) — net values ──
