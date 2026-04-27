@@ -513,10 +513,10 @@
             <div class="alert-convert fi fi-5">
               <div class="ac-text">
                 <i class="fa-solid fa-info-circle me-2"></i>
-                <strong>Pronto para converter?</strong> Transforme este orçamento em pedidos por fornecedor.
+                <strong>Pronto para converter?</strong> Transforme este orçamento em pedido — o financeiro receberá uma notificação para baixar os PDFs dos fornecedores e definir a data de entrega.
               </div>
               <button type="button" class="btn-a primary" data-bs-toggle="modal" data-bs-target="#convertModal">
-                <i class="fa-solid fa-exchange-alt"></i>Converter em Pedidos
+                <i class="fa-solid fa-exchange-alt"></i>Converter em Pedido
               </button>
             </div>
 
@@ -526,32 +526,26 @@
                 <div class="modal-content">
                   <div class="modal-header s-modal-hdr">
                     <h5 class="modal-title" id="convertModalLabel" style="font-weight:800;font-size:.95rem;">
-                      <i class="fa-solid fa-exchange-alt me-2"></i>Converter em Pedidos
+                      <i class="fa-solid fa-exchange-alt me-2"></i>Converter em Pedido
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                   </div>
                   <form method="post" action="{% url 'sales:quote_convert' quote.id %}">
                     {% csrf_token %}
                     <div class="modal-body">
-                      <p style="font-size:.86rem;color:var(--muted);margin-bottom:1rem;">
-                        Defina a <strong style="color:var(--brand);">data real de entrega</strong> acordada com o cliente antes de confirmar.
+                      <p style="font-size:.86rem;color:var(--muted);margin-bottom:.75rem;">
+                        Confirme a conversão do orçamento <strong style="color:var(--brand);">{{ quote.number }}</strong> em pedido.
                       </p>
-                      <div class="mb-3">
-                        <label for="real-delivery-date" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.3rem;display:block;">
-                          Data Real de Entrega <span style="color:var(--red);">*</span>
-                        </label>
-                        <input type="date" id="real-delivery-date" name="delivery_deadline"
-                               class="form-control" required
-                               min="{{ today|date:'Y-m-d' }}">
-                        <small style="font-size:.78rem;color:var(--muted);">
-                          Prazo estimado no orçamento:
-                          {% if quote.delivery_weeks %}
-                            <strong>{{ quote.delivery_weeks }} semana{% if quote.delivery_weeks > 1 %}s{% endif %}</strong>
-                          {% else %}
-                            <em>não definido</em>
-                          {% endif %}
-                        </small>
+                      <div style="background:#f0f7ff;border-radius:8px;padding:.75rem 1rem;font-size:.82rem;color:#0c5276;border:1px solid #b6d8f2;">
+                        <i class="fa-solid fa-circle-info me-2"></i>
+                        Após a conversão, o <strong>financeiro</strong> receberá uma notificação, baixará os PDFs de compra para cada fornecedor e definirá a data de entrega — gerando lembretes automáticos para você e para ele.
                       </div>
+                      {% if quote.delivery_weeks %}
+                        <div style="margin-top:.65rem;font-size:.81rem;color:var(--muted);">
+                          <i class="fa-solid fa-clock me-1"></i>Prazo estimado no orçamento:
+                          <strong>{{ quote.delivery_weeks }} semana{% if quote.delivery_weeks > 1 %}s{% endif %}</strong>
+                        </div>
+                      {% endif %}
                     </div>
                     <div class="modal-footer">
                       <button type="button" class="btn-a secondary" data-bs-dismiss="modal">Cancelar</button>

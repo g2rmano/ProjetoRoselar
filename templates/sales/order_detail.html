@@ -161,6 +161,12 @@
       .action-btns { flex-direction: column; }
       .action-btns .btn-a { width: 100%; justify-content: center; }
     }
+
+    .s-modal-hdr {
+      background: var(--brand); color: #fff;
+      border-bottom: none; border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .s-modal-hdr .btn-close-white { filter: invert(1) grayscale(100%) brightness(200%); }
   </style>
 </head>
 <body>
@@ -267,6 +273,95 @@
             </div>
           </div>
         </div>
+
+        {% if order.is_total_conference and can_set_delivery %}
+        <!-- ═══ PAINEL FINANCEIRO ═══ -->
+        <div class="s-card fi fi-2" style="border-left:3px solid var(--orange);">
+          <div class="s-hdr">
+            <div class="s-icon orange"><i class="fa-solid fa-star"></i></div>
+            Ações do Financeiro
+          </div>
+          <div class="s-body">
+
+            {% if not order.delivery_deadline %}
+              <div style="background:#fff8f0;border:1px solid #f5c27a;border-radius:8px;padding:.7rem 1rem;font-size:.84rem;color:#7a4f00;margin-bottom:1rem;">
+                <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                <strong>Data de entrega não definida.</strong> Baixe os PDFs dos fornecedores, faça os pedidos e depois defina a data de entrega para o cliente.
+              </div>
+            {% else %}
+              <div style="background:#e8f5e9;border:1px solid #a3cfbb;border-radius:8px;padding:.7rem 1rem;font-size:.84rem;color:#0f5132;margin-bottom:1rem;">
+                <i class="fa-solid fa-circle-check me-2"></i>
+                Data de entrega definida: <strong>{{ order.delivery_deadline|date:"d/m/Y" }}</strong>
+                <span style="font-size:.78rem;color:var(--muted);margin-left:.5rem;">— clique para alterar</span>
+              </div>
+            {% endif %}
+
+            <div class="d-flex flex-wrap gap-2">
+              <!-- Botões de PDF por fornecedor -->
+              {% for sup_order in supplier_orders %}
+                <a href="{% url 'sales:order_pdf' sup_order.id %}" class="btn-a dark" target="_blank">
+                  <i class="fa-solid fa-file-pdf"></i>PDF — {{ sup_order.supplier.name }}
+                </a>
+              {% empty %}
+                <span style="font-size:.82rem;color:var(--muted);">Nenhum pedido por fornecedor encontrado.</span>
+              {% endfor %}
+
+              <!-- Botão definir data de entrega -->
+              <button type="button" class="btn-a primary" data-bs-toggle="modal" data-bs-target="#deliveryModal">
+                <i class="fa-solid fa-calendar-check"></i>
+                {% if order.delivery_deadline %}Alterar Data de Entrega{% else %}Definir Data de Entrega{% endif %}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal: definir/alterar data de entrega -->
+        <div class="modal fade" id="deliveryModal" tabindex="-1" aria-labelledby="deliveryModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header s-modal-hdr">
+                <h5 class="modal-title" id="deliveryModalLabel" style="font-weight:800;font-size:.95rem;">
+                  <i class="fa-solid fa-calendar-check me-2"></i>
+                  {% if order.delivery_deadline %}Alterar Data de Entrega{% else %}Definir Data de Entrega{% endif %}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <form method="post" action="{% url 'sales:order_set_delivery' order.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                  <p style="font-size:.86rem;color:var(--muted);margin-bottom:1rem;">
+                    Pedido <strong style="color:var(--brand);">{{ order.number }}</strong> — {{ order.quote.customer.name }}
+                  </p>
+                  <div class="mb-3">
+                    <label for="delivery-date-input" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.3rem;display:block;">
+                      Data de Entrega <span style="color:var(--red);">*</span>
+                    </label>
+                    <input type="date" id="delivery-date-input" name="delivery_deadline"
+                           class="form-control" required
+                           value="{{ order.delivery_deadline|date:'Y-m-d' }}">
+                    {% if order.quote.delivery_weeks %}
+                      <small style="font-size:.78rem;color:var(--muted);">
+                        <i class="fa-solid fa-clock me-1"></i>Prazo estimado no orçamento:
+                        <strong>{{ order.quote.delivery_weeks }} semana{% if order.quote.delivery_weeks > 1 %}s{% endif %}</strong>
+                      </small>
+                    {% endif %}
+                  </div>
+                  <div style="background:#f0f7ff;border-radius:8px;padding:.65rem .9rem;font-size:.82rem;color:#0c5276;border:1px solid #b6d8f2;">
+                    <i class="fa-solid fa-bell me-2"></i>
+                    Será criado um lembrete automático para o <strong>vendedor {{ order.quote.seller.get_full_name|default:order.quote.seller.username }}</strong> e para você com os detalhes da venda.
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn-a secondary" data-bs-dismiss="modal">Cancelar</button>
+                  <button type="submit" class="btn-a primary">
+                    <i class="fa-solid fa-check"></i>Confirmar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endif %}
 
         <!-- ═══ INFO CARDS ═══ -->
         <div class="row g-3">

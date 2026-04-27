@@ -1,1 +1,18 @@
 /* User-defined custom styles */
+
+/*
+ * Navbar mobile: quando o menu (collapse) está aberto num ecrã pequeno,
+ * garante que o fundo seja sempre navy sólido — evita ícones brancos
+ * invisíveis contra o fundo claro da página quando o theme.js ainda
+ * não aplicou o bg-dark via JS (condição de corrida no scroll position 0).
+ */
+@media (max-width: 991.98px) {
+  [data-navbar-on-scroll].navbar-dark .navbar-collapse.show,
+  [data-navbar-on-scroll].navbar-dark .navbar-collapse.collapsing {
+    background-color: #0A2640 !important;
+    padding: .5rem 0 .75rem;
+    margin: 0;
+    border-radius: 0 0 8px 8px;
+  }
+}
+

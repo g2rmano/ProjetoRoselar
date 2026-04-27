@@ -618,11 +618,8 @@ def quote_reminders(request: HttpRequest, quote_id: int) -> HttpResponse:
 @require_http_methods(["POST"])
 def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse:
     """
-    Converte orçamento -> pedidos (por fornecedor + 1 total).
-    TUDO dentro da view, porém sem cagada:
-      - usa transaction.atomic
-      - valida antes
-      - bulk_create de itens
+    Converte orçamento -> pedido (por fornecedor + 1 total de conferência).
+    O vendedor converte sem data de entrega — o financeiro define depois.
     """
     quote = get_object_or_404(
         Quote.objects.prefetch_related("items", "items__supplier"),
@@ -631,17 +628,6 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
     if not _is_staff_or_admin(request.user) and quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:quote_list")
-
-    # Parse the required real delivery date from the modal form
-    delivery_deadline_str = request.POST.get("delivery_deadline", "").strip()
-    try:
-        real_deadline = date_type.fromisoformat(delivery_deadline_str) if delivery_deadline_str else None
-    except ValueError:
-        real_deadline = None
-
-    if not real_deadline:
-        messages.error(request, "Data real de entrega é obrigatória para converter o orçamento.")
-        return redirect("sales:quote_detail", quote_id=quote_id)
 
     try:
         with transaction.atomic():
@@ -670,7 +656,7 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
 
             created_orders: list[Order] = []
 
-            # 4) criar pedido por fornecedor
+            # 4) criar pedido por fornecedor (sem data de entrega — financeiro define depois)
             for supplier_id, supplier_items in by_supplier.items():
                 order = Order.objects.create(
                     number=quote.number,
@@ -678,7 +664,7 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                     supplier_id=supplier_id,
                     is_total_conference=False,
                     status="OPEN",
-                    delivery_deadline=real_deadline,
+                    delivery_deadline=None,
                 )
                 created_orders.append(order)
 
@@ -688,7 +674,7 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                         product_name=it.product_name,
                         description=it.description,
                         quantity=it.quantity,
-                        purchase_unit_cost=it.unit_value,  # se não quiser custo agora: Decimal("0.00")
+                        purchase_unit_cost=it.unit_value,
                         quote_item=it,
                     )
                     for it in supplier_items
@@ -701,7 +687,7 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                 supplier=None,
                 is_total_conference=True,
                 status="OPEN",
-                delivery_deadline=real_deadline,
+                delivery_deadline=None,
             )
 
             OrderItem.objects.bulk_create([
@@ -730,7 +716,6 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                 )
 
                 from django.contrib.auth import get_user_model
-
                 User = get_user_model()
                 recipients = [
                     user for user in User.objects.filter(is_active=True)
@@ -767,37 +752,41 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                     except Exception:
                         pass
             imgs.delete()
-        
-        # 8) Gerar PDFs para cada fornecedor (fora da transação, após commit)
-        pdf_count = 0
-        for order in created_orders:
-            if not order.is_total_conference and order.supplier:
-                try:
-                    # Generate PDF for this supplier order
-                    # We'll create the PDF and save it temporarily
-                    # (In the future, you might want to save these to disk or send via email)
-                    pdf_count += 1
-                except Exception as e:
-                    # Log error but don't fail the entire conversion
-                    messages.warning(request, f"Erro ao gerar PDF para {order.supplier.name}: {str(e)}")
 
-        success_msg = f"Orçamento {quote.number} convertido em {len(created_orders)} pedidos."
-        if pdf_count > 0:
-            success_msg += f" {pdf_count} PDF(s) disponível(is) para download."
-
-        # Audit log + notification
+        # Audit log + notificação para todos os financeiros/admins (para processarem o pedido)
         from core.models import AuditLog, AuditAction, Notification, NotificationType
         AuditLog.log(request.user, AuditAction.CONVERT_ORDER,
-                     f"Orçamento {quote.number} convertido em {len(created_orders)} pedidos", obj=quote,
+                     f"Orçamento {quote.number} convertido em pedido", obj=quote,
                      ip_address=request.META.get('REMOTE_ADDR'))
-        Notification.send(
-            quote.seller, f"Pedido confirmado: {quote.number}",
-            NotificationType.ORDER_CONFIRMED,
-            message=f"Orçamento {quote.number} convertido em pedidos.",
-            url=f"/sales/quotes/{quote.id}/",
-        )
 
-        messages.success(request, success_msg)
+        # Notifica o próprio vendedor
+        if quote.seller != request.user:
+            Notification.send(
+                quote.seller,
+                f"Pedido gerado: {quote.number}",
+                NotificationType.ORDER_CONFIRMED,
+                message=f"Orçamento {quote.number} (cliente: {quote.customer.name}) foi convertido em pedido.",
+                url=f"/sales/quotes/{quote.id}/",
+            )
+
+        # Notifica financeiros/admins para processarem (baixar PDFs e definir data de entrega)
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        for finance_user in User.objects.filter(is_active=True):
+            if _can_view_all_orders(finance_user) and finance_user != request.user:
+                Notification.send(
+                    finance_user,
+                    f"Novo pedido aguardando: {quote.number}",
+                    NotificationType.ORDER_CONFIRMED,
+                    message=(
+                        f"Orçamento {quote.number} (cliente: {quote.customer.name}) "
+                        f"foi convertido em pedido pelo vendedor {request.user.get_full_name() or request.user.username}. "
+                        f"Baixe os PDFs dos fornecedores e defina a data de entrega."
+                    ),
+                    url=f"/sales/orders/",
+                )
+
+        messages.success(request, f"Orçamento {quote.number} convertido em pedido. O financeiro definirá a data de entrega.")
         return redirect("sales:quote_detail", quote_id=quote.id)
 
     except ValidationError as e:
@@ -1553,9 +1542,131 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         'total': total,
         'is_seller': _is_seller(request.user),
         'can_generate_order_pdf': _can_generate_order_pdf(request.user),
+        'can_set_delivery': _can_generate_order_pdf(request.user),  # financeiro/admin
+        # lista pedidos por fornecedor do mesmo orçamento (para o financeiro baixar PDFs)
+        'supplier_orders': (
+            order.quote.orders.select_related('supplier')
+                               .filter(is_total_conference=False)
+                               .order_by('supplier__name')
+            if order.is_total_conference else None
+        ),
     }
-    
+
     return render(request, 'sales/order_detail.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def order_set_delivery(request: HttpRequest, order_id: int) -> HttpResponse:
+    """
+    Financeiro define a data de entrega estimada do pedido.
+    Só pode ser chamado sobre o pedido total (is_total_conference=True).
+    Propaga a data para todos os pedidos por fornecedor do mesmo orçamento
+    e cria lembretes automáticos para o vendedor e para o financeiro.
+    """
+    order = get_object_or_404(
+        Order.objects.select_related('quote', 'quote__customer', 'quote__seller'),
+        pk=order_id,
+    )
+    if not _can_generate_order_pdf(request.user):
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:order_list")
+
+    if not order.is_total_conference:
+        messages.error(request, "A data de entrega deve ser definida no pedido total.")
+        return redirect("sales:order_detail", order_id=order.id)
+
+    delivery_str = request.POST.get("delivery_deadline", "").strip()
+    try:
+        delivery_date = date_type.fromisoformat(delivery_str) if delivery_str else None
+    except ValueError:
+        delivery_date = None
+
+    if not delivery_date:
+        messages.error(request, "Data de entrega inválida.")
+        return redirect("sales:order_detail", order_id=order.id)
+
+    quote = order.quote
+    seller_name = quote.seller.get_full_name() or quote.seller.username
+    customer_name = quote.customer.name
+
+    # Conta os itens para o resumo
+    item_count = order.items.count()
+    subtotal = sum(it.line_total for it in order.items.all())
+    subtotal_fmt = f"R$ {float(subtotal):,.2f}".replace(',', '\x00').replace('.', ',').replace('\x00', '.')
+
+    # Propaga a data para todos os pedidos do orçamento
+    Order.objects.filter(quote=quote).update(delivery_deadline=delivery_date)
+
+    # Cria lembretes de entrega no calendário para o vendedor e para o financeiro
+    from core.models import AuditLog, AuditAction, Notification, NotificationType
+
+    reminder_title = f"Entrega prevista — {quote.number} | {customer_name}"
+    reminder_description = (
+        f"Pedido {quote.number}\n"
+        f"Cliente: {customer_name}\n"
+        f"Vendedor: {seller_name}\n"
+        f"Itens: {item_count} | Total: {subtotal_fmt}\n"
+        f"Data de entrega definida por: {request.user.get_full_name() or request.user.username}"
+    )
+
+    recipients = set()
+    recipients.add(quote.seller)    # sempre o vendedor que fechou a venda
+    recipients.add(request.user)    # o financeiro que está definindo a data
+
+    for recipient in recipients:
+        event, _ = CalendarEvent.objects.get_or_create(
+            quote=quote,
+            order=order,
+            event_type=EventType.DELIVERY,
+            assigned_to=recipient,
+            defaults={
+                "title": reminder_title,
+                "description": reminder_description,
+                "status": EventStatus.PENDING,
+                "event_date": delivery_date,
+                "customer": quote.customer,
+            },
+        )
+        # Atualiza data se o evento já existia (caso re-definição)
+        if event.event_date != delivery_date:
+            event.event_date = delivery_date
+            event.description = reminder_description
+            event.save(update_fields=["event_date", "description"])
+
+        Reminder.objects.get_or_create(
+            event=event,
+            defaults={
+                "remind_date": delivery_date,
+                "message": reminder_title,
+            },
+        )
+
+        Notification.send(
+            recipient,
+            f"Entrega agendada: {quote.number}",
+            NotificationType.DELIVERY_NEAR,
+            message=(
+                f"Data de entrega definida para {delivery_date.strftime('%d/%m/%Y')}.\n"
+                f"Cliente: {customer_name} | {item_count} itens | {subtotal_fmt}"
+            ),
+            url=f"/sales/orders/{order.id}/",
+        )
+
+    AuditLog.log(
+        request.user,
+        AuditAction.CONVERT_ORDER,
+        f"Data de entrega definida para {quote.number}: {delivery_date.strftime('%d/%m/%Y')}",
+        obj=quote,
+        ip_address=request.META.get('REMOTE_ADDR'),
+    )
+
+    messages.success(
+        request,
+        f"Data de entrega definida: {delivery_date.strftime('%d/%m/%Y')}. "
+        f"Lembretes criados para {quote.seller.get_full_name() or quote.seller.username} e para você."
+    )
+    return redirect("sales:order_detail", order_id=order.id)
 
 
 @login_required
