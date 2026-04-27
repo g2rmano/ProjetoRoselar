@@ -24,7 +24,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 
 logger = logging.getLogger(__name__)
@@ -1237,10 +1237,18 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
 
 @login_required
 def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
-    """Generate supplier-facing PDF for quote (simpler version)."""
+    """
+    Gera um PDF de pedido por fornecedor a partir do orçamento.
+    - Fornecedor único  → retorna o PDF diretamente.
+    - Múltiplos         → retorna ZIP com um PDF por fornecedor.
+    - Apenas o NOME do cliente é incluído (sem telefone/e-mail).
+    """
+    import zipfile as zipfile_mod
+
     quote = get_object_or_404(
-        Quote.objects.select_related("customer", "seller").prefetch_related("items", "items__supplier"),
-        id=quote_id
+        Quote.objects.select_related("customer", "seller")
+                     .prefetch_related("items", "items__supplier"),
+        id=quote_id,
     )
     if not _is_staff_or_admin(request.user) and quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
@@ -1248,131 +1256,238 @@ def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
     if not _is_admin(request.user):
         messages.error(request, "Apenas administradores podem baixar o PDF de fornecedor.")
         return redirect("sales:quote_detail", quote_id=quote.id)
-    
-    # Create PDF in memory
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm,
-                           topMargin=2*cm, bottomMargin=2*cm)
-    
-    # Container for PDF elements
-    elements = []
-    
-    # Styles
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=18,
-        textColor=colors.HexColor('#0A2640'),
-        spaceAfter=12,
-        alignment=TA_CENTER
-    )
-    
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=14,
-        textColor=colors.HexColor('#0A2640'),
-        spaceAfter=10,
-        spaceBefore=10
-    )
-    
-    normal_style = ParagraphStyle(
-        'CustomNormal',
-        parent=styles['Normal'],
-        fontSize=10,
-        leading=14
-    )
-    
-    # Title
-    elements.append(Paragraph("ROSELAR MÓVEIS - PEDIDO AO FORNECEDOR", title_style))
-    elements.append(Paragraph(f"Orçamento #{quote.number}", heading_style))
-    elements.append(Spacer(1, 0.5*cm))
-    
-    # Quote info
-    elements.append(Paragraph(f"<b>Data:</b> {quote.quote_date.strftime('%d/%m/%Y')}", normal_style))
-    elements.append(Paragraph(f"<b>Vendedor:</b> {quote.seller.username}", normal_style))
-    elements.append(Spacer(1, 0.5*cm))
-    
-    # Customer info  
-    elements.append(Paragraph("<b>Cliente:</b>", heading_style))
-    elements.append(Paragraph(f"Nome: {quote.customer.name}", normal_style))
-    if quote.customer.phone:
-        elements.append(Paragraph(f"Telefone: {quote.customer.phone}", normal_style))
-    elements.append(Spacer(1, 0.5*cm))
-    
-    # Items table
-    elements.append(Paragraph("<b>Itens do Pedido:</b>", heading_style))
-    elements.append(Spacer(1, 0.3*cm))
-    
-    # Create table data
-    table_data = [['#', 'Fornecedor', 'Produto', 'Descrição', 'Qtd', 'Valor Unit.', 'Total']]
-    
-    for idx, item in enumerate(quote.items.all(), 1):
-        supplier_name = item.supplier.name if item.supplier else 'N/A'
-        desc = item.description if item.description else '-'
-        if len(desc) > 50:
-            desc = desc[:50] + '...'
-        total_item = item.unit_value * item.quantity
-        
-        table_data.append([
-            str(idx),
-            supplier_name,
-            item.product_name,
-            desc,
-            str(item.quantity),
-            f"R$ {item.unit_value:,.2f}",
-            f"R$ {total_item:,.2f}"
-        ])
-    
-    # Create table
-    table = Table(table_data, colWidths=[1*cm, 3*cm, 3.5*cm, 4*cm, 1.5*cm, 2.5*cm, 2.5*cm])
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0A2640')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 8),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
-    
-    elements.append(table)
-    elements.append(Spacer(1, 0.5*cm))
-    
-    # Totals
-    subtotal = sum(item.unit_value * item.quantity for item in quote.items.all())
-    elements.append(Paragraph(f"<b>Subtotal dos Produtos:</b> R$ {subtotal:,.2f}", normal_style))
-    
-    if quote.freight_value:
-        elements.append(Paragraph(f"<b>Frete:</b> R$ {quote.freight_value:,.2f} ({quote.get_freight_responsible_display()})", normal_style))
-    
-    # Delivery weeks (estimated)
-    if quote.delivery_weeks:
-        elements.append(Spacer(1, 0.3*cm))
-        semanas = 'semana' if quote.delivery_weeks == 1 else 'semanas'
-        elements.append(Paragraph(f"<b>Prazo de Entrega Estimado:</b> {quote.delivery_weeks} {semanas}", normal_style))
-    
-    # Build PDF
-    try:
-        doc.build(elements)
-    except Exception:
-        logger.exception('Error generating supplier PDF for quote %s', quote.number)
-        raise
-    
-    # Get PDF from buffer
-    pdf = buffer.getvalue()
-    buffer.close()
-    
-    # Create response
-    response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = _safe_content_disposition(
-        f'orcamento_{quote.number}_fornecedor.pdf'
-    )
+
+    # ── helpers ───────────────────────────────────────────────
+    def _fmt_brl(value) -> str:
+        s = f"{float(value):,.2f}"
+        return s.replace(',', '\x00').replace('.', ',').replace('\x00', '.')
+
+    NAVY  = colors.HexColor('#0A2640')
+    LGRAY = colors.HexColor('#DDDDDD')
+    BGROW = colors.HexColor('#F8F9FA')
+    MUTED = colors.HexColor('#888888')
+    _styles = getSampleStyleSheet()
+
+    def _ps(name, **kw):
+        return ParagraphStyle(name, parent=_styles['Normal'], **kw)
+
+    def _make_pdf_for_supplier(supplier, items_for_supplier) -> bytes:
+        """Gera o binário de um PDF de pedido para um fornecedor específico."""
+        st_title   = _ps(f'{supplier.id}_title',  fontSize=15, fontName='Helvetica-Bold',
+                         textColor=NAVY, alignment=TA_CENTER, spaceAfter=2)
+        st_sub     = _ps(f'{supplier.id}_sub',    fontSize=9, textColor=MUTED,
+                         alignment=TA_CENTER, spaceAfter=0)
+        st_section = _ps(f'{supplier.id}_sec',    fontSize=9, fontName='Helvetica-Bold',
+                         textColor=NAVY, spaceBefore=8, spaceAfter=4)
+        st_normal  = _ps(f'{supplier.id}_normal', fontSize=9, leading=13)
+        st_label   = _ps(f'{supplier.id}_label',  fontSize=7, textColor=MUTED, leading=11)
+        st_footer  = _ps(f'{supplier.id}_footer', fontSize=7, textColor=MUTED, alignment=TA_CENTER)
+        st_th      = _ps(f'{supplier.id}_th',     fontSize=8, fontName='Helvetica-Bold',
+                         textColor=colors.white, alignment=TA_CENTER)
+        st_td_c    = _ps(f'{supplier.id}_td_c',   fontSize=8, alignment=TA_CENTER)
+        st_td_l    = _ps(f'{supplier.id}_td_l',   fontSize=8)
+        st_td_g    = _ps(f'{supplier.id}_td_g',   fontSize=7, textColor=colors.HexColor('#666666'))
+
+        buf = BytesIO()
+        doc = SimpleDocTemplate(
+            buf, pagesize=A4,
+            rightMargin=2*cm, leftMargin=2*cm,
+            topMargin=2*cm, bottomMargin=2*cm,
+        )
+        els = []
+
+        # cabeçalho
+        els.append(Paragraph("ROSELAR MÓVEIS", st_title))
+        els.append(Paragraph("PEDIDO DE COMPRA", st_sub))
+        els.append(Spacer(1, 0.3*cm))
+        els.append(HRFlowable(width="100%", thickness=2, color=NAVY))
+        els.append(Spacer(1, 0.4*cm))
+
+        # metadados (2 colunas)
+        seller_name = quote.seller.get_full_name() or quote.seller.username
+        meta_data = [
+            [
+                Paragraph(f"<b>Orçamento:</b> #{quote.number}", st_normal),
+                Paragraph(f"<b>Data:</b> {quote.quote_date.strftime('%d/%m/%Y')}", st_normal),
+            ],
+            [
+                Paragraph(f"<b>Vendedor:</b> {seller_name}", st_normal),
+                Paragraph("", st_normal),
+            ],
+        ]
+        meta_tbl = Table(meta_data, colWidths=[8.5*cm, 8.5*cm])
+        meta_tbl.setStyle(TableStyle([
+            ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        els.append(meta_tbl)
+        els.append(Spacer(1, 0.4*cm))
+
+        # fornecedor / cliente lado a lado
+        supplier_cell = [
+            Paragraph("<b>Fornecedor</b>", st_section),
+            Paragraph(supplier.name, st_normal),
+        ]
+        if supplier.phone:
+            supplier_cell.append(Paragraph(f"Tel: {supplier.phone}", st_label))
+        if supplier.email:
+            supplier_cell.append(Paragraph(supplier.email, st_label))
+
+        # APENAS o nome do cliente — sem telefone, e-mail ou endereço
+        client_cell = [
+            Paragraph("<b>Cliente</b>", st_section),
+            Paragraph(quote.customer.name, st_normal),
+        ]
+
+        party_tbl = Table([[supplier_cell, client_cell]], colWidths=[8.5*cm, 8.5*cm])
+        party_tbl.setStyle(TableStyle([
+            ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
+            ('BOX',           (0, 0), (0, 0),   0.5, LGRAY),
+            ('BOX',           (1, 0), (1, 0),   0.5, LGRAY),
+            ('BACKGROUND',    (0, 0), (0, 0),   BGROW),
+            ('BACKGROUND',    (1, 0), (1, 0),   BGROW),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 8),
+            ('TOPPADDING',    (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        els.append(party_tbl)
+        els.append(Spacer(1, 0.5*cm))
+
+        # tabela de itens (sem coluna Fornecedor — o PDF já é do fornecedor)
+        els.append(Paragraph("ITENS DO PEDIDO", st_section))
+        hdr = [
+            Paragraph('#',          st_th),
+            Paragraph('Produto',    st_th),
+            Paragraph('Descrição',  st_th),
+            Paragraph('Qtd',        st_th),
+            Paragraph('Vlr. Unit.', st_th),
+            Paragraph('Total',      st_th),
+        ]
+        tdata = [hdr]
+        subtotal = Decimal('0.00')
+        for idx, item in enumerate(items_for_supplier, 1):
+            unit = item.unit_value or Decimal('0.00')
+            line = unit * item.quantity
+            subtotal += line
+            desc = item.description.strip() if item.description else '—'
+            tdata.append([
+                Paragraph(str(idx),              st_td_c),
+                Paragraph(item.product_name,     st_td_l),
+                Paragraph(desc,                  st_td_g),
+                Paragraph(str(item.quantity),    st_td_c),
+                Paragraph(f"R$ {_fmt_brl(unit)}", st_td_c),
+                Paragraph(f"R$ {_fmt_brl(line)}", st_td_c),
+            ])
+
+        col_w = [0.8*cm, 4.5*cm, 6.5*cm, 1.2*cm, 2.5*cm, 2.5*cm]
+        itbl = Table(tdata, colWidths=col_w, repeatRows=1)
+        row_styles = [
+            ('BACKGROUND',    (0, 0), (-1, 0),  NAVY),
+            ('TEXTCOLOR',     (0, 0), (-1, 0),  colors.white),
+            ('FONTNAME',      (0, 0), (-1, 0),  'Helvetica-Bold'),
+            ('FONTSIZE',      (0, 0), (-1, 0),  8),
+            ('TOPPADDING',    (0, 0), (-1, 0),  7),
+            ('BOTTOMPADDING', (0, 0), (-1, 0),  7),
+            ('GRID',          (0, 0), (-1, -1), 0.5, LGRAY),
+            ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING',    (0, 1), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 5),
+            ('LEFTPADDING',   (0, 1), (-1, -1), 5),
+            ('RIGHTPADDING',  (0, 1), (-1, -1), 5),
+        ]
+        for i in range(1, len(tdata)):
+            if i % 2 == 0:
+                row_styles.append(('BACKGROUND', (0, i), (-1, i), BGROW))
+        itbl.setStyle(TableStyle(row_styles))
+        els.append(itbl)
+        els.append(Spacer(1, 0.3*cm))
+
+        # total / frete
+        total_tbl = Table(
+            [[Paragraph(f"<b>Subtotal:</b> R$ {_fmt_brl(subtotal)}", st_normal)]],
+            colWidths=[17*cm],
+        )
+        total_tbl.setStyle(TableStyle([
+            ('ALIGN',         (0, 0), (-1, -1), 'RIGHT'),
+            ('TOPPADDING',    (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 0),
+        ]))
+        els.append(total_tbl)
+
+        # prazo
+        if quote.delivery_weeks:
+            semanas = 'semana' if quote.delivery_weeks == 1 else 'semanas'
+            els.append(Spacer(1, 0.2*cm))
+            els.append(Paragraph(
+                f"<b>Prazo de entrega estimado:</b> {quote.delivery_weeks} {semanas}",
+                st_normal,
+            ))
+
+        # rodapé
+        els.append(Spacer(1, 0.8*cm))
+        els.append(HRFlowable(width="100%", thickness=0.5, color=LGRAY))
+        els.append(Spacer(1, 0.2*cm))
+        els.append(Paragraph(
+            f"Gerado em {timezone.localdate().strftime('%d/%m/%Y')} | Roselar Móveis",
+            st_footer,
+        ))
+
+        doc.build(els)
+        data = buf.getvalue()
+        buf.close()
+        return data
+
+    # ── agrupar itens por fornecedor ──────────────────────────
+    by_supplier: dict = defaultdict(list)
+    items_without_supplier = []
+    for item in quote.items.all():
+        if item.supplier_id:
+            by_supplier[item.supplier_id].append(item)
+        else:
+            items_without_supplier.append(item)
+
+    if not by_supplier:
+        messages.error(request, "Nenhum item com fornecedor cadastrado neste orçamento.")
+        return redirect("sales:quote_detail", quote_id=quote.id)
+
+    # avisa itens sem fornecedor mas não bloqueia
+    if items_without_supplier:
+        nomes = ", ".join(it.product_name for it in items_without_supplier[:5])
+        messages.warning(
+            request,
+            f"Os seguintes itens não têm fornecedor e foram ignorados: {nomes}.",
+        )
+
+    # ── um único fornecedor → PDF direto ──────────────────────
+    if len(by_supplier) == 1:
+        supplier_id, items_list = next(iter(by_supplier.items()))
+        supplier = items_list[0].supplier
+        pdf_bytes = _make_pdf_for_supplier(supplier, items_list)
+        safe_name = supplier.name.replace(' ', '_').replace('/', '_')
+        filename = f"pedido_{quote.number}_{safe_name}.pdf"
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = _safe_content_disposition(filename)
+        return response
+
+    # ── múltiplos fornecedores → ZIP ──────────────────────────
+    zip_buffer = BytesIO()
+    with zipfile_mod.ZipFile(zip_buffer, 'w', zipfile_mod.ZIP_DEFLATED) as zf:
+        for supplier_id, items_list in by_supplier.items():
+            supplier = items_list[0].supplier
+            pdf_bytes = _make_pdf_for_supplier(supplier, items_list)
+            safe_name = supplier.name.replace(' ', '_').replace('/', '_')
+            zf.writestr(f"pedido_{quote.number}_{safe_name}.pdf", pdf_bytes)
+
+    zip_data = zip_buffer.getvalue()
+    zip_buffer.close()
+
+    zip_filename = f"pedidos_{quote.number}.zip"
+    response = HttpResponse(zip_data, content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
     return response
 
 
@@ -1445,7 +1560,7 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
 
 @login_required
 def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
-    """Generate PDF for a specific order (supplier purchase order)."""
+    """Generate PDF for a specific supplier purchase order (one PDF per supplier)."""
     order = get_object_or_404(
         Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller'),
         pk=order_id
@@ -1456,147 +1571,204 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
     if not _can_view_all_orders(request.user) and order.quote.seller_id != request.user.id:
         messages.error(request, "Acesso negado.")
         return redirect("sales:order_list")
-    
-    # Don't generate PDF for total conference orders
+
     if order.is_total_conference:
         messages.error(request, "Não é possível gerar PDF para pedido de conferência total.")
         return redirect('sales:order_detail', order_id=order.id)
-    
-    # Create PDF in memory
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm,
-                           topMargin=2*cm, bottomMargin=2*cm)
-    
-    # Container for PDF elements
-    elements = []
-    
-    # Styles
+
+    def _fmt_brl(value) -> str:
+        """Formata número no padrão brasileiro: 1.234,56"""
+        s = f"{float(value):,.2f}"
+        return s.replace(',', '\x00').replace('.', ',').replace('\x00', '.')
+
+    NAVY   = colors.HexColor('#0A2640')
+    LGRAY  = colors.HexColor('#DDDDDD')
+    BGROW  = colors.HexColor('#F8F9FA')
+    MUTED  = colors.HexColor('#888888')
+
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=18,
-        textColor=colors.HexColor('#0A2640'),
-        spaceAfter=12,
-        alignment=TA_CENTER
+
+    def _ps(name, **kw):
+        return ParagraphStyle(name, parent=styles['Normal'], **kw)
+
+    st_title    = _ps('od_title',   fontSize=15, fontName='Helvetica-Bold',
+                      textColor=NAVY, alignment=TA_CENTER, spaceAfter=2)
+    st_sub      = _ps('od_sub',     fontSize=9,  textColor=MUTED,
+                      alignment=TA_CENTER, spaceAfter=0)
+    st_section  = _ps('od_sec',     fontSize=9,  fontName='Helvetica-Bold',
+                      textColor=NAVY, spaceBefore=8, spaceAfter=4)
+    st_normal   = _ps('od_normal',  fontSize=9,  leading=13)
+    st_label    = _ps('od_label',   fontSize=7,  textColor=MUTED, leading=11)
+    st_footer   = _ps('od_footer',  fontSize=7,  textColor=MUTED, alignment=TA_CENTER)
+    st_th       = _ps('od_th',      fontSize=8,  fontName='Helvetica-Bold',
+                      textColor=colors.white, alignment=TA_CENTER)
+    st_td_c     = _ps('od_td_c',    fontSize=8,  alignment=TA_CENTER)
+    st_td_l     = _ps('od_td_l',    fontSize=8)
+    st_td_g     = _ps('od_td_g',    fontSize=7,  textColor=colors.HexColor('#666666'))
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        rightMargin=2*cm, leftMargin=2*cm,
+        topMargin=2*cm, bottomMargin=2*cm,
     )
-    
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=14,
-        textColor=colors.HexColor('#0A2640'),
-        spaceAfter=10,
-        spaceBefore=10
-    )
-    
-    normal_style = ParagraphStyle(
-        'CustomNormal',
-        parent=styles['Normal'],
-        fontSize=10,
-        leading=14
-    )
-    
-    # Title
-    elements.append(Paragraph("ROSELAR MÓVEIS - PEDIDO DE COMPRA", title_style))
-    elements.append(Paragraph(f"Pedido #{order.number}", heading_style))
-    elements.append(Spacer(1, 0.5*cm))
-    
-    # Order info
-    elements.append(Paragraph(f"<b>Data:</b> {order.created_at.strftime('%d/%m/%Y %H:%M')}", normal_style))
-    elements.append(Paragraph(f"<b>Vendedor:</b> {order.quote.seller.username}", normal_style))
-    elements.append(Spacer(1, 0.5*cm))
-    
-    # Supplier info
-    if order.supplier:
-        elements.append(Paragraph("<b>Fornecedor:</b>", heading_style))
-        elements.append(Paragraph(f"Nome: {order.supplier.name}", normal_style))
-        if order.supplier.phone:
-            elements.append(Paragraph(f"Telefone: {order.supplier.phone}", normal_style))
-        if order.supplier.email:
-            elements.append(Paragraph(f"Email: {order.supplier.email}", normal_style))
-        elements.append(Spacer(1, 0.5*cm))
-    
-    # Customer info (for supplier reference)
-    elements.append(Paragraph("<b>Cliente Final:</b>", heading_style))
-    elements.append(Paragraph(f"Nome: {order.quote.customer.name}", normal_style))
-    elements.append(Spacer(1, 0.5*cm))
-    
-    # Items table
-    elements.append(Paragraph("<b>Itens do Pedido:</b>", heading_style))
+    elements = []
+
+    # ── Cabeçalho ──────────────────────────────────────────────
+    elements.append(Paragraph("ROSELAR MÓVEIS", st_title))
+    elements.append(Paragraph("PEDIDO DE COMPRA", st_sub))
     elements.append(Spacer(1, 0.3*cm))
-    
-    # Create table data
-    table_data = [['#', 'Produto', 'Descrição', 'Qtd', 'Valor Unit.', 'Total']]
-    
-    for idx, item in enumerate(order.items.all(), 1):
-        desc = item.description if item.description else '-'
-        if len(desc) > 60:
-            desc = desc[:60] + '...'
-        total_item = item.purchase_unit_cost * item.quantity
-        
-        table_data.append([
-            str(idx),
-            item.product_name,
-            desc,
-            str(item.quantity),
-            f"R$ {item.purchase_unit_cost:,.2f}",
-            f"R$ {total_item:,.2f}"
-        ])
-    
-    # Create table
-    table = Table(table_data, colWidths=[1*cm, 4*cm, 5*cm, 1.5*cm, 2.5*cm, 2.5*cm])
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0A2640')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 9),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    elements.append(HRFlowable(width="100%", thickness=2, color=NAVY))
+    elements.append(Spacer(1, 0.4*cm))
+
+    # ── Dados do pedido (2 colunas) ────────────────────────────
+    seller_name = order.quote.seller.get_full_name() or order.quote.seller.username
+    prazo = order.delivery_deadline.strftime('%d/%m/%Y') if order.delivery_deadline else '—'
+    meta_data = [
+        [
+            Paragraph(f"<b>Pedido:</b> #{order.number}", st_normal),
+            Paragraph(f"<b>Data:</b> {order.created_at.strftime('%d/%m/%Y')}", st_normal),
+        ],
+        [
+            Paragraph(f"<b>Vendedor:</b> {seller_name}", st_normal),
+            Paragraph(f"<b>Prazo de entrega:</b> {prazo}", st_normal),
+        ],
+    ]
+    meta_tbl = Table(meta_data, colWidths=[8.5*cm, 8.5*cm])
+    meta_tbl.setStyle(TableStyle([
+        ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ]))
-    
-    elements.append(table)
+    elements.append(meta_tbl)
+    elements.append(Spacer(1, 0.4*cm))
+
+    # ── Fornecedor / Cliente (2 colunas) ───────────────────────
+    # Apenas o NOME do cliente vai no pedido (sem telefone, email, endereço).
+    supplier_cell = []
+    if order.supplier:
+        supplier_cell.append(Paragraph(f"<b>Fornecedor</b>", st_section))
+        supplier_cell.append(Paragraph(order.supplier.name, st_normal))
+        if order.supplier.phone:
+            supplier_cell.append(Paragraph(f"Tel: {order.supplier.phone}", st_label))
+        if order.supplier.email:
+            supplier_cell.append(Paragraph(order.supplier.email, st_label))
+    else:
+        supplier_cell.append(Paragraph("—", st_normal))
+
+    client_cell = [
+        Paragraph("<b>Cliente</b>", st_section),
+        Paragraph(order.quote.customer.name, st_normal),
+    ]
+
+    party_tbl = Table([[supplier_cell, client_cell]], colWidths=[8.5*cm, 8.5*cm])
+    party_tbl.setStyle(TableStyle([
+        ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
+        ('BOX',           (0, 0), (0, 0),   0.5, LGRAY),
+        ('BOX',           (1, 0), (1, 0),   0.5, LGRAY),
+        ('BACKGROUND',    (0, 0), (0, 0),   BGROW),
+        ('BACKGROUND',    (1, 0), (1, 0),   BGROW),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 8),
+        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(party_tbl)
     elements.append(Spacer(1, 0.5*cm))
-    
-    # Totals
-    subtotal = sum(item.purchase_unit_cost * item.quantity for item in order.items.all())
-    elements.append(Paragraph(f"<b>Total do Pedido:</b> R$ {subtotal:,.2f}", normal_style))
-    
-    # Delivery deadline (real date on order)
-    if order.delivery_deadline:
-        elements.append(Spacer(1, 0.3*cm))
-        elements.append(Paragraph(f"<b>Prazo de Entrega:</b> {order.delivery_deadline.strftime('%d/%m/%Y')}", normal_style))
-    elif order.quote.delivery_weeks:
-        semanas = 'semana' if order.quote.delivery_weeks == 1 else 'semanas'
-        elements.append(Spacer(1, 0.3*cm))
-        elements.append(Paragraph(f"<b>Prazo de Entrega Estimado:</b> {order.quote.delivery_weeks} {semanas}", normal_style))
-    
-    # Notes
+
+    # ── Tabela de itens ────────────────────────────────────────
+    elements.append(Paragraph("ITENS DO PEDIDO", st_section))
+
+    items_qs = list(order.items.all())
+
+    hdr = [
+        Paragraph('#',          st_th),
+        Paragraph('Produto',    st_th),
+        Paragraph('Descrição',  st_th),
+        Paragraph('Qtd',        st_th),
+        Paragraph('Vlr. Unit.', st_th),
+        Paragraph('Total',      st_th),
+    ]
+    table_data = [hdr]
+
+    for idx, item in enumerate(items_qs, 1):
+        desc = item.description.strip() if item.description else '—'
+        unit = item.purchase_unit_cost or Decimal('0.00')
+        total_item = unit * item.quantity
+        table_data.append([
+            Paragraph(str(idx),                    st_td_c),
+            Paragraph(item.product_name,           st_td_l),
+            Paragraph(desc,                        st_td_g),
+            Paragraph(str(item.quantity),          st_td_c),
+            Paragraph(f"R$ {_fmt_brl(unit)}",      st_td_c),
+            Paragraph(f"R$ {_fmt_brl(total_item)}", st_td_c),
+        ])
+
+    col_widths = [0.8*cm, 4.5*cm, 6.5*cm, 1.2*cm, 2.5*cm, 2.5*cm]
+    items_tbl = Table(table_data, colWidths=col_widths, repeatRows=1)
+
+    row_styles = [
+        ('BACKGROUND',    (0, 0), (-1, 0),  NAVY),
+        ('TEXTCOLOR',     (0, 0), (-1, 0),  colors.white),
+        ('FONTNAME',      (0, 0), (-1, 0),  'Helvetica-Bold'),
+        ('FONTSIZE',      (0, 0), (-1, 0),  8),
+        ('TOPPADDING',    (0, 0), (-1, 0),  7),
+        ('BOTTOMPADDING', (0, 0), (-1, 0),  7),
+        ('GRID',          (0, 0), (-1, -1), 0.5, LGRAY),
+        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING',    (0, 1), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 5),
+        ('LEFTPADDING',   (0, 1), (-1, -1), 5),
+        ('RIGHTPADDING',  (0, 1), (-1, -1), 5),
+    ]
+    for i in range(1, len(table_data)):
+        if i % 2 == 0:
+            row_styles.append(('BACKGROUND', (0, i), (-1, i), BGROW))
+
+    items_tbl.setStyle(TableStyle(row_styles))
+    elements.append(items_tbl)
+    elements.append(Spacer(1, 0.3*cm))
+
+    # ── Total ──────────────────────────────────────────────────
+    grand_total = sum((it.purchase_unit_cost or Decimal('0.00')) * it.quantity for it in items_qs)
+    total_tbl = Table(
+        [[Paragraph(f"<b>Total do pedido:</b> R$ {_fmt_brl(grand_total)}", st_normal)]],
+        colWidths=[17*cm],
+    )
+    total_tbl.setStyle(TableStyle([
+        ('ALIGN',         (0, 0), (-1, -1), 'RIGHT'),
+        ('TOPPADDING',    (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 0),
+    ]))
+    elements.append(total_tbl)
+
+    # ── Observações ────────────────────────────────────────────
     if order.notes:
-        elements.append(Spacer(1, 0.3*cm))
-        elements.append(Paragraph(f"<b>Observações:</b>", heading_style))
-        elements.append(Paragraph(order.notes, normal_style))
-    
-    # Build PDF
-    doc.build(elements)
-    
-    # Build PDF
+        elements.append(Spacer(1, 0.4*cm))
+        elements.append(Paragraph("OBSERVAÇÕES", st_section))
+        elements.append(Paragraph(order.notes, st_normal))
+
+    # ── Rodapé ─────────────────────────────────────────────────
+    elements.append(Spacer(1, 0.8*cm))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=LGRAY))
+    elements.append(Spacer(1, 0.2*cm))
+    elements.append(Paragraph(
+        f"Gerado em {timezone.localdate().strftime('%d/%m/%Y')} | Roselar Móveis",
+        st_footer,
+    ))
+
+    # ── Gerar PDF (uma única chamada) ──────────────────────────
     try:
         doc.build(elements)
     except Exception:
-        logger.exception('Error generating order PDF %s', order.number)
+        logger.exception('Erro ao gerar PDF do pedido %s', order.number)
         raise
-    
-    # Get PDF from buffer
+
     pdf = buffer.getvalue()
     buffer.close()
-    
-    # Create response
+
     supplier_name = order.supplier.name if order.supplier else 'sem_fornecedor'
     filename = f'pedido_{order.number}_{supplier_name}.pdf'
     filename = filename.replace(' ', '_').replace('/', '_')
