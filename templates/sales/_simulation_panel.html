@@ -74,17 +74,23 @@
                 <div class="s-icon green"><i class="fa-solid fa-chart-line"></i></div>
                 <button type="button" class="col-toggle"
                         data-bs-toggle="collapse" data-bs-target="#increase-collapse"
-                        aria-expanded="false" aria-controls="increase-collapse"
+                        aria-expanded="{% if margin_exceeded_1 or margin_exceeded_2 %}true{% else %}false{% endif %}" aria-controls="increase-collapse"
                         onclick="event.stopPropagation();">
-                  <span>Ajuste de Preço</span>
+                  <span id="lbl-ajuste-title">{% if split_both_cards %}Ajuste de Preço (Cartões){% elif split_mode %}Ajuste de Preço por Método{% else %}Ajuste de Preço{% endif %}</span>
                   <i class="fa-solid fa-chevron-down arr"></i>
                 </button>
               </div>
-              <div class="collapse" id="increase-collapse">
+              <div class="collapse {% if margin_exceeded_1 or margin_exceeded_2 %}show{% endif %}" id="increase-collapse">
                 <div class="s-body">
-                  <div class="slider-box">
-                    <div class="slider-row">
-                      <span class="s-min">0%</span>
+
+                  <!-- ─── Slider Método 1 (single mode + installment split method 1) ─── -->
+                  <div id="inc1-wrap" style="display:{% if split_mode and split_m1_avista %}none{% else %}block{% endif %};"
+                       data-split-both-cards="{% if split_both_cards %}1{% else %}0{% endif %}">
+                    {% if split_both_cards %}<div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.04em;"><i class="fa-solid fa-credit-card" style="margin-right:.3rem;"></i> Ambos os Cartões</div>
+                    {% elif split_mode %}<div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.04em;"><span style="background:var(--brand);color:#fff;border-radius:50%;width:1.1rem;height:1.1rem;display:inline-flex;align-items:center;justify-content:center;font-size:.6rem;margin-right:.3rem;">1</span> Pagamento 1</div>{% endif %}
+                    <div class="slider-box">
+                      <div class="slider-row">
+                        <span class="s-min">0%</span>
                         <div class="pct-control" aria-label="Controle de ajuste de preço em porcentagem">
                           <button type="button" class="pct-btn" onclick="adjustPercent('increase', -0.5); scheduleSubmit()" aria-label="Reduzir ajuste de preço">-</button>
                           <input type="text" id="increase-input"
@@ -94,14 +100,53 @@
                                  aria-label="Ajuste de preço em porcentagem">
                           <span class="pct-suffix">%</span>
                           <button type="button" class="pct-btn" onclick="adjustPercent('increase', 0.5); scheduleSubmit()" aria-label="Aumentar ajuste de preço">+</button>
+                        </div>
+                        <span class="s-max">30%</span>
                       </div>
-                      <span class="s-max">30%</span>
+                      <input type="range" class="sl-inc" id="increase-slider"
+                             min="0" max="30" step="0.1"
+                             value="{{ price_increase_pct }}"
+                             oninput="onIncreaseChange(this.value); scheduleSubmit()">
                     </div>
-                    <input type="range" class="sl-inc" id="increase-slider"
-                           min="0" max="30" step="0.1"
-                           value="{{ price_increase_pct }}"
-                           oninput="onIncreaseChange(this.value); scheduleSubmit()">
+                    {% if split_mode and margin_exceeded_1 %}
+                    <div class="sim-msg warn mt-1" style="font-size:.78rem;padding:.4rem .6rem;">
+                      <i class="fa-solid fa-triangle-exclamation" style="font-size:.8rem;"></i>
+                      <span>{% if suggested_increase_1 > 0 %}Aumente <strong>+{{ suggested_increase_1 }}%</strong> para cobrir a taxa.{% else %}Taxa acima da margem.{% endif %}</span>
+                    </div>
+                    {% endif %}
                   </div>
+
+                  <!-- ─── Slider Método 2 (split mode only; hidden when both cards use unified slider 1) ─── -->
+                  <div id="inc2-wrap" style="display:{% if split_both_cards %}none{% elif split_mode %}block{% else %}none{% endif %};">
+                    {% if split_mode %}<div style="font-size:.72rem;font-weight:700;color:var(--muted,#6c757d);margin-bottom:.4rem;margin-top:.6rem;text-transform:uppercase;letter-spacing:.04em;"><span style="background:var(--muted,#6c757d);color:#fff;border-radius:50%;width:1.1rem;height:1.1rem;display:inline-flex;align-items:center;justify-content:center;font-size:.6rem;margin-right:.3rem;">2</span> Pagamento 2</div>{% endif %}
+                    <div class="slider-box">
+                      <div class="slider-row">
+                        <span class="s-min">0%</span>
+                        <div class="pct-control" aria-label="Controle de ajuste de preço do pagamento 2">
+                          <button type="button" class="pct-btn" onclick="adjustPercent('increase2', -0.5); scheduleSubmit()" aria-label="Reduzir ajuste método 2">-</button>
+                          <input type="text" id="increase2-input"
+                                 value="{{ price_increase_pct_2|floatformat:1 }}"
+                                 class="pct-input"
+                                 inputmode="decimal"
+                                 aria-label="Ajuste de preço pagamento 2">
+                          <span class="pct-suffix">%</span>
+                          <button type="button" class="pct-btn" onclick="adjustPercent('increase2', 0.5); scheduleSubmit()" aria-label="Aumentar ajuste método 2">+</button>
+                        </div>
+                        <span class="s-max">30%</span>
+                      </div>
+                      <input type="range" class="sl-inc" id="increase2-slider"
+                             min="0" max="30" step="0.1"
+                             value="{{ price_increase_pct_2 }}"
+                             oninput="onIncrease2Change(this.value); scheduleSubmit()">
+                    </div>
+                    {% if split_mode and margin_exceeded_2 %}
+                    <div class="sim-msg warn mt-1" style="font-size:.78rem;padding:.4rem .6rem;">
+                      <i class="fa-solid fa-triangle-exclamation" style="font-size:.8rem;"></i>
+                      <span>{% if suggested_increase_2 > 0 %}Aumente <strong>+{{ suggested_increase_2 }}%</strong> para cobrir a taxa.{% else %}Taxa acima da margem.{% endif %}</span>
+                    </div>
+                    {% endif %}
+                  </div>
+
                   <hr style="border-color:var(--border);margin:.8rem 0;">
                   <div id="margin-zone">
                   {% if margin_limit_exceeded %}
@@ -120,6 +165,14 @@
                       {% if suggested_increase > 0 %}Sugestão: aumente <strong>+{{ suggested_increase }}%</strong> no ajuste de preço.{% else %}Considere aumentar o ajuste de preço ou reduzir o desconto.{% endif %}
                     </div>
                   </div>
+                  {% elif any_method_over_margin %}
+                  <div class="sim-msg" style="background:#fff8e1;border-left:3px solid #f59e0b;color:#78350f;">
+                    <i class="fa-solid fa-circle-info" style="color:#f59e0b;flex-shrink:0;"></i>
+                    <div>
+                      <strong>Condições OK</strong> — taxa individual do cartão é alta, mas a margem total cobre ({% if can_view_commission %}taxa efetiva: {{ blended_fee_pct|floatformat:2 }}%{% else %}combinação dos métodos{% endif %}).
+                      {% if suggested_increase_2 > 0 %}<br><span style="font-size:.8rem;opacity:.85;">Para cobrir a taxa individualmente: ajuste <strong>+{{ suggested_increase_2 }}%</strong> no cartão.</span>{% elif suggested_increase_1 > 0 %}<br><span style="font-size:.8rem;opacity:.85;">Para cobrir a taxa individualmente: ajuste <strong>+{{ suggested_increase_1 }}%</strong> no cartão.</span>{% endif %}
+                    </div>
+                  </div>
                   {% else %}
                   <div class="sim-msg ok">
                     <i class="fa-solid fa-check-circle"></i>
@@ -131,6 +184,14 @@
                     <div class="col-6"><div class="stat"><div class="stat-l">Comissão</div><div class="stat-v" style="font-size:.95rem;">{{ seller_commission_percent }}%</div></div></div>
                     <div class="col-6"><div class="stat"><div class="stat-l">Valor Comissão</div><div class="stat-v green" style="font-size:.95rem;">R$ {{ seller_commission_value|floatformat:2 }}</div></div></div>
                   </div>
+                  {% if split_mode and can_view_commission %}
+                  <div class="col-12 mt-1">
+                    <div class="stat" style="background:var(--bg);border-radius:6px;padding:.3rem .6rem;">
+                      <div class="stat-l" style="font-size:.7rem;">Taxa efetiva (blended)</div>
+                      <div class="stat-v" style="font-size:.82rem;color:var(--muted);">{{ blended_fee_pct|floatformat:2 }}%</div>
+                    </div>
+                  </div>
+                  {% endif %}
                   {% endif %}
                   </div>
                 </div>
@@ -149,24 +210,161 @@
                 Pagamento
               </div>
               <div class="s-body">
-                <div class="row g-3 mb-3">
-                  <div class="col-sm-7">
-                    <label class="f-label"><i class="fa-solid fa-wallet me-1"></i>Forma</label>
-                    <select id="sel-ptype" class="f-select" onchange="onPaymentTypeChange()">
-                      <option value="">-- Selecione --</option>
-                      {% for value, label in payment_type_choices %}
-                        <option value="{{ value }}" {% if value == sim_payment_type %}selected{% endif %}>{{ label }}</option>
-                      {% endfor %}
-                    </select>
+
+                <!-- Split toggle — hidden; kept for JS compat -->
+                <label class="sw mb-3" for="chk-split" style="display:none;">
+                  <input type="checkbox" id="chk-split" value="1"
+                         onchange="toggleSplitMode()">
+                  <span class="track"></span>
+                  <span>
+                    <span class="sw-t">Dividir pagamento</span><br>
+                    <span class="sw-s">Combine dois métodos de pagamento</span>
+                  </span>
+                </label>
+
+                <!-- ─── Method 1 wrapper — gets card border in split mode ─── -->
+                <div id="method1-wrap"
+                     style="{% if split_mode %}border:1.5px solid var(--brand);border-radius:10px;padding:.75rem .9rem;margin-bottom:.5rem;{% endif %}transition:all .2s;">
+                  <!-- Badge header — only visible in split mode -->
+                  <div id="method1-hdr"
+                       style="display:{% if split_mode %}flex{% else %}none{% endif %};align-items:center;gap:.5rem;margin-bottom:.6rem;">
+                    <span style="background:var(--brand);color:#fff;font-size:.68rem;font-weight:800;width:1.35rem;height:1.35rem;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">1</span>
+                    <span style="font-size:.75rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.06em;">Pagamento 1</span>
                   </div>
-                  <div class="col-sm-5" id="inst-dropdown-row">
-                    <label class="f-label"><i class="fa-solid fa-hashtag me-1"></i>Parcelas</label>
-                    <select id="inst-select" class="f-select" onchange="onInstChange(this.value); scheduleSubmit();"></select>
+                  <!-- Selectors + fee chip -->
+                  <div class="row g-2 align-items-end">
+                    <div class="col-sm-7">
+                      <label class="f-label mb-1"><i class="fa-solid fa-wallet me-1"></i>Forma</label>
+                      <select id="sel-ptype" class="f-select" onchange="onPaymentTypeChange()">
+                        <option value="">-- Selecione --</option>
+                        {% for value, label in payment_type_choices %}
+                          <option value="{{ value }}" {% if value == sim_payment_type %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-sm-3" id="inst-dropdown-row">
+                      <label class="f-label mb-1"><i class="fa-solid fa-list-ol me-1"></i>Parcelas</label>
+                      <select id="inst-select" class="f-select" onchange="onInstChange(this.value); scheduleSubmit();"></select>
+                    </div>
+                    <div class="col-sm-2">
+                      <div style="background:var(--surface2,#f4f4f4);border-radius:8px;padding:.4rem .5rem;text-align:center;display:flex;align-items:center;justify-content:center;flex-direction:column;min-height:2.35rem;">
+                        <div style="font-size:.55rem;color:var(--muted);font-weight:700;text-transform:uppercase;">Taxa</div>
+                        <div id="fee-display" style="font-size:.9rem;font-weight:800;color:var(--brand);">{{ payment_fee_percent|floatformat:2 }}%</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div class="stat" style="border-left:3px solid var(--brand);text-align:left;">
-                  <div class="stat-l">Taxa do pagamento</div>
-                  <div class="stat-v" id="fee-display">{{ payment_fee_percent }}%</div>
+                <!-- alias kept for JS compat (single-mode fee display) -->
+                <span id="fee-display-single" style="display:none;">{{ payment_fee_percent|floatformat:2 }}%</span>
+                <div id="single-fee-row" style="display:none;"></div>
+
+                <!-- ─── Split panel — always hidden (feature removed from UI) ─── -->
+                <div id="split-panel" style="display:none;">
+
+                  <!-- Split amount -->
+                  <div style="padding:.5rem .1rem .5rem .5rem;border-left:2px dashed var(--brand);margin-left:1rem;margin-bottom:.5rem;">
+                    <label class="f-label mb-1" style="font-size:.72rem;"><i class="fa-solid fa-scissors me-1" style="color:var(--brand);opacity:.7;"></i>Valor destinado ao Pagamento 1</label>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="input-group input-group-sm" style="max-width:200px;">
+                        <span class="input-group-text fw-bold"
+                              style="background:var(--brand);color:#fff;border:none;border-radius:8px 0 0 8px;font-size:.82rem;">R$</span>
+                        <input type="text" id="split-amount-input" class="form-control"
+                               placeholder="0,00"
+                               value="{% if split_mode and sim_split_amount %}{{ sim_split_amount|floatformat:2 }}{% endif %}"
+                               style="font-weight:700;border-radius:0 8px 8px 0;border-color:var(--brand);"
+                               inputmode="decimal" oninput="maskCurrency(this); onSplitAmountChange(this.value)">
+                      </div>
+                      <span id="split-remainder-lbl" style="font-size:.75rem;color:var(--muted);"></span>
+                    </div>
+                  </div>
+
+                  <!-- Method 2 card -->
+                  <div style="border:1.5px solid var(--muted,#adb5bd);border-radius:10px;padding:.75rem .9rem;">
+                    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem;">
+                      <span style="background:var(--muted,#6c757d);color:#fff;font-size:.68rem;font-weight:800;width:1.35rem;height:1.35rem;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">2</span>
+                      <span style="font-size:.75rem;font-weight:700;color:var(--muted,#6c757d);text-transform:uppercase;letter-spacing:.06em;">Pagamento 2</span>
+                    </div>
+                    <div class="row g-2 align-items-end">
+                      <div class="col-sm-7">
+                        <label class="f-label mb-1"><i class="fa-solid fa-wallet me-1"></i>Forma</label>
+                        <select id="sel-ptype2" class="f-select" onchange="onPaymentType2Change()">
+                          <option value="">-- Selecione --</option>
+                          {% for value, label in payment_type_choices %}
+                            <option value="{{ value }}" {% if value == sim_payment_type_2 %}selected{% endif %}>{{ label }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-sm-3" id="inst2-dropdown-row">
+                        <label class="f-label mb-1"><i class="fa-solid fa-list-ol me-1"></i>Parcelas</label>
+                        <select id="inst2-select" class="f-select" onchange="onInst2Change(this.value); scheduleSubmit();"></select>
+                      </div>
+                      <div class="col-sm-2">
+                        <div style="background:var(--surface2,#f4f4f4);border-radius:8px;padding:.4rem .5rem;text-align:center;display:flex;align-items:center;justify-content:center;flex-direction:column;min-height:2.35rem;">
+                          <div style="font-size:.55rem;color:var(--muted);font-weight:700;text-transform:uppercase;">Taxa</div>
+                          <div id="fee2-display" style="font-size:.9rem;font-weight:800;color:var(--muted,#6c757d);">{{ payment_fee_percent_2|floatformat:2 }}%</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div><!-- /split-panel -->
+
+              </div>
+            </div>
+
+            <!-- Entrada do Cliente -->
+            <div class="s-card fi" id="dp-calc-card" style="display:none;">
+              <div class="s-hdr">
+                <div class="s-icon" style="background:#7c3aed;"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                Entrada do Cliente
+              </div>
+              <div class="s-body" style="padding:.65rem 1.1rem;">
+
+                <!-- Toggle -->
+                <label class="sw" for="chk-dp">
+                  <input type="checkbox" id="chk-dp" value="1"
+                         {% if down_payment_value > 0 %}checked{% endif %}
+                         onchange="toggleDpPanel()">
+                  <span class="track"></span>
+                  <span>
+                    <span class="sw-t">Cliente vai pagar entrada</span><br>
+                    <span class="sw-s">Parte à vista; restante financiado pelo cartão</span>
+                  </span>
+                </label>
+
+                <!-- Input panel — visible only when toggle is ON -->
+                <div id="dp-input-panel" style="display:{% if down_payment_value > 0 %}block{% else %}none{% endif %};margin-top:.9rem;">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span style="font-weight:800;font-size:1.15rem;color:#6d28d9;flex-shrink:0;">R$</span>
+                    <input type="text" id="dp-value-input"
+                           class="form-control"
+                           placeholder="0,00"
+                           value="{% if down_payment_value > 0 %}{{ down_payment_value|floatformat:2 }}{% endif %}"
+                           style="font-weight:700;font-size:1.05rem;border:2px solid #c4b5fd;border-radius:8px;max-width:180px;color:#4c1d95;"
+                           inputmode="decimal"
+                           oninput="maskCurrency(this); onDpValueChange(this.value)">
+                    <button type="button" onclick="clearDpValue()"
+                            style="padding:.3rem .65rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);font-size:.75rem;color:var(--muted);cursor:pointer;flex-shrink:0;"
+                            title="Limpar entrada">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+
+                  <!-- Live stats (updated from server response) -->
+                  <div id="dp-live-stats" style="display:none;background:#f5f3ff;border-radius:8px;padding:.5rem .75rem;border:1px solid #ddd6fe;margin-bottom:.4rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.22rem;">
+                      <span style="font-size:.74rem;color:#7c3aed;font-weight:600;"><i class="fa-solid fa-hand-holding-dollar me-1"></i>Entrada à vista</span>
+                      <strong style="color:#6d28d9;" id="dp-live-val">—</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                      <span style="font-size:.74rem;color:var(--muted);"><i class="fa-solid fa-credit-card me-1" style="font-size:.65rem;"></i>Financiado</span>
+                      <strong id="dp-live-fin">—</strong>
+                    </div>
+                  </div>
+
+                  <p style="font-size:.67rem;color:var(--muted);margin:0;line-height:1.35;">
+                    <i class="fa-solid fa-circle-info me-1"></i>Taxa incide <strong>só na parte financiada</strong>.
+                  </p>
                 </div>
               </div>
             </div>
@@ -250,9 +448,12 @@
                   data-controls-blocked="{{ controls_blocked|yesno:'1,0' }}"
                   data-discount-clamped="{{ discount_percent|floatformat:1 }}"
                   data-price-increase="{{ price_increase_pct|floatformat:1 }}"
+                  data-price-increase-2="{{ price_increase_pct_2|floatformat:1 }}"
                   data-target-mode="{{ target_mode|yesno:'1,0' }}"
                   data-margin-exceeded="{{ margin_exceeded|yesno:'1,0' }}"
                   data-margin-limit-exceeded="{{ margin_limit_exceeded|yesno:'1,0' }}"
+                  data-split-both-cards="{{ split_both_cards|yesno:'1,0' }}"
+                  data-split-m1-avista="{{ split_m1_avista|yesno:'1,0' }}"
                   style="display:none;"></span>
 
             <div class="s-card fi fi-1" style="border:none;box-shadow:var(--shadow-h);">
@@ -269,8 +470,14 @@
                 {% else %}
                 <div class="r-line">
                   <span class="r-l">Subtotal dos itens</span>
-                  <strong>R$ {{ adj_subtotal|floatformat:2 }}</strong>
+                  <strong>R$ {{ subtotal|floatformat:2 }}</strong>
                 </div>
+                {% if price_increase_pct > 0 %}
+                <div class="r-line">
+                  <span style="color:var(--green);font-size:.78rem;"><i class="fa-solid fa-arrow-up me-1" style="font-size:.65rem;"></i>Ajuste de Preço ({{ price_increase_pct|floatformat:1 }}%)</span>
+                  <strong style="color:var(--green);">+ R$ {{ price_increase_value|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
                 {% if standalone %}
                 {% if freight_value > 0 %}
                 <div class="r-line">
@@ -297,12 +504,24 @@
                   <strong style="color:var(--red);">– R$ {{ discount_value|floatformat:2 }}</strong>
                 </div>
                 {% endif %}
-                {% if client_surcharge_value > 0 %}
-                <div class="r-line">
-                  <span class="r-l"><i class="fa-solid fa-percent me-1" style="font-size:.7rem;"></i>Juros parcela ({{ client_surcharge_percent }}%)</span>
-                  <strong>+ R$ {{ client_surcharge_value|floatformat:2 }}</strong>
+
+                {% if down_payment_value > 0 %}
+                <!-- Down payment breakdown -->
+                <div style="margin-top:.5rem;border-top:1px dashed #c4b5fd;padding-top:.5rem;">
+                  <div class="r-line" style="margin-bottom:.15rem;">
+                    <span style="font-size:.78rem;color:#7c3aed;font-weight:600;"><i class="fa-solid fa-hand-holding-dollar me-1"></i>Entrada (à vista)</span>
+                    <strong style="color:#6d28d9;">R$ {{ down_payment_value|floatformat:2 }}</strong>
+                  </div>
+                  <div class="r-line">
+                    <span style="font-size:.78rem;color:var(--muted);"><i class="fa-solid fa-credit-card me-1" style="font-size:.65rem;"></i>Financiado</span>
+                    <strong>R$ {{ financed_value|floatformat:2 }}</strong>
+                  </div>
                 </div>
+                <!-- Hidden span for JS to sync dp-live-fin after AJAX -->
+                <span id="dp-server-fin" style="display:none;">R$ {{ financed_value|floatformat:2 }}</span>
                 {% endif %}
+
+
 
                 {% if margin_limit_exceeded %}
                 <!-- Blocked: hide values -->
@@ -324,16 +543,63 @@
                       <div class="hi-l">Total para o Cliente</div>
                       <div class="hi-v">R$ {{ final_total|floatformat:2 }}</div>
                     </div>
+                    {% if not split_mode %}
                     <div style="text-align:right;">
                       <div class="hi-l">{{ sim_payment_description }}</div>
-                      {% if sim_installments > 1 %}
+                      {% if down_payment_value > 0 %}
+                      <div style="font-size:.72rem;opacity:.85;margin-top:.1rem;">
+                        <i class="fa-solid fa-hand-holding-dollar me-1"></i>R$ {{ down_payment_value|floatformat:2 }} + {% if sim_installments > 1 %}{{ sim_installments }}x de R$ {{ installment_value_1|floatformat:2 }}{% else %}R$ {{ financed_value|floatformat:2 }}{% endif %}
+                      </div>
+                      {% elif sim_installments > 1 %}
                       <div style="font-size:1.1rem;font-weight:800;margin-top:.1rem;">
-                        {{ sim_installments }}x de R$ {{ installment_value|floatformat:2 }}
+                        {{ sim_installments }}x de R$ {{ installment_value_1|floatformat:2 }}
                       </div>
                       {% endif %}
                     </div>
+                    {% else %}
+                    <div style="text-align:right;">
+                      <div class="hi-l" style="opacity:.8;">Pagamento dividido</div>
+                      <div style="font-size:.8rem;opacity:.75;margin-top:.15rem;">Ver detalhes abaixo</div>
+                    </div>
+                    {% endif %}
                   </div>
                 </div>
+
+                {% if split_mode %}
+                <!-- Split payment method breakdown -->
+                <div style="margin-top:.6rem;border-radius:10px;overflow:hidden;border:1px solid var(--border,#e5e7eb);">
+                  <!-- Method 1 row -->
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem .9rem;border-bottom:1px solid var(--border,#e5e7eb);background:var(--surface,#fff);">
+                    <div style="display:flex;align-items:center;gap:.55rem;min-width:0;">
+                      <span style="background:var(--brand);color:#fff;font-size:.65rem;font-weight:800;width:1.25rem;height:1.25rem;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">1</span>
+                      <div style="min-width:0;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">{{ sim_payment_desc_1 }}</div>
+                        {% if sim_installments > 1 %}
+                        <div style="font-size:.7rem;color:var(--muted);">{{ sim_installments }}x de R$ {{ installment_value_1|floatformat:2 }}</div>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;">
+                      <div style="font-size:.95rem;font-weight:800;color:var(--brand);">R$ {{ split_amount_1|floatformat:2 }}</div>
+                    </div>
+                  </div>
+                  <!-- Method 2 row -->
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem .9rem;background:var(--surface,#fff);">
+                    <div style="display:flex;align-items:center;gap:.55rem;min-width:0;">
+                      <span style="background:var(--muted,#6c757d);color:#fff;font-size:.65rem;font-weight:800;width:1.25rem;height:1.25rem;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">2</span>
+                      <div style="min-width:0;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">{% if sim_payment_desc_2 %}{{ sim_payment_desc_2 }}{% else %}<span style="color:var(--muted);font-style:italic;">Não definido</span>{% endif %}</div>
+                        {% if sim_installments_2 > 1 %}
+                        <div style="font-size:.7rem;color:var(--muted);">{{ sim_installments_2 }}x de R$ {{ installment_value_2|floatformat:2 }}</div>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;">
+                      <div style="font-size:.95rem;font-weight:800;color:var(--muted,#6c757d);">R$ {{ split_amount_2|floatformat:2 }}</div>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
 
                 <!-- Target Final (collapsible) -->
                 <div class="mt-3" style="background:var(--bg);border-radius:8px;overflow:hidden;">
@@ -541,6 +807,8 @@ var initPriceInc  = parseFloat('{{ price_increase_pct }}');
 var initInstall   = parseInt('{{ sim_installments }}');
 var initPType     = '{{ sim_payment_type }}';
 var MARGIN_BASE   = parseFloat('{{ margin_base }}');
+var COMM_MIN      = parseFloat('{{ commission_floor }}');
+var COMM_MAX      = parseFloat('{{ original_commission_percent }}');
 var loadingBar    = document.getElementById('loading-bar');
 
 function showLoading() { loadingBar.classList.add('on'); }
@@ -605,6 +873,23 @@ function onIncreaseChange(val) {
   var ii = document.getElementById('increase-input');
   if (ii) ii.value = val.toFixed(1);
   document.getElementById('h-price-inc').value = val.toFixed(1);
+  // In split-both-cards mode, mirror slider 1 → slider 2
+  var inc1 = document.getElementById('inc1-wrap');
+  if (inc1 && inc1.dataset.splitBothCards === '1') {
+    onIncrease2Change(val);
+  }
+}
+
+function onIncrease2Change(val) {
+  val = parseFloat(val);
+  if (isNaN(val)) val = 0;
+  var sl = document.getElementById('increase2-slider');
+  val = Math.max(0, Math.min(30, val));
+  val = Math.round(val * 10) / 10;
+  if (sl) sl.value = val;
+  var ii = document.getElementById('increase2-input');
+  if (ii) ii.value = val.toFixed(1);
+  document.getElementById('h-price-inc-2').value = val.toFixed(1);
 }
 
 function onDiscountInputEdit() {
@@ -638,6 +923,12 @@ function adjustPercent(kind, delta) {
   if (kind === 'increase') {
     var p = parseFloat(document.getElementById('increase-slider').value) || 0;
     onIncreaseChange(p + delta);
+    return;
+  }
+  if (kind === 'increase2') {
+    var sl2 = document.getElementById('increase2-slider');
+    var p2 = sl2 ? (parseFloat(sl2.value) || 0) : 0;
+    onIncrease2Change(p2 + delta);
   }
 }
 
@@ -665,6 +956,102 @@ function onPaymentTypeChange() {
   rebuildInstOptions();
   updateFeeDisplay(parseInt(document.getElementById('inst-select').value) || 1);
   toggleInstallmentTarget();
+  // Update method 1 slider visibility when in split mode
+  _updateInc1Visibility();
+  updateDpCalcVisibility();
+  scheduleSubmit();
+}
+
+function onPaymentType2Change() {
+  var pt2 = document.getElementById('sel-ptype2').value;
+  document.getElementById('h-ptype2').value = pt2;
+  var hasInst2 = (pt2 === 'CREDIT_CARD' || pt2 === 'BOLETO');
+  document.getElementById('inst2-dropdown-row').style.display = hasInst2 ? '' : 'none';
+  if (!hasInst2) { document.getElementById('inst2-select').value = 1; document.getElementById('h-installments2').value = 1; }
+  rebuildInst2Options();
+  updateFee2Display(parseInt(document.getElementById('inst2-select').value) || 1);
+  // Re-evaluate both-cards state when method 2 changes
+  _updateInc1Visibility();
+  scheduleSubmit();
+}
+
+function onInst2Change(val) {
+  document.getElementById('h-installments2').value = val;
+  updateFee2Display(parseInt(val));
+}
+
+function toggleSplitMode() {
+  var on = document.getElementById('chk-split').checked;
+  document.getElementById('split-panel').style.display = on ? 'block' : 'none';
+  var m1 = document.getElementById('method1-wrap');
+  var hdr = document.getElementById('method1-hdr');
+  // Ajuste de Preço card: show/hide per-method sliders
+  var inc2 = document.getElementById('inc2-wrap');
+  var inc1 = document.getElementById('inc1-wrap');
+  if (on) {
+    m1.style.border = '1.5px solid var(--brand)';
+    m1.style.borderRadius = '10px';
+    m1.style.padding = '.75rem .9rem';
+    m1.style.marginBottom = '.5rem';
+    hdr.style.display = 'flex';
+    // method 1 slider visibility + both-cards logic handled by _updateInc1Visibility
+    _updateInc1Visibility();
+  } else {
+    m1.style.border = '';
+    m1.style.borderRadius = '';
+    m1.style.padding = '';
+    m1.style.marginBottom = '';
+    hdr.style.display = 'none';
+    if (inc2) inc2.style.display = 'none';
+    if (inc1) { inc1.style.display = 'block'; inc1.dataset.splitBothCards = '0'; }
+    var ajTitle = document.getElementById('lbl-ajuste-title');
+    if (ajTitle) ajTitle.textContent = 'Ajuste de Preço';
+    document.getElementById('sel-ptype2').value = '';
+    document.getElementById('h-ptype2').value = '';
+    document.getElementById('h-installments2').value = '1';
+    document.getElementById('h-split-amount').value = '';
+    // Reset method 2 price increase
+    onIncrease2Change(0);
+  }
+  scheduleSubmit();
+}
+
+var _AVISTA_TYPES_JS = ['CASH', 'PIX', 'CHEQUE', 'BOLETO'];
+function _isBothCards() {
+  var pt1 = document.getElementById('sel-ptype').value;
+  var pt2 = document.getElementById('sel-ptype2').value;
+  var splitOn = document.getElementById('chk-split').checked;
+  return splitOn && pt1 && pt2 && _AVISTA_TYPES_JS.indexOf(pt1) < 0 && _AVISTA_TYPES_JS.indexOf(pt2) < 0;
+}
+function _updateInc1Visibility() {
+  var splitOn = document.getElementById('chk-split').checked;
+  var inc1 = document.getElementById('inc1-wrap');
+  var inc2 = document.getElementById('inc2-wrap');
+  var ajTitle = document.getElementById('lbl-ajuste-title');
+  if (!inc1) return;
+  if (splitOn) {
+    var pt1 = document.getElementById('sel-ptype').value;
+    var m1Avista = _AVISTA_TYPES_JS.indexOf(pt1) >= 0;
+    var bothCards = _isBothCards();
+    inc1.dataset.splitBothCards = bothCards ? '1' : '0';
+    // If method 1 is à vista: hide slider 1
+    inc1.style.display = m1Avista ? 'none' : 'block';
+    // If both are cards: hide slider 2 (slider 1 drives both via onIncreaseChange)
+    if (inc2) inc2.style.display = bothCards ? 'none' : 'block';
+    if (ajTitle) {
+      ajTitle.textContent = bothCards ? 'Ajuste de Preço (Cartões)' : (m1Avista ? 'Ajuste de Preço' : 'Ajuste de Preço por Método');
+    }
+  } else {
+    inc1.dataset.splitBothCards = '0';
+    inc1.style.display = 'block';
+    if (inc2) inc2.style.display = 'none';
+    if (ajTitle) ajTitle.textContent = 'Ajuste de Preço';
+  }
+}
+
+function onSplitAmountChange(rawVal) {
+  var amt = parseBRL(rawVal);
+  document.getElementById('h-split-amount').value = amt > 0 ? amt.toFixed(2) : '';
   scheduleSubmit();
 }
 
@@ -683,12 +1070,37 @@ function rebuildInstOptions() {
   if (!sel.value) sel.value = 1;
 }
 
+function rebuildInst2Options() {
+  var pt2 = document.getElementById('sel-ptype2').value;
+  var opts = tariffsByType[pt2] || [];
+  var sel = document.getElementById('inst2-select');
+  var cur = parseInt(sel.value) || 1;
+  sel.innerHTML = '';
+  opts.forEach(function(o) {
+    var opt = document.createElement('option');
+    opt.value = o.installments; opt.textContent = o.label;
+    if (o.installments === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  if (!sel.value) sel.value = 1;
+}
+
 function updateFeeDisplay(inst) {
   var pt = document.getElementById('sel-ptype').value;
   var opts = tariffsByType[pt] || [];
   var fee = 0;
   opts.forEach(function(o) { if (o.installments === inst) fee = o.fee; });
-  document.getElementById('fee-display').textContent = fee.toFixed(2) + '%';
+  var txt = fee.toFixed(2) + '%';
+  var d1 = document.getElementById('fee-display'); if (d1) d1.textContent = txt;
+  var d2 = document.getElementById('fee-display-single'); if (d2) d2.textContent = txt;
+}
+
+function updateFee2Display(inst) {
+  var pt2 = document.getElementById('sel-ptype2').value;
+  var opts = tariffsByType[pt2] || [];
+  var fee = 0;
+  opts.forEach(function(o) { if (o.installments === inst) fee = o.fee; });
+  var d = document.getElementById('fee2-display'); if (d) d.textContent = fee.toFixed(2) + '%';
 }
 
 var submitTimer = null, pendingTargetFinal = '', pendingTargetInstallment = '';
@@ -704,11 +1116,14 @@ function doSubmit() {
   showLoading();
   var discount = parseFloat(document.getElementById('discount-slider').value) || 0;
   var priceInc = parseFloat(document.getElementById('increase-slider').value) || 0;
-  document.getElementById('h-discount').value     = discount.toFixed(1);
-  document.getElementById('h-price-inc').value     = priceInc.toFixed(1);
-  document.getElementById('h-installments').value  = document.getElementById('inst-select').value;
-  document.getElementById('h-ptype').value         = document.getElementById('sel-ptype').value;
-  document.getElementById('h-architect').value     = document.getElementById('chk-architect').checked ? '1' : '0';
+  var sl2 = document.getElementById('increase2-slider');
+  var priceInc2 = sl2 ? (parseFloat(sl2.value) || 0) : 0;
+  document.getElementById('h-discount').value      = discount.toFixed(1);
+  document.getElementById('h-price-inc').value      = priceInc.toFixed(1);
+  document.getElementById('h-price-inc-2').value    = priceInc2.toFixed(1);
+  document.getElementById('h-installments').value   = document.getElementById('inst-select').value;
+  document.getElementById('h-ptype').value          = document.getElementById('sel-ptype').value;
+  document.getElementById('h-architect').value      = document.getElementById('chk-architect').checked ? '1' : '0';
   var archId = document.getElementById('h-architect-id').value;
 
   var fd = new FormData();
@@ -720,14 +1135,26 @@ function doSubmit() {
   fd.append('sim_subtotal', subtotal.toFixed(2));
   fd.append('sim_freight',  freight.toFixed(2));
   {% endif %}
-  fd.append('discount_percent',       discount.toFixed(1));
-  fd.append('price_increase_percent', priceInc.toFixed(1));
-  fd.append('sim_installments',       document.getElementById('inst-select').value);
-  fd.append('sim_payment_type',       document.getElementById('sel-ptype').value);
-  fd.append('sim_has_architect',      document.getElementById('chk-architect').checked ? '1' : '0');
+  fd.append('discount_percent',         discount.toFixed(1));
+  fd.append('price_increase_percent',   priceInc.toFixed(1));
+  fd.append('price_increase_percent_2', priceInc2.toFixed(1));
+  fd.append('sim_installments',         document.getElementById('inst-select').value);
+  fd.append('sim_payment_type',         document.getElementById('sel-ptype').value);
+  fd.append('sim_has_architect',        document.getElementById('chk-architect').checked ? '1' : '0');
   if (archId) fd.append('sim_architect_id', archId);
   if (pendingTargetFinal) fd.append('target_final', pendingTargetFinal);
   if (pendingTargetInstallment) fd.append('target_installment', pendingTargetInstallment);
+  // down payment
+  var dpHidVal = document.getElementById('h-down-payment');
+  if (dpHidVal && dpHidVal.value) fd.append('down_payment_value', dpHidVal.value);
+  // split payment
+  var splitOn = document.getElementById('chk-split').checked;
+  if (splitOn) {
+    fd.append('sim_payment_type_2',       document.getElementById('sel-ptype2').value);
+    fd.append('sim_installments_2',       document.getElementById('inst2-select').value || '1');
+    var sa = document.getElementById('h-split-amount').value;
+    if (sa) fd.append('sim_split_amount', sa);
+  }
 
   fetch(window.location.href, {method:'POST', body:fd})
     .then(function(r) { return r.text(); })
@@ -755,13 +1182,40 @@ function applyZones(html) {
     if (di) di.max = maxD.toFixed(1);
     var lm = document.getElementById('lbl-max-discount');
     if (lm) lm.textContent = Math.round(maxD) + '%';
+    var np  = parseFloat(sd.dataset.priceIncrease)  || 0;
+    var np2 = parseFloat(sd.dataset.priceIncrease2) || 0;
+    var splitBothCards = sd.dataset.splitBothCards === '1';
+    var splitM1Avista  = sd.dataset.splitM1Avista  === '1';
     if (sd.dataset.targetMode === '1') {
       var nd = parseFloat(sd.dataset.discountClamped) || 0;
-      var np = parseFloat(sd.dataset.priceIncrease) || 0;
       sl.max = maxD; sl.value = nd; onDiscountChange(nd);
       var is = document.getElementById('increase-slider');
-      is.value = np; onIncreaseChange(np);
+      if (splitM1Avista) {
+        // PIX+Card target mode: pi1=0, pi2 driven by backend
+        is.value = 0; onIncreaseChange(0);
+        var sl2 = document.getElementById('increase2-slider');
+        if (sl2) { sl2.value = np2; onIncrease2Change(np2); }
+      } else if (splitBothCards) {
+        // Both-cards target mode: both sliders set to same pi
+        is.value = np; onIncreaseChange(np);
+        // onIncreaseChange already syncs slider 2 via _isBothCards / inc1.dataset.splitBothCards
+      } else {
+        is.value = np; onIncreaseChange(np);
+        // slider 2 stays at current unless server changes it (handled below)
+      }
     }
+    // Always sync slider 2 from response data (handles suggest/clamp)
+    var sl2 = document.getElementById('increase2-slider');
+    if (sl2 && !splitBothCards && Math.abs(parseFloat(sl2.value) - np2) > 0.05) {
+      onIncrease2Change(np2);
+    }
+    // Also update inc1-wrap data attribute for client-side both-cards tracking
+    var inc1 = document.getElementById('inc1-wrap');
+    if (inc1) inc1.dataset.splitBothCards = splitBothCards ? '1' : '0';
+    // Sync dp-live-fin from server response
+    var newDpFin = doc.getElementById('dp-server-fin');
+    var curDpFin = document.getElementById('dp-live-fin');
+    if (newDpFin && curDpFin) curDpFin.textContent = newDpFin.textContent;
     var nowExceeded = sd.dataset.marginExceeded === '1';
     var nowBlocked = sd.dataset.marginLimitExceeded === '1';
     if (nowBlocked && !_prevBlocked) showMarginToast('O custo total ultrapassou o limite de margem. Ajuste as condições.');
@@ -892,6 +1346,82 @@ function createArchitect() {
   .catch(function(e) { alert('Erro ao cadastrar arquiteto.'); });
 }
 
+/* ── Entrada do Cliente ─────────────────────────────────────── */
+function toggleDpPanel() {
+  var chk   = document.getElementById('chk-dp');
+  var panel = document.getElementById('dp-input-panel');
+  if (!chk || !panel) return;
+  if (chk.checked) {
+    panel.style.display = '';
+    // Focus the input for quick entry
+    var inp = document.getElementById('dp-value-input');
+    if (inp) { inp.focus(); inp.select(); }
+  } else {
+    panel.style.display = 'none';
+    // Clear the value when toggled off
+    var inp2 = document.getElementById('dp-value-input');
+    if (inp2) inp2.value = '';
+    var hid = document.getElementById('h-down-payment');
+    if (hid) hid.value = '';
+    var ls = document.getElementById('dp-live-stats');
+    if (ls) ls.style.display = 'none';
+    scheduleSubmit();
+  }
+}
+
+function onDpValueChange(rawVal) {
+  var num = parseBRL(rawVal) || 0;
+  num = Math.max(0, num);
+  var hid = document.getElementById('h-down-payment');
+  if (hid) hid.value = num > 0 ? num.toFixed(2) : '';
+  var ls = document.getElementById('dp-live-stats');
+  var lvEl = document.getElementById('dp-live-val');
+  if (ls && num > 0) {
+    ls.style.display = '';
+    if (lvEl) lvEl.textContent = 'R\u00a0' + num.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+    var lfEl = document.getElementById('dp-live-fin');
+    if (lfEl) lfEl.textContent = '\u2014';
+  } else if (ls) {
+    ls.style.display = 'none';
+  }
+  scheduleSubmit();
+}
+
+function clearDpValue() {
+  var chk = document.getElementById('chk-dp');
+  if (chk) chk.checked = false;
+  var inp = document.getElementById('dp-value-input');
+  if (inp) inp.value = '';
+  var panel = document.getElementById('dp-input-panel');
+  if (panel) panel.style.display = 'none';
+  var hid = document.getElementById('h-down-payment');
+  if (hid) hid.value = '';
+  var ls = document.getElementById('dp-live-stats');
+  if (ls) ls.style.display = 'none';
+  scheduleSubmit();
+}
+
+function updateDpCalcVisibility() {
+  var pt = document.getElementById('sel-ptype').value;
+  var isCard = (pt === 'CREDIT_CARD' || pt === 'BOLETO');
+  var card = document.getElementById('dp-calc-card');
+  if (card) card.style.display = isCard ? '' : 'none';
+  // When payment type no longer supports down payment, clear it
+  if (!isCard) {
+    var chk = document.getElementById('chk-dp');
+    if (chk) chk.checked = false;
+    var inp = document.getElementById('dp-value-input');
+    if (inp) inp.value = '';
+    var panel = document.getElementById('dp-input-panel');
+    if (panel) panel.style.display = 'none';
+    var hid = document.getElementById('h-down-payment');
+    if (hid) hid.value = '';
+    var ls = document.getElementById('dp-live-stats');
+    if (ls) ls.style.display = 'none';
+  }
+}
+
+
 {% if not standalone %}
 function saveConditions() {
   document.getElementById('save-ptype').value = document.getElementById('sel-ptype').value;
@@ -900,6 +1430,12 @@ function saveConditions() {
   document.getElementById('save-arch-id').value = document.getElementById('h-architect-id').value;
   document.getElementById('save-disc').value  = document.getElementById('h-discount').value;
   document.getElementById('save-pi').value    = document.getElementById('h-price-inc').value;
+  // split payment
+  var splitOn = document.getElementById('chk-split').checked;
+  document.getElementById('save-ptype2').value       = splitOn ? document.getElementById('sel-ptype2').value : '';
+  document.getElementById('save-inst2').value        = splitOn ? (document.getElementById('inst2-select').value || '1') : '1';
+  document.getElementById('save-split-amount').value = splitOn ? (document.getElementById('h-split-amount').value || '') : '';
+  document.getElementById('save-pi2').value          = splitOn ? (document.getElementById('h-price-inc-2').value || '0') : '0';
   document.getElementById('save-form').submit();
 }
 {% else %}
@@ -912,6 +1448,7 @@ function resetSimulation() {
   document.getElementById('chk-architect').checked = false;
   deselectArchitect();
   toggleArchitectPanel();
+  clearDpValue();
   onDiscountChange(0); onIncreaseChange(0); onPaymentTypeChange();
   scheduleSubmit();
 }
@@ -926,6 +1463,24 @@ function resetSimulation() {
   document.getElementById('h-architect-id').value = '{{ sim_architect_id }}';
   document.getElementById('discount-slider').value = initDiscount;
   document.getElementById('increase-slider').value = initPriceInc;
+  // Init down payment: if a value was submitted, show the toggle ON + input panel + live stats
+  var dpInput = document.getElementById('dp-value-input');
+  var dpHid   = document.getElementById('h-down-payment');
+  if (dpInput && dpInput.value) {
+    maskCurrency(dpInput);
+    var dpNum = parseBRL(dpInput.value) || 0;
+    if (dpNum > 0) {
+      var dpChk = document.getElementById('chk-dp');
+      if (dpChk) dpChk.checked = true;
+      var dpPanel = document.getElementById('dp-input-panel');
+      if (dpPanel) dpPanel.style.display = '';
+      if (dpHid) dpHid.value = dpNum.toFixed(2);
+      var ls = document.getElementById('dp-live-stats');
+      if (ls) ls.style.display = '';
+      var lvEl = document.getElementById('dp-live-val');
+      if (lvEl) lvEl.textContent = 'R\u00a0' + dpNum.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+    }
+  }
   var discountInput = document.getElementById('discount-input');
   if (discountInput) {
     discountInput.value = initDiscount.toFixed(1);
@@ -953,6 +1508,21 @@ function resetSimulation() {
   document.getElementById('inst-dropdown-row').style.display =
     (initPType === 'CREDIT_CARD' || initPType === 'BOLETO') ? '' : 'none';
   updateFeeDisplay(initInstall);
+  // Init method 2 if split mode is on
+  var initPType2 = '{{ sim_payment_type_2 }}';
+  var initInstall2 = parseInt('{{ sim_installments_2 }}') || 1;
+  document.getElementById('h-ptype2').value        = initPType2;
+  document.getElementById('h-installments2').value = initInstall2;
+  rebuildInst2Options();
+  if (initPType2) {
+    document.getElementById('inst2-select').value = initInstall2;
+    document.getElementById('inst2-dropdown-row').style.display =
+      (initPType2 === 'CREDIT_CARD' || initPType2 === 'BOLETO') ? '' : 'none';
+    updateFee2Display(initInstall2);
+  }
+  // Restore split amount display
+  var initSplitAmt = '{% if sim_split_amount %}{{ sim_split_amount|floatformat:2 }}{% endif %}';
+  if (initSplitAmt) document.getElementById('h-split-amount').value = initSplitAmt.replace(',', '.');
   {% if standalone %}
   formatInitialValue(document.getElementById('input-subtotal'));
   formatInitialValue(document.getElementById('input-freight'));
@@ -965,5 +1535,6 @@ function resetSimulation() {
   var tii = document.getElementById('target-installment-input');
   if (tii) tii.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); applyTargetInstallment(); } });
   toggleInstallmentTarget();
+  updateDpCalcVisibility();
 })();
 </script>

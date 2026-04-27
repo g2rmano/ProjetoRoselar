@@ -262,6 +262,37 @@
       .hdr-wrap { flex-direction: column; }
       .hdr-wrap .btn-a { width: 100%; justify-content: center; }
     }
+    @media (max-width: 576px) {
+      /* Container sem overflow lateral */
+      .s-body { padding: .75rem !important; }
+      /* Stat values menores */
+      .stat-v { font-size: .88rem; }
+      .hi .hi-v { font-size: 1.15rem; }
+      /* Pct control não vaza */
+      .pct-control { min-width: 0; width: 100%; }
+      .pct-input { width: 100%; flex: 1 1 auto; }
+      /* Inputs de valor: 100% da largura disponível */
+      #dp-value-input { max-width: 100% !important; width: 100% !important; }
+      #target-final-input { max-width: 100% !important; width: 100% !important; }
+      /* Linha do input de entrada: flex-wrap */
+      #dp-input-panel .d-flex { flex-wrap: wrap; gap: .4rem !important; }
+      #dp-input-panel .d-flex > span { flex-shrink: 0; }
+      /* Target final row: wrap */
+      #target-final-collapse .d-flex { flex-wrap: wrap; gap: .4rem !important; }
+      #target-installment-collapse .d-flex { flex-wrap: wrap; gap: .4rem !important; }
+      /* Input-group não vaza */
+      .input-group { max-width: 100% !important; width: 100% !important; }
+      /* Receipt lines sem overflow */
+      .r-line { font-size: .78rem; gap: .4rem; }
+      .r-line .r-l { font-size: .75rem; }
+      /* Highlight card valores */
+      .hi { padding: .85rem 1rem; }
+      /* Botões de ação: largura total */
+      .action-btns { flex-direction: column !important; }
+      .action-btns .btn-a { width: 100% !important; justify-content: center; }
+      /* Slider controls */
+      .slider-row .s-cur { font-size: .85rem; }
+    }
     @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
     .fi { animation: fadeIn .35s ease both; }
     .fi-1 { animation-delay:.05s } .fi-2 { animation-delay:.1s }
@@ -365,6 +396,11 @@
         <input type="hidden" name="sim_has_architect"      id="h-architect">
         <input type="hidden" name="sim_architect_id"       id="h-architect-id">
         <input type="hidden" name="target_final"           id="h-target-final">
+        <input type="hidden" name="sim_payment_type_2"     id="h-ptype2">
+        <input type="hidden" name="sim_installments_2"     id="h-installments2">
+        <input type="hidden" name="sim_split_amount"       id="h-split-amount">
+        <input type="hidden" name="price_increase_percent_2" id="h-price-inc-2" value="{{ price_increase_pct_2|default:'0' }}">
+        <input type="hidden" name="down_payment_value"      id="h-down-payment">
 
         <div class="row g-3">
           <!-- ═══ LEFT COLUMN ═══ -->
@@ -385,6 +421,10 @@
         <input type="hidden" name="sim_architect_id"       id="save-arch-id">
         <input type="hidden" name="discount_percent"       id="save-disc">
         <input type="hidden" name="price_increase_percent" id="save-pi">
+        <input type="hidden" name="sim_payment_type_2"     id="save-ptype2">
+        <input type="hidden" name="sim_installments_2"     id="save-inst2">
+        <input type="hidden" name="sim_split_amount"       id="save-split-amount">
+        <input type="hidden" name="price_increase_percent_2" id="save-pi2">
       </form>
 
     </div>
@@ -400,5 +440,29 @@
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 <script src="{% static 'assets/js/theme.js' %}"></script>
+<script>
+(function(){
+  var nav = document.querySelector('[data-navbar-on-scroll]');
+  if (!nav) return;
+  // Inject CSS with !important so theme.js inline style can't kill the transition
+  var st = document.createElement('style');
+  st.textContent = '[data-navbar-on-scroll]{transition:transform .3s ease !important;}';
+  document.head.appendChild(st);
+  var lastY = 0;
+  var hidden = false;
+  var THRESHOLD = 60;
+  window.addEventListener('scroll', function(){
+    var y = window.scrollY || window.pageYOffset;
+    if (y > lastY && y > THRESHOLD && !hidden) {
+      nav.style.transform = 'translateY(-100%)';
+      hidden = true;
+    } else if (y < lastY && hidden) {
+      nav.style.transform = 'translateY(0)';
+      hidden = false;
+    }
+    lastY = y;
+  }, { passive: true });
+})();
+</script>
 </body>
 </html>

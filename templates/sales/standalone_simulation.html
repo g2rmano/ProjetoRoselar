@@ -254,12 +254,32 @@
     .r-line:last-child { border: none; }
     .r-line .r-l { color: var(--muted); }
 
-    /* â”€â”€ Responsive â”€â”€ */
+    /* ── Responsive ── */
     @media (max-width: 768px) {
       .hi .hi-v { font-size: 1.3rem; }
       .stat-v { font-size: .95rem; }
       .hdr-wrap { flex-direction: column; }
       .hdr-wrap .btn-a { width: 100%; justify-content: center; }
+    }
+    @media (max-width: 576px) {
+      .s-body { padding: .75rem !important; }
+      .stat-v { font-size: .88rem; }
+      .hi .hi-v { font-size: 1.15rem; }
+      .pct-control { min-width: 0; width: 100%; }
+      .pct-input { width: 100%; flex: 1 1 auto; }
+      #dp-value-input { max-width: 100% !important; width: 100% !important; }
+      #target-final-input { max-width: 100% !important; width: 100% !important; }
+      #dp-input-panel .d-flex { flex-wrap: wrap; gap: .4rem !important; }
+      #dp-input-panel .d-flex > span { flex-shrink: 0; }
+      #target-final-collapse .d-flex { flex-wrap: wrap; gap: .4rem !important; }
+      #target-installment-collapse .d-flex { flex-wrap: wrap; gap: .4rem !important; }
+      .input-group { max-width: 100% !important; width: 100% !important; }
+      .r-line { font-size: .78rem; gap: .4rem; }
+      .r-line .r-l { font-size: .75rem; }
+      .hi { padding: .85rem 1rem; }
+      .action-btns { flex-direction: column !important; }
+      .action-btns .btn-a { width: 100% !important; justify-content: center; }
+      .slider-row .s-cur { font-size: .85rem; }
     }
     @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
     .fi { animation: fadeIn .35s ease both; }
@@ -352,6 +372,11 @@
         <input type="hidden" name="sim_has_architect"      id="h-architect">
         <input type="hidden" name="sim_architect_id"       id="h-architect-id">
         <input type="hidden" name="target_final"           id="h-target-final">
+        <input type="hidden" name="sim_payment_type_2"     id="h-ptype2">
+        <input type="hidden" name="sim_installments_2"     id="h-installments2">
+        <input type="hidden" name="sim_split_amount"       id="h-split-amount">
+        <input type="hidden" name="price_increase_percent_2" id="h-price-inc-2" value="{{ price_increase_pct_2|default:'0' }}">
+        <input type="hidden" name="down_payment_value"      id="h-down-payment">
 
         <div class="row g-3">
           <!-- â•â•â• LEFT COLUMN â•â•â• -->
@@ -409,3 +434,29 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+<script src="{% static 'assets/js/theme.js' %}"></script>
+<script>
+(function(){
+  var nav = document.querySelector('[data-navbar-on-scroll]');
+  if (!nav) return;
+  var st = document.createElement('style');
+  st.textContent = '[data-navbar-on-scroll]{transition:transform .3s ease !important;}';
+  document.head.appendChild(st);
+  var lastY = 0;
+  var hidden = false;
+  var THRESHOLD = 60;
+  window.addEventListener('scroll', function(){
+    var y = window.scrollY || window.pageYOffset;
+    if (y > lastY && y > THRESHOLD && !hidden) {
+      nav.style.transform = 'translateY(-100%)';
+      hidden = true;
+    } else if (y < lastY && hidden) {
+      nav.style.transform = 'translateY(0)';
+      hidden = false;
+    }
+    lastY = y;
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>

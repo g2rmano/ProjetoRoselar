@@ -1664,6 +1664,13 @@ def _build_simulation_context(
     sim_installments: int,
     target_final: Decimal | None = None,
     target_installment: Decimal | None = None,
+    # split payment
+    sim_payment_type_2: str = '',
+    sim_installments_2: int = 1,
+    sim_split_amount: Decimal | None = None,
+    price_increase_pct_2: Decimal = Decimal("0"),
+    # down payment
+    down_payment_value: Decimal | None = None,
 ) -> dict:
     """Pure calculation — no DB writes, no request handling."""
     from core.models import PaymentTariff, PaymentMethodType, ArchitectCommission, SalesMarginConfig
@@ -1672,29 +1679,64 @@ def _build_simulation_context(
     MARGIN_BASE = Decimal(str(_tm))
     margin_limit = MARGIN_BASE
 
-    COMMISSION_FLOOR = Decimal("2")
-    COMMISSION_MIN   = Decimal("3")
-    COMMISSION_MAX   = Decimal("5")
+    COMMISSION_FLOOR = Decimal(str(_mc_min))
+    COMMISSION_MAX   = Decimal(str(_mc_max))
     MAX_DISCOUNT_ABSOLUTE = Decimal("30")
     FEE_STORE_MAX_INSTALLMENTS = 12
 
-    price_increase_pct = max(Decimal('0'), min(price_increase_pct, Decimal('30')))
-    sim_discount       = max(Decimal("0"), min(sim_discount, MAX_DISCOUNT_ABSOLUTE))
-    sim_installments   = max(1, min(sim_installments, 18))
+    price_increase_pct   = max(Decimal('0'), min(price_increase_pct, Decimal('30')))
+    price_increase_pct_2 = max(Decimal('0'), min(price_increase_pct_2, Decimal('30')))
+    sim_discount         = max(Decimal("0"), min(sim_discount, MAX_DISCOUNT_ABSOLUTE))
+    sim_installments     = max(1, min(sim_installments, 18))
+    sim_installments_2   = max(1, min(sim_installments_2, 18))
 
+    # À vista payment types: fixed commission, no fee cost to store margin
+    _AVISTA_TYPES = {'PIX', 'CASH', 'CHEQUE', 'BOLETO'}
+
+    # ── Payment method 1 fees ───────────────────────────────────────────
     payment_fee_percent = (
         Decimal(str(PaymentTariff.get_fee(sim_payment_type, sim_installments)))
         if sim_payment_type else Decimal("0")
     )
-
-    # 13-18x: loja absorve até 12x, cliente paga a diferença
+    # Loja absorve a taxa integral em todos os prazos — sem repasse ao cliente
     store_fee_percent = payment_fee_percent
     client_surcharge_percent = Decimal("0")
-    if sim_installments > FEE_STORE_MAX_INSTALLMENTS and sim_payment_type:
-        fee_12x = Decimal(str(PaymentTariff.get_fee(sim_payment_type, FEE_STORE_MAX_INSTALLMENTS)))
-        if payment_fee_percent > fee_12x:
-            client_surcharge_percent = payment_fee_percent - fee_12x
-            store_fee_percent = fee_12x
+
+    # ── Payment method 2 fees (split mode) ─────────────────────────────
+    split_mode = bool(sim_payment_type_2)
+    payment_fee_percent_2 = Decimal("0")
+    store_fee_percent_2   = Decimal("0")
+    client_surcharge_percent_2 = Decimal("0")
+    if split_mode:
+        payment_fee_percent_2 = (
+            Decimal(str(PaymentTariff.get_fee(sim_payment_type_2, sim_installments_2)))
+            if sim_payment_type_2 else Decimal("0")
+        )
+        store_fee_percent_2 = payment_fee_percent_2
+
+    # ── Down payment: effective fee for margin/commission ───────────────
+    # Pre-compute gross total (uses current price_increase_pct and sim_discount;
+    # target_final may later refine these, but we use this estimate for commissions)
+    _dp_input = max(Decimal("0"), down_payment_value or Decimal("0"))
+    _dp_pre_total = max(
+        Decimal("0"),
+        subtotal * (Decimal("100") + price_increase_pct) / Decimal("100")
+        + freight_value
+        - (subtotal + freight_value) * sim_discount / Decimal("100"),
+    )
+    _dp_capped = min(_dp_input, _dp_pre_total)
+    _dp_fin_ratio = (
+        (_dp_pre_total - _dp_capped) / _dp_pre_total
+        if _dp_pre_total > 0 else Decimal("1")
+    )
+    # Effective fee: only the financed portion bears the card fee
+    eff_store_fee_percent = (store_fee_percent * _dp_fin_ratio).quantize(Decimal("0.000001"))
+    # Down payment ratio (used for commission base later)
+    _dp_down_ratio = Decimal("1") - _dp_fin_ratio
+
+    # ── Early avista detection (needed before target_final reverse calc) ──
+    _split_m1_avista_pre = split_mode and sim_payment_type in _AVISTA_TYPES
+    _split_m2_avista_pre = split_mode and sim_payment_type_2 in _AVISTA_TYPES
 
     # Parcela desejada: converte em target_final
     target_installment_mode = False
@@ -1705,45 +1747,145 @@ def _build_simulation_context(
     # Valor final desejado: calcula desconto/ajuste reverso
     target_mode = False
     if target_final is not None and target_final > 0 and subtotal > 0:
-        sim_discount, price_increase_pct = _reverse_calc_from_target(
-            target_final, subtotal, freight_value, client_surcharge_percent,
-        )
-        price_increase_pct = min(price_increase_pct, Decimal("30")).quantize(Decimal("0.1"))
-        sim_discount = min(sim_discount, MAX_DISCOUNT_ABSOLUTE).quantize(Decimal("0.1"))
-        target_mode = True
+        if split_mode and _split_m1_avista_pre and sim_split_amount is not None:
+            # Method 1 is PIX/cash (0% fee) — solve for pi2 on card portion or discount.
+            # pi1 must stay 0 (inflating adj_subtotal doesn't help for à-vista split).
+            base_total_pre = subtotal + freight_value
+            disc_val_pre = base_total_pre * sim_discount / Decimal("100")
+            total_base_pre = max(Decimal("0"), base_total_pre - disc_val_pre)
+            s1_pre = max(Decimal("0"), min(sim_split_amount, total_base_pre))
+            s2_pre = max(Decimal("0"), total_base_pre - s1_pre)
+            cs2_mult_pre = (Decimal("100") + client_surcharge_percent_2) / Decimal("100")
+            base_final_pre = s1_pre + s2_pre * cs2_mult_pre  # total at pi2=0
+            if s2_pre > 0 and target_final > base_final_pre:
+                # Need price increase on card portion
+                pi2_mult = (target_final - s1_pre) / (s2_pre * cs2_mult_pre)
+                price_increase_pct_2 = min(
+                    max(Decimal("0"), (pi2_mult - Decimal("1")) * Decimal("100")),
+                    Decimal("30"),
+                ).quantize(Decimal("0.1"))
+            elif target_final < base_final_pre and base_total_pre > 0:
+                # Need discount — reduce card split portion
+                new_s2_needed = max(Decimal("0"), (target_final - s1_pre) / cs2_mult_pre)
+                total_needed = s1_pre + new_s2_needed
+                new_d = max(Decimal("0"), min(
+                    Decimal("100") * (Decimal("1") - total_needed / base_total_pre),
+                    MAX_DISCOUNT_ABSOLUTE,
+                ))
+                sim_discount = new_d.quantize(Decimal("0.1"))
+                price_increase_pct_2 = Decimal("0")
+            price_increase_pct = Decimal("0")  # never inflate PIX portion
+            target_mode = True
+        elif split_mode and not _split_m1_avista_pre and not _split_m2_avista_pre:
+            # Both methods are card — apply same pi to both (blended approach)
+            sim_discount, price_increase_pct = _reverse_calc_from_target(
+                target_final, subtotal, freight_value, client_surcharge_percent,
+            )
+            price_increase_pct = min(price_increase_pct, Decimal("30")).quantize(Decimal("0.1"))
+            sim_discount = min(sim_discount, MAX_DISCOUNT_ABSOLUTE).quantize(Decimal("0.1"))
+            price_increase_pct_2 = price_increase_pct  # mirror to card 2
+            target_mode = True
+        else:
+            # Single mode (or mixed split with method 2 à vista)
+            sim_discount, price_increase_pct = _reverse_calc_from_target(
+                target_final, subtotal, freight_value, client_surcharge_percent,
+            )
+            price_increase_pct = min(price_increase_pct, Decimal("30")).quantize(Decimal("0.1"))
+            sim_discount = min(sim_discount, MAX_DISCOUNT_ABSOLUTE).quantize(Decimal("0.1"))
+            target_mode = True
 
     architect_percent = ArchitectCommission.get_commission()
     architect_commission_value = Decimal("0")
     architect_cost_pct = architect_percent if sim_has_architect else Decimal("0")
 
-    effective_margin = MARGIN_BASE + price_increase_pct
-    max_discount_allowed = MAX_DISCOUNT_ABSOLUTE
-    fixed_costs = store_fee_percent + architect_cost_pct + sim_discount
+    # ── Split weights (computed once; used for both margin and commission) ──
+    _split_m1_avista = split_mode and sim_payment_type in _AVISTA_TYPES
+    _w1 = Decimal("0.5")
+    _w2 = Decimal("0.5")
+    if split_mode:
+        _pm = (Decimal("100") + price_increase_pct) / Decimal("100")
+        _tot_est = subtotal * _pm + freight_value - (subtotal + freight_value) * sim_discount / Decimal("100")
+        if _tot_est > 0:
+            _raw_s1 = max(Decimal("0"), min(sim_split_amount, _tot_est)) if sim_split_amount is not None else _tot_est / 2
+            _w1 = _raw_s1 / _tot_est
+        _w2 = Decimal("1") - _w1
 
-    seller_commission_percent = max(COMMISSION_FLOOR, min(effective_margin - fixed_costs, COMMISSION_MAX)).quantize(Decimal("0.1"))
+    # ── Blended effective margin and fixed costs ────────────────────────
+    # In split mode: weight each method's fee and price-increase contribution.
+    # À vista method 1 needs no price increase (0% fee), so pi1 = 0 for that case.
+    _pi1_eff = Decimal("0") if _split_m1_avista else price_increase_pct
+    if split_mode:
+        _blended_pi  = _w1 * _pi1_eff + _w2 * price_increase_pct_2
+        _blended_fee = _w1 * eff_store_fee_percent + _w2 * store_fee_percent_2
+    else:
+        _blended_pi  = price_increase_pct
+        _blended_fee = eff_store_fee_percent
+
+    effective_margin = MARGIN_BASE + _blended_pi
+    max_discount_allowed = MAX_DISCOUNT_ABSOLUTE
+    fixed_costs = _blended_fee + architect_cost_pct + sim_discount
+
+    # ── Seller commission — split-aware ─────────────────────────────────
+    _COMMISSION_AVISTA_FIXED = max(COMMISSION_FLOOR, min((COMMISSION_FLOOR + COMMISSION_MAX) / 2, COMMISSION_MAX))
+
+    def _esc(fee_pct: Decimal, pi: Decimal) -> Decimal:
+        """Commission left after fee, discount and architect cost for a given method."""
+        eff   = MARGIN_BASE + pi
+        costs = fee_pct + architect_cost_pct + sim_discount
+        return max(COMMISSION_FLOOR, min(eff - costs, COMMISSION_MAX))
+
+    if split_mode:
+        if _split_m1_avista:
+            _comm2 = _esc(store_fee_percent_2, price_increase_pct_2)
+            seller_commission_percent = (_w1 * _COMMISSION_AVISTA_FIXED + _w2 * _comm2).quantize(Decimal("0.1"))
+        else:
+            _comm1 = _esc(eff_store_fee_percent, price_increase_pct)
+            _comm2 = _esc(store_fee_percent_2, price_increase_pct_2)
+            seller_commission_percent = (_w1 * _comm1 + _w2 * _comm2).quantize(Decimal("0.1"))
+    else:
+        seller_commission_percent = _esc(eff_store_fee_percent, price_increase_pct).quantize(Decimal("0.1"))
 
     original_commission_percent = COMMISSION_MAX
 
-    # Custo total NÃO inclui comissão do vendedor
-    total_cost_pct  = fixed_costs
-    margin_exceeded = total_cost_pct > effective_margin
+    # ── Global margin status (blended costs vs blended margin) ──────────
+    total_cost_pct     = fixed_costs
+    margin_exceeded    = total_cost_pct > effective_margin
     commission_reduced = seller_commission_percent < COMMISSION_MAX
-    margin_excess = total_cost_pct - effective_margin if margin_exceeded else Decimal("0")
+    margin_excess      = total_cost_pct - effective_margin if margin_exceeded else Decimal("0")
 
-    # Bloqueio: custo > limite + ajuste
-    margin_limit_exceeded = total_cost_pct > (margin_limit + price_increase_pct)
-    controls_blocked = margin_limit_exceeded
+    margin_limit_exceeded = total_cost_pct > (margin_limit + _blended_pi)
+    controls_blocked      = margin_limit_exceeded
 
-    # Ajuste mínimo para desbloquear
     min_increase_to_unblock = Decimal("0")
     if margin_limit_exceeded:
-        needed = total_cost_pct - (margin_limit + price_increase_pct)
+        needed = total_cost_pct - (margin_limit + _blended_pi)
         if needed > Decimal("0"):
             min_increase_to_unblock = needed.quantize(Decimal("0.1"), rounding=ROUND_CEILING)
 
     suggested_increase = Decimal("0")
     if margin_exceeded:
         suggested_increase = (margin_excess * 2).quantize(Decimal("1"), rounding=ROUND_CEILING) / 2
+
+    # ── Per-method margin status (shown on individual sliders) ──────────
+    _split_m2_avista = split_mode and sim_payment_type_2 in _AVISTA_TYPES
+    split_both_cards = split_mode and bool(sim_payment_type_2) and not _split_m1_avista and not _split_m2_avista
+    if split_mode:
+        _eff1 = MARGIN_BASE + _pi1_eff
+        _eff2 = MARGIN_BASE + price_increase_pct_2
+        _c1   = eff_store_fee_percent + architect_cost_pct + sim_discount
+        _c2   = store_fee_percent_2 + architect_cost_pct + sim_discount
+        margin_exceeded_1    = _c1 > _eff1
+        margin_exceeded_2    = _c2 > _eff2
+        suggested_increase_1 = max(Decimal("0"), _c1 - _eff1).quantize(Decimal("0.1"), rounding=ROUND_CEILING) if margin_exceeded_1 else Decimal("0")
+        suggested_increase_2 = max(Decimal("0"), _c2 - _eff2).quantize(Decimal("0.1"), rounding=ROUND_CEILING) if margin_exceeded_2 else Decimal("0")
+    else:
+        margin_exceeded_1    = False
+        margin_exceeded_2    = False
+        suggested_increase_1 = Decimal("0")
+        suggested_increase_2 = Decimal("0")
+
+    # True when global conditions are within margin but ≥1 individual card method is over its own
+    any_method_over_margin = split_mode and not margin_exceeded and (margin_exceeded_1 or margin_exceeded_2)
 
     price_multiplier  = (Decimal("100") + price_increase_pct) / Decimal("100")
     adj_subtotal      = subtotal * price_multiplier
@@ -1753,14 +1895,67 @@ def _build_simulation_context(
     discount_value    = base_total * sim_discount / Decimal("100")
     total_after_disc  = total_before_disc - discount_value
 
-    payment_fee_value = total_after_disc * store_fee_percent / Decimal("100")
-    client_surcharge_value = total_after_disc * client_surcharge_percent / Decimal("100")
+    # Down payment: cap against real total, derive financed portion
+    down_payment_used = min(_dp_capped, total_after_disc)
+    financed_value    = max(Decimal("0"), total_after_disc - down_payment_used)
 
-    final_total       = total_after_disc + client_surcharge_value
-    installment_value = (final_total / Decimal(sim_installments)) if sim_installments else final_total
+    # ── Split payment fee calculation ──────────────────────────────────
+    # split_1 / split_2 = net base portions of total_after_disc
+    # split_amount_1/2  = what the client actually pays for each portion
+    #   (includes per-method price increase to recover excess fee)
+    if split_mode and total_after_disc > 0:
+        # Base net portions
+        if sim_split_amount is not None:
+            split_1 = max(Decimal("0"), min(sim_split_amount, total_after_disc))
+        else:
+            split_1 = total_after_disc / 2
+        split_2 = total_after_disc - split_1
 
-    # Valor à vista: o que a loja recebe (sem taxas)
-    valor_avista = final_total - payment_fee_value - client_surcharge_value
+        # Per-method price-increase multipliers (fee-recovery markup)
+        # À vista method 1 has no fee, so no markup needed regardless of slider
+        _pi1_mult = (Decimal("100") + price_increase_pct) / Decimal("100") if not _split_m1_avista else Decimal("1")
+        _pi2_mult = (Decimal("100") + price_increase_pct_2) / Decimal("100")
+        split_amount_1 = split_1 * _pi1_mult
+        split_amount_2 = split_2 * _pi2_mult
+
+        # Fees applied to inflated client-facing amounts
+        payment_fee_value_1 = split_amount_1 * store_fee_percent / Decimal("100")
+        payment_fee_value_2 = split_amount_2 * store_fee_percent_2 / Decimal("100")
+        payment_fee_value   = payment_fee_value_1 + payment_fee_value_2
+
+        client_surcharge_value_1 = split_amount_1 * client_surcharge_percent / Decimal("100")
+        client_surcharge_value_2 = split_amount_2 * client_surcharge_percent_2 / Decimal("100")
+        client_surcharge_value   = client_surcharge_value_1 + client_surcharge_value_2
+
+        installment_value_1 = (split_amount_1 + client_surcharge_value_1) / Decimal(sim_installments) if sim_installments > 1 else (split_amount_1 + client_surcharge_value_1)
+        installment_value_2 = (split_amount_2 + client_surcharge_value_2) / Decimal(sim_installments_2) if sim_installments_2 > 1 else (split_amount_2 + client_surcharge_value_2)
+    else:
+        split_1 = total_after_disc
+        split_2 = Decimal("0")
+        split_amount_1 = total_after_disc
+        split_amount_2 = Decimal("0")
+        payment_fee_value_1 = Decimal("0")
+        payment_fee_value_2 = Decimal("0")
+        client_surcharge_value_1 = Decimal("0")
+        client_surcharge_value_2 = Decimal("0")
+        installment_value_2 = Decimal("0")
+
+        # Store absorbs the card fee — it is a cost on the margin, not a surcharge to the client
+        payment_fee_value      = financed_value * store_fee_percent / Decimal("100")
+        client_surcharge_value = Decimal("0")
+        # Client pays the base financed amount split into installments (no fee on top)
+        installment_value_1    = financed_value / Decimal(sim_installments) if sim_installments > 1 else financed_value
+
+    # Client total = listed price (fee is absorbed by store margin, not passed to client)
+    if split_mode:
+        final_total = split_amount_1 + split_amount_2 + client_surcharge_value
+    else:
+        final_total = total_after_disc
+    # Legacy single-method installment (for non-split)
+    installment_value = installment_value_1 if not split_mode else Decimal("0")
+
+    # Net received by store (before commission — base product value minus fees)
+    valor_avista = total_after_disc - payment_fee_value
 
     if sim_has_architect:
         architect_commission_value = valor_avista * architect_percent / Decimal("100")
@@ -1792,26 +1987,31 @@ def _build_simulation_context(
             fee = existing.get(i, 0)
             if i == 1:
                 lbl = "À vista"
-            elif i <= FEE_STORE_MAX_INSTALLMENTS:
-                lbl = f"{i}x sem juros"
             else:
-                lbl = f"{i}x com juros"
+                lbl = f"{i}x"
             options.append({'installments': i, 'fee': fee, 'label': lbl})
         tariffs_by_type[pt_val] = options
 
     # Payment description
     if sim_payment_type:
         pt_label = dict(PaymentMethodType.choices).get(sim_payment_type, sim_payment_type)
-        sim_payment_description = (
-            f"{pt_label} - À vista" if sim_installments == 1
-            else f"{pt_label} - {sim_installments}x"
-        )
+        desc1 = f"{pt_label} - À vista" if sim_installments == 1 else f"{pt_label} - {sim_installments}x"
+        if split_mode and sim_payment_type_2:
+            pt_label2 = dict(PaymentMethodType.choices).get(sim_payment_type_2, sim_payment_type_2)
+            desc2 = f"{pt_label2} - À vista" if sim_installments_2 == 1 else f"{pt_label2} - {sim_installments_2}x"
+            sim_payment_description = f"{desc1} + {desc2}"
+        else:
+            desc2 = ""
+            sim_payment_description = desc1
     else:
+        desc1 = ""
+        desc2 = ""
         sim_payment_description = "Não definido"
 
     return {
         'subtotal':                 subtotal,
         'adj_subtotal':             adj_subtotal,
+        'price_increase_value':     adj_subtotal - subtotal,
         'freight_value':            freight_value,
         'price_increase_pct':       price_increase_pct,
         'total_before_discount':    total_before_disc,
@@ -1821,6 +2021,9 @@ def _build_simulation_context(
         'payment_fee_percent':      payment_fee_percent,
         'store_fee_percent':        store_fee_percent,
         'payment_fee_value':        payment_fee_value,
+        'financed_ratio_pct':       (_dp_fin_ratio * Decimal("100")).quantize(Decimal("1")),
+        'down_payment_value':       down_payment_used,
+        'financed_value':           financed_value,
         'client_surcharge_percent': client_surcharge_percent,
         'client_surcharge_value':   client_surcharge_value,
         'final_total':              final_total,
@@ -1829,6 +2032,7 @@ def _build_simulation_context(
         'seller_commission_value':   seller_commission_value,
         'seller_commission_base':    seller_commission_base,
         'original_commission_percent': original_commission_percent,
+        'commission_floor':            COMMISSION_FLOOR,
         'commission_reduced':          commission_reduced,
         'margin_base':               MARGIN_BASE,
         'effective_margin':          effective_margin,
@@ -1856,6 +2060,33 @@ def _build_simulation_context(
         'target_final_input':        target_final if target_final else Decimal("0"),
         'target_installment_mode':   target_installment_mode,
         'target_installment_input':  target_installment if target_installment else Decimal("0"),
+        # split payment
+        'split_mode':                split_mode,
+        'sim_payment_type_2':        sim_payment_type_2,
+        'sim_installments_2':        sim_installments_2,
+        'payment_fee_percent_2':     payment_fee_percent_2,
+        'store_fee_percent_2':       store_fee_percent_2,
+        'payment_fee_value_2':       payment_fee_value_2,
+        'client_surcharge_percent_2': client_surcharge_percent_2,
+        'client_surcharge_value_1':  client_surcharge_value_1,
+        'client_surcharge_value_2':  client_surcharge_value_2,
+        'split_amount_1':            split_amount_1,
+        'split_amount_2':            split_amount_2,
+        'installment_value_1':       installment_value_1,
+        'installment_value_2':       installment_value_2,
+        'sim_split_amount':          sim_split_amount,
+        'sim_payment_desc_1':        desc1,
+        'sim_payment_desc_2':        desc2,
+        # per-method price increase (split mode)
+        'price_increase_pct_2':      price_increase_pct_2,
+        'split_m1_avista':           _split_m1_avista,
+        'split_both_cards':          split_both_cards,
+        'margin_exceeded_1':         margin_exceeded_1,
+        'margin_exceeded_2':         margin_exceeded_2,
+        'any_method_over_margin':    any_method_over_margin,
+        'blended_fee_pct':           _blended_fee,
+        'suggested_increase_1':      suggested_increase_1,
+        'suggested_increase_2':      suggested_increase_2,
     }
 
 
@@ -1896,6 +2127,27 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
                 target_installment = None
         except Exception:
             target_installment = None
+        # Split payment
+        sim_payment_type_2 = request.POST.get('sim_payment_type_2', '') or ''
+        sim_installments_2 = max(1, int(request.POST.get('sim_installments_2', '1') or 1))
+        try:
+            price_increase_pct_2 = Decimal(request.POST.get('price_increase_percent_2', '0') or '0')
+        except Exception:
+            price_increase_pct_2 = Decimal('0')
+        try:
+            _sa = request.POST.get('sim_split_amount', '') or ''
+            sim_split_amount = Decimal(_sa) if _sa else None
+            if sim_split_amount is not None and sim_split_amount <= 0:
+                sim_split_amount = None
+        except Exception:
+            sim_split_amount = None
+        try:
+            _dp = request.POST.get('down_payment_value', '') or ''
+            down_payment_value = Decimal(_dp) if _dp else None
+            if down_payment_value is not None and down_payment_value <= 0:
+                down_payment_value = None
+        except Exception:
+            down_payment_value = None
     else:
         sim_payment_type    = quote.payment_type or ''
         sim_has_architect   = quote.has_architect
@@ -1905,6 +2157,11 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
         sim_installments    = quote.payment_installments or 1
         target_final        = None
         target_installment  = None
+        sim_payment_type_2  = quote.payment_type_2 or ''
+        sim_installments_2  = quote.payment_installments_2 or 1
+        sim_split_amount    = quote.payment_split_amount
+        price_increase_pct_2 = Decimal('0')
+        down_payment_value  = None
 
     # Resolve architect
     from core.models import Architect
@@ -1925,6 +2182,11 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
         sim_installments=sim_installments,
         target_final=target_final,
         target_installment=target_installment,
+        sim_payment_type_2=sim_payment_type_2,
+        sim_installments_2=sim_installments_2,
+        sim_split_amount=sim_split_amount,
+        price_increase_pct_2=price_increase_pct_2,
+        down_payment_value=down_payment_value,
     )
 
     save_session_key = f"quote_sim_saved_{quote.id}"
@@ -1937,12 +2199,23 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
             ctx['quote_actions_unlocked'] = quote_actions_unlocked
             return render(request, 'sales/quote_simulation.html', ctx)
         with transaction.atomic():
-            quote.discount_percent     = ctx['discount_percent']
-            quote.payment_type         = ctx['sim_payment_type']
-            quote.payment_installments = ctx['sim_installments']
-            quote.payment_fee_percent  = ctx['payment_fee_percent']
-            quote.has_architect        = ctx['sim_has_architect']
-            quote.architect            = selected_architect
+            quote.discount_percent       = ctx['discount_percent']
+            quote.payment_type           = ctx['sim_payment_type']
+            quote.payment_installments   = ctx['sim_installments']
+            quote.payment_fee_percent    = ctx['payment_fee_percent']
+            # split payment
+            if ctx['split_mode']:
+                quote.payment_type_2         = ctx['sim_payment_type_2']
+                quote.payment_installments_2 = ctx['sim_installments_2']
+                quote.payment_fee_percent_2  = ctx['payment_fee_percent_2']
+                quote.payment_split_amount   = ctx['split_amount_1']
+            else:
+                quote.payment_type_2         = ''
+                quote.payment_installments_2 = 1
+                quote.payment_fee_percent_2  = Decimal("0.00")
+                quote.payment_split_amount   = None
+            quote.has_architect          = ctx['sim_has_architect']
+            quote.architect              = selected_architect
             quote.save()
         request.session[save_session_key] = True
         messages.success(request, f"Condições do orçamento {quote.number} salvas com sucesso.")
@@ -2004,6 +2277,27 @@ def standalone_simulation(request: HttpRequest) -> HttpResponse:
                 target_installment = None
         except Exception:
             target_installment = None
+        # Split payment
+        sim_payment_type_2 = request.POST.get('sim_payment_type_2', '') or ''
+        sim_installments_2 = max(1, int(request.POST.get('sim_installments_2', '1') or 1))
+        try:
+            price_increase_pct_2 = Decimal(request.POST.get('price_increase_percent_2', '0') or '0')
+        except Exception:
+            price_increase_pct_2 = Decimal('0')
+        try:
+            _sa = request.POST.get('sim_split_amount', '') or ''
+            sim_split_amount = Decimal(_sa) if _sa else None
+            if sim_split_amount is not None and sim_split_amount <= 0:
+                sim_split_amount = None
+        except Exception:
+            sim_split_amount = None
+        try:
+            _dp = request.POST.get('down_payment_value', '') or ''
+            down_payment_value = Decimal(_dp) if _dp else None
+            if down_payment_value is not None and down_payment_value <= 0:
+                down_payment_value = None
+        except Exception:
+            down_payment_value = None
     else:
         subtotal           = Decimal('0')
         freight_value      = Decimal('0')
@@ -2016,6 +2310,11 @@ def standalone_simulation(request: HttpRequest) -> HttpResponse:
         sim_architect_id   = ''
         target_final       = None
         target_installment = None
+        sim_payment_type_2   = ''
+        sim_installments_2   = 1
+        sim_split_amount     = None
+        price_increase_pct_2 = Decimal('0')
+        down_payment_value   = None
 
     subtotal      = max(Decimal('0'), subtotal)
     freight_value = max(Decimal('0'), freight_value)
@@ -2049,6 +2348,11 @@ def standalone_simulation(request: HttpRequest) -> HttpResponse:
         sim_installments=sim_installments,
         target_final=target_final,
         target_installment=target_installment,
+        sim_payment_type_2=sim_payment_type_2,
+        sim_installments_2=sim_installments_2,
+        sim_split_amount=sim_split_amount,
+        price_increase_pct_2=price_increase_pct_2,
+        down_payment_value=down_payment_value,
     )
     ctx['standalone']         = True
     ctx['sim_subtotal']       = subtotal

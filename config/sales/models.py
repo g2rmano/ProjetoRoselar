@@ -156,6 +156,32 @@ class Quote(models.Model):
         help_text="Taxa (juros) aplicada conforme parcelas"
     )
 
+    # split payment (second method — optional)
+    payment_type_2 = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name="Tipo de Pagamento 2",
+        help_text="Segundo método (pagamento dividido entre dois meios)"
+    )
+    payment_installments_2 = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Parcelas 2",
+    )
+    payment_fee_percent_2 = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        verbose_name="Taxa de Pagamento 2 (%)",
+    )
+    payment_split_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Valor no Pagamento 1 (R$)",
+        help_text="Quanto do total vai ao primeiro método; o restante vai ao segundo."
+    )
+
     # snapshots
     total_value_snapshot = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="Total (R$)")
 
@@ -180,14 +206,20 @@ class Quote(models.Model):
     def get_payment_description(self) -> str:
         """Retorna descrição formatada do pagamento."""
         from core.models import PaymentMethodType
-        
-        if self.payment_type:
-            type_display = dict(PaymentMethodType.choices).get(self.payment_type, self.payment_type)
-            if self.payment_installments == 1:
-                return f"{type_display} - À vista"
-            else:
-                return f"{type_display} - {self.payment_installments}x"
-        return "Não definido"
+
+        if not self.payment_type:
+            return "Não definido"
+
+        names = dict(PaymentMethodType.choices)
+        t1 = names.get(self.payment_type, self.payment_type)
+        desc1 = f"{t1} - À vista" if self.payment_installments == 1 else f"{t1} - {self.payment_installments}x"
+
+        if self.payment_type_2 and self.payment_split_amount is not None:
+            t2 = names.get(self.payment_type_2, self.payment_type_2)
+            desc2 = f"{t2} - À vista" if self.payment_installments_2 == 1 else f"{t2} - {self.payment_installments_2}x"
+            return f"{desc1} + {desc2}"
+
+        return desc1
     
     def calculate_subtotal(self) -> Decimal:
         """Calcula subtotal dos itens sem desconto e sem frete."""
@@ -202,8 +234,14 @@ class Quote(models.Model):
         return with_freight - discount_value
     
     def calculate_payment_fee_value(self) -> Decimal:
-        """Calcula o valor da taxa de pagamento."""
+        """Calcula o valor da taxa de pagamento (suporta pagamento dividido)."""
         base_total = self.calculate_total_with_freight_and_discount()
+        if self.payment_type_2 and self.payment_split_amount is not None:
+            split_1 = min(self.payment_split_amount, base_total)
+            split_2 = max(Decimal("0"), base_total - split_1)
+            fee1 = split_1 * (self.payment_fee_percent or Decimal("0")) / Decimal("100")
+            fee2 = split_2 * (self.payment_fee_percent_2 or Decimal("0")) / Decimal("100")
+            return fee1 + fee2
         fee_value = base_total * (self.payment_fee_percent or Decimal("0.000")) / Decimal("100")
         return fee_value
     
