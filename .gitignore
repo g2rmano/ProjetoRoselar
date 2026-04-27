@@ -13,7 +13,8 @@ db.sqlite3
 db.sqlite3-journal
 media/
 staticfiles/
-**/migrations/*.py
+# migrations are tracked (removing the ignore that caused silent deploy failures)
+# **/migrations/*.py
 !**/migrations/__init__.py
 
 # Virtual Environment
