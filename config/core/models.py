@@ -134,6 +134,7 @@ class PaymentMethodType(models.TextChoices):
     """Tipos de métodos de pagamento fixos."""
     CASH = "CASH", "Dinheiro"
     PIX = "PIX", "PIX"
+    DEBIT_CARD = "DEBIT_CARD", "Cartão de Débito"
     CREDIT_CARD = "CREDIT_CARD", "Cartão de Crédito"
     CHEQUE = "CHEQUE", "Cheque"
     BOLETO = "BOLETO", "Boleto"

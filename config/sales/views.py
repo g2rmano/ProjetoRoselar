@@ -189,9 +189,10 @@ def payment_method_fees_api(request: HttpRequest) -> JsonResponse:
     max_installments_map = {
         'CASH': 1,
         'PIX': 1,
-        'CREDIT_CARD': 12,
+        'DEBIT_CARD': 1,
+        'CREDIT_CARD': 18,
         'CHEQUE': 1,
-        'BOLETO': 6,
+        'BOLETO': 18,
     }
     
     is_installment = payment_type in ['CREDIT_CARD', 'BOLETO']
@@ -1965,7 +1966,6 @@ def _build_simulation_context(
     COMMISSION_FLOOR = Decimal(str(_mc_min))
     COMMISSION_MAX   = Decimal(str(_mc_max))
     MAX_DISCOUNT_ABSOLUTE = Decimal("30")
-    FEE_STORE_MAX_INSTALLMENTS = 12
 
     price_increase_pct   = max(Decimal('0'), min(price_increase_pct, Decimal('30')))
     price_increase_pct_2 = max(Decimal('0'), min(price_increase_pct_2, Decimal('30')))
@@ -1974,7 +1974,7 @@ def _build_simulation_context(
     sim_installments_2   = max(1, min(sim_installments_2, 18))
 
     # À vista payment types: fixed commission, no fee cost to store margin
-    _AVISTA_TYPES = {'PIX', 'CASH', 'CHEQUE', 'BOLETO'}
+    _AVISTA_TYPES = {'PIX', 'CASH', 'DEBIT_CARD', 'CHEQUE', 'BOLETO'}
 
     # ── Payment method 1 fees ───────────────────────────────────────────
     payment_fee_percent = (
@@ -2008,6 +2008,10 @@ def _build_simulation_context(
         - (subtotal + freight_value) * sim_discount / Decimal("100"),
     )
     _dp_capped = min(_dp_input, _dp_pre_total)
+    # Enforce minimum down payment = 1 installment (early estimate for commission calc)
+    if down_payment_value is not None and sim_installments > 1 and _dp_pre_total > 0:
+        _dp_min_est = (_dp_pre_total / Decimal(sim_installments + 1)).quantize(Decimal("0.01"), rounding=ROUND_CEILING)
+        _dp_capped = max(_dp_min_est, _dp_capped)
     _dp_fin_ratio = (
         (_dp_pre_total - _dp_capped) / _dp_pre_total
         if _dp_pre_total > 0 else Decimal("1")
@@ -2109,7 +2113,11 @@ def _build_simulation_context(
     fixed_costs = _blended_fee + architect_cost_pct + sim_discount
 
     # ── Seller commission — split-aware ─────────────────────────────────
-    _COMMISSION_AVISTA_FIXED = max(COMMISSION_FLOOR, min((COMMISSION_FLOOR + COMMISSION_MAX) / 2, COMMISSION_MAX))
+    # Fixed commissions for specific payment methods (regardless of margin)
+    _FIXED_COMMISSIONS: dict[str, Decimal] = {
+        'PIX': Decimal('5'),
+        'DEBIT_CARD': Decimal('4'),
+    }
 
     def _esc(fee_pct: Decimal, pi: Decimal) -> Decimal:
         """Commission left after fee, discount and architect cost for a given method."""
@@ -2117,16 +2125,26 @@ def _build_simulation_context(
         costs = fee_pct + architect_cost_pct + sim_discount
         return max(COMMISSION_FLOOR, min(eff - costs, COMMISSION_MAX))
 
+    def _get_comm(payment_type: str, installments: int, fee_pct: Decimal, pi: Decimal) -> Decimal:
+        """Return seller commission: fixed for specific methods, dynamic otherwise."""
+        if payment_type == 'CREDIT_CARD' and installments == 1:
+            return Decimal('3')
+        fixed = _FIXED_COMMISSIONS.get(payment_type)
+        if fixed is not None:
+            return fixed
+        return _esc(fee_pct, pi)
+
     if split_mode:
         if _split_m1_avista:
-            _comm2 = _esc(store_fee_percent_2, price_increase_pct_2)
-            seller_commission_percent = (_w1 * _COMMISSION_AVISTA_FIXED + _w2 * _comm2).quantize(Decimal("0.1"))
+            _comm1 = _get_comm(sim_payment_type, sim_installments, Decimal('0'), Decimal('0'))
+            _comm2 = _get_comm(sim_payment_type_2, sim_installments_2, store_fee_percent_2, price_increase_pct_2)
+            seller_commission_percent = (_w1 * _comm1 + _w2 * _comm2).quantize(Decimal("0.1"))
         else:
-            _comm1 = _esc(eff_store_fee_percent, price_increase_pct)
-            _comm2 = _esc(store_fee_percent_2, price_increase_pct_2)
+            _comm1 = _get_comm(sim_payment_type, sim_installments, eff_store_fee_percent, price_increase_pct)
+            _comm2 = _get_comm(sim_payment_type_2, sim_installments_2, store_fee_percent_2, price_increase_pct_2)
             seller_commission_percent = (_w1 * _comm1 + _w2 * _comm2).quantize(Decimal("0.1"))
     else:
-        seller_commission_percent = _esc(eff_store_fee_percent, price_increase_pct).quantize(Decimal("0.1"))
+        seller_commission_percent = _get_comm(sim_payment_type, sim_installments, eff_store_fee_percent, price_increase_pct).quantize(Decimal("0.1"))
 
     original_commission_percent = COMMISSION_MAX
 
@@ -2178,8 +2196,13 @@ def _build_simulation_context(
     discount_value    = base_total * sim_discount / Decimal("100")
     total_after_disc  = total_before_disc - discount_value
 
-    # Down payment: cap against real total, derive financed portion
+    # Down payment: cap against real total, enforce minimum = 1 installment
     down_payment_used = min(_dp_capped, total_after_disc)
+    if down_payment_value is not None and sim_installments > 1 and total_after_disc > 0:
+        dp_min_value = (total_after_disc / Decimal(sim_installments + 1)).quantize(Decimal("0.01"), rounding=ROUND_CEILING)
+        down_payment_used = max(dp_min_value, down_payment_used)
+    else:
+        dp_min_value = Decimal("0")
     financed_value    = max(Decimal("0"), total_after_disc - down_payment_used)
 
     # ── Split payment fee calculation ──────────────────────────────────
@@ -2256,7 +2279,7 @@ def _build_simulation_context(
     # Payment selects
     payment_type_choices = list(PaymentMethodType.choices)
     max_inst_map = {
-        'CASH': 1, 'PIX': 1, 'CREDIT_CARD': 18, 'CHEQUE': 1, 'BOLETO': 18,
+        'CASH': 1, 'PIX': 1, 'DEBIT_CARD': 1, 'CREDIT_CARD': 18, 'CHEQUE': 1, 'BOLETO': 18,
     }
     tariffs_by_type: dict[str, list] = {}
     for pt_val, _pt_lbl in payment_type_choices:
@@ -2306,6 +2329,7 @@ def _build_simulation_context(
         'payment_fee_value':        payment_fee_value,
         'financed_ratio_pct':       (_dp_fin_ratio * Decimal("100")).quantize(Decimal("1")),
         'down_payment_value':       down_payment_used,
+        'dp_min_value':             dp_min_value,
         'financed_value':           financed_value,
         'client_surcharge_percent': client_surcharge_percent,
         'client_surcharge_value':   client_surcharge_value,

@@ -350,6 +350,14 @@
                     </button>
                   </div>
 
+                  <!-- Minimum down payment warning -->
+                  {% if dp_min_value > 0 %}
+                  <div id="dp-min-warn" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:7px;padding:.38rem .7rem;margin-bottom:.45rem;font-size:.72rem;color:#713f12;">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                    Mínimo de <strong>R$ {{ dp_min_value|floatformat:2 }}</strong> (valor de uma parcela).
+                  </div>
+                  {% endif %}
+
                   <!-- Live stats (updated from server response) -->
                   <div id="dp-live-stats" style="display:none;background:#f5f3ff;border-radius:8px;padding:.5rem .75rem;border:1px solid #ddd6fe;margin-bottom:.4rem;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.22rem;">
@@ -364,6 +372,7 @@
 
                   <p style="font-size:.67rem;color:var(--muted);margin:0;line-height:1.35;">
                     <i class="fa-solid fa-circle-info me-1"></i>Taxa incide <strong>só na parte financiada</strong>.
+                    {% if sim_installments > 1 %}<br><i class="fa-solid fa-circle-info me-1"></i>Mínimo: valor de <strong>1 parcela</strong>.{% endif %}
                   </p>
                 </div>
               </div>
@@ -1383,6 +1392,12 @@ function onDpValueChange(rawVal) {
     if (lfEl) lfEl.textContent = '\u2014';
   } else if (ls) {
     ls.style.display = 'none';
+  }
+  // Show minimum warning when value is below 1-installment minimum
+  var dpMinWarn = document.getElementById('dp-min-warn');
+  if (dpMinWarn) {
+    var minVal = parseFloat(dpMinWarn.querySelector('strong').textContent.replace(/\./g,'').replace(',','.')) || 0;
+    dpMinWarn.style.display = (num > 0 && num < minVal) ? '' : 'none';
   }
   scheduleSubmit();
 }
