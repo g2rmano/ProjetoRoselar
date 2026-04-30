@@ -251,6 +251,7 @@
               <div class="hdr-btns">
                 <a href="{% url 'sales:quote_create' %}" class="btn-a primary"><i class="fa-solid fa-plus"></i>Novo Orçamento</a>
                 <a href="{% url 'calendar_app:calendar' %}" class="btn-a g-outline"><i class="fa-solid fa-calendar"></i>Calendário</a>
+                {% if user.is_staff %}<a href="{% url 'admin:index' %}" class="btn-a g-outline"><i class="fa-solid fa-screwdriver-wrench"></i>Admin</a>{% endif %}
               </div>
             </div>
             <div class="col-lg-7">

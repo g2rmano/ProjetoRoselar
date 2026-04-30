@@ -2178,9 +2178,9 @@ def _build_simulation_context(
     _blended_fee_on_base  = _blended_fee * _blended_adj_factor   # fee as % of base (multiplicative)
     fixed_costs           = _blended_fee_on_base + architect_cost_pct + sim_discount
 
-    # total_cost_pct includes the seller commission so the margin check reflects
-    # whether the store can actually pay the commission without going below MARGIN_BASE.
-    total_cost_pct     = fixed_costs + seller_commission_percent
+    # Seller commission is NOT drawn from the gross margin — it is a separate cost.
+    # Margin check is based on fixed costs only (fee + discount + architect).
+    total_cost_pct     = fixed_costs
     margin_exceeded    = total_cost_pct > effective_margin
     commission_reduced = seller_commission_percent < COMMISSION_MAX
     margin_excess      = total_cost_pct - effective_margin if margin_exceeded else Decimal("0")
@@ -2206,17 +2206,17 @@ def _build_simulation_context(
     suggested_increase = Decimal("0")
     suggestion_is_opportunity = False  # True = "you could earn more" (incentive), False = warning
     if margin_exceeded:
-        # Need to cover the current commission rate.  Target = current commission.
-        _delta_suggest = _pi_needed(seller_commission_percent, _blended_fee, _blended_pi)
+        # Suggest pi to bring fixed costs back within margin (commission not in margin).
+        _delta_suggest = _pi_needed(Decimal('0'), _blended_fee, _blended_pi)
         suggested_increase = _delta_suggest.quantize(Decimal("0.1"), rounding=ROUND_CEILING)
     elif (
         not split_mode
         and sim_payment_type in {'CREDIT_CARD', 'BOLETO'}
         and sim_installments >= 7
-        and seller_commission_percent < COMMISSION_MAX
+        and seller_commission_percent < Decimal('3')
     ):
-        # 7x+: dynamic commission has room to grow.  Suggest pi to hit MAX.
-        _delta_suggest = _pi_needed(COMMISSION_MAX, _blended_fee, _blended_pi)
+        # 7x+: dynamic commission has room to grow.  Suggest pi to hit 3 % (not max).
+        _delta_suggest = _pi_needed(Decimal('3'), _blended_fee, _blended_pi)
         if _delta_suggest > Decimal("0"):
             suggested_increase = _delta_suggest.quantize(Decimal("0.1"), rounding=ROUND_CEILING)
             suggestion_is_opportunity = True
@@ -2230,16 +2230,16 @@ def _build_simulation_context(
         # Corrected per-method fee on base (multiplicative)
         _adj1      = max(Decimal('0'), (Decimal('100') + _pi1_eff - sim_discount) / Decimal('100'))
         _adj2      = max(Decimal('0'), (Decimal('100') + price_increase_pct_2 - sim_discount) / Decimal('100'))
-        _c1        = eff_store_fee_percent * _adj1 + architect_cost_pct + sim_discount + _comm1
-        _c2        = store_fee_percent_2   * _adj2 + architect_cost_pct + sim_discount + _comm2
+        _c1        = eff_store_fee_percent * _adj1 + architect_cost_pct + sim_discount
+        _c2        = store_fee_percent_2   * _adj2 + architect_cost_pct + sim_discount
         margin_exceeded_1    = _c1 > _eff1
         margin_exceeded_2    = _c2 > _eff2
         suggested_increase_1 = (
-            _pi_needed(_comm1, eff_store_fee_percent, _pi1_eff).quantize(Decimal("0.1"), rounding=ROUND_CEILING)
+            _pi_needed(Decimal('0'), eff_store_fee_percent, _pi1_eff).quantize(Decimal("0.1"), rounding=ROUND_CEILING)
             if margin_exceeded_1 else Decimal("0")
         )
         suggested_increase_2 = (
-            _pi_needed(_comm2, store_fee_percent_2, price_increase_pct_2).quantize(Decimal("0.1"), rounding=ROUND_CEILING)
+            _pi_needed(Decimal('0'), store_fee_percent_2, price_increase_pct_2).quantize(Decimal("0.1"), rounding=ROUND_CEILING)
             if margin_exceeded_2 else Decimal("0")
         )
     else:
@@ -2327,9 +2327,9 @@ def _build_simulation_context(
     valor_avista = total_after_disc - payment_fee_value
 
     # ── Seller commission ────────────────────────────────────────────────
-    # Base = adj_subtotal (price-increase applied) minus discount on raw subtotal.
-    # Architect commission is no longer deducted from this base.
-    seller_commission_base = adj_subtotal
+    # Base = raw subtotal (brute value, before price increase).
+    # Price increase is a cost-recovery mechanism, not part of the commission base.
+    seller_commission_base = subtotal
     seller_discount_value  = subtotal * sim_discount / Decimal("100")
     seller_commission_base = max(Decimal("0"), seller_commission_base - seller_discount_value)
     seller_commission_value = seller_commission_base * seller_commission_percent / Decimal("100")
