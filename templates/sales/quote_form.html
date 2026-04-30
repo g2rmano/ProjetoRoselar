@@ -332,10 +332,10 @@
                   <!-- Hidden fields for pricing (set in Step 2) -->
                   <div class="d-none">
                     {{ form.discount_percent }}
-                    {{ form.has_architect }}
                     {{ form.payment_type }}
                     {{ form.payment_installments }}
                     {{ form.payment_fee_percent }}
+                    {{ form.architect }}
                   </div>
 
             <div class="s-card fi fi-2">
@@ -445,6 +445,73 @@
                       </div>
                     </div>
                   </div>
+
+            <!-- Arquiteto -->
+            <div class="s-card fi fi-2b">
+              <div class="s-hdr">
+                <div class="s-icon muted"><i class="fa-solid fa-drafting-compass"></i></div>
+                Arquiteto
+              </div>
+              <div class="s-body" style="padding:.65rem 1.1rem;">
+                <label class="sw" for="id_has_architect">
+                  {{ form.has_architect }}
+                  <span class="track"></span>
+                  <span>
+                    <span class="sw-t">Cliente possui Arquiteto</span>
+                  </span>
+                </label>
+                {% if form.architect.errors %}
+                  <div class="text-danger small mt-1">{{ form.architect.errors }}</div>
+                {% endif %}
+
+                <div id="qf-architect-panel" style="display:none; margin-top:.6rem;">
+                  <!-- Selected architect display -->
+                  <div id="qf-arch-selected" class="d-none" style="background:#e8f5e9;border-radius:8px;padding:.5rem .7rem;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between;">
+                    <span>
+                      <i class="fa-solid fa-check-circle" style="color:#388e3c;margin-right:.3rem;"></i>
+                      <strong id="qf-arch-selected-name"></strong>
+                      <small id="qf-arch-selected-pix" style="display:block;color:#666;margin-left:1.3rem;"></small>
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="qfDeselectArchitect()" style="font-size:.75rem;">
+                      <i class="fa-solid fa-xmark"></i> Trocar
+                    </button>
+                  </div>
+
+                  <!-- Search input -->
+                  <div id="qf-arch-search-box">
+                    <input type="text" id="qf-arch-search-input" class="form-control form-control-sm"
+                           placeholder="Buscar arquiteto por nome..." autocomplete="off"
+                           oninput="qfSearchArchitectDebounce()">
+                  </div>
+
+                  <!-- Search results -->
+                  <div id="qf-arch-results" class="d-none" style="margin-top:.4rem;">
+                    <div id="qf-arch-results-list" style="display:flex;flex-direction:column;gap:.25rem;"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-1 w-100" onclick="qfShowArchitectRegister()">
+                      <i class="fa-solid fa-plus me-1"></i>Cadastrar novo arquiteto
+                    </button>
+                  </div>
+
+                  <!-- Register form -->
+                  <div id="qf-arch-register" class="d-none" style="margin-top:.5rem;padding:.5rem;background:#f5f5f5;border-radius:8px;">
+                    <div class="mb-2">
+                      <label class="form-label mb-0" style="font-size:.82rem;font-weight:600;">Nome <span class="text-danger">*</span></label>
+                      <input type="text" id="qf-arch-new-name" class="form-control form-control-sm" placeholder="Nome completo">
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label mb-0" style="font-size:.82rem;font-weight:600;">Chave PIX <span class="text-danger">*</span></label>
+                      <input type="text" id="qf-arch-new-pix" class="form-control form-control-sm" placeholder="CPF, e-mail, telefone ou chave aleatória">
+                    </div>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="btn btn-sm btn-success" onclick="qfCreateArchitect()">
+                        <i class="fa-solid fa-check me-1"></i>Cadastrar
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="qfHideArchitectRegister()">Cancelar</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
               <div class="s-card fi fi-3">
               <div class="s-hdr">
@@ -763,7 +830,126 @@
             document.getElementById('shipping-found').classList.remove('d-none');
           }
         }
+
+        // Init architect panel state
+        const archChk = document.getElementById('id_has_architect');
+        if (archChk) {
+          qfToggleArchitectPanel();
+          archChk.addEventListener('change', qfToggleArchitectPanel);
+          // Re-display selected architect on page reload
+          const archSelect = document.querySelector('select[name="architect"]');
+          if (archSelect && archSelect.value) {
+            const opt = archSelect.options[archSelect.selectedIndex];
+            if (opt && opt.text) {
+              document.getElementById('qf-arch-selected-name').textContent = opt.text;
+              document.getElementById('qf-arch-selected-pix').textContent = '';
+              document.getElementById('qf-arch-selected').classList.remove('d-none');
+              document.getElementById('qf-arch-search-box').classList.add('d-none');
+            }
+          }
+        }
       });
+
+      // ── Architect (quote form) ──────────────────────────────────────
+      var _qfArchTimer = null;
+
+      function qfToggleArchitectPanel() {
+        var chk   = document.getElementById('id_has_architect');
+        var panel = document.getElementById('qf-architect-panel');
+        if (!panel) return;
+        panel.style.display = chk && chk.checked ? 'block' : 'none';
+        if (chk && !chk.checked) {
+          // Clear architect selection when unchecked
+          document.querySelector('select[name="architect"]').value = '';
+          document.getElementById('qf-arch-selected').classList.add('d-none');
+          document.getElementById('qf-arch-search-box').classList.remove('d-none');
+          document.getElementById('qf-arch-search-input').value = '';
+          document.getElementById('qf-arch-results').classList.add('d-none');
+          document.getElementById('qf-arch-register').classList.add('d-none');
+        }
+      }
+
+      function qfSearchArchitectDebounce() {
+        clearTimeout(_qfArchTimer);
+        var q = document.getElementById('qf-arch-search-input').value.trim();
+        if (q.length < 2) { document.getElementById('qf-arch-results').classList.add('d-none'); return; }
+        _qfArchTimer = setTimeout(function() { qfSearchArchitect(q); }, 400);
+      }
+
+      function qfSearchArchitect(query) {
+        fetch('/api/search-architect/?query=' + encodeURIComponent(query))
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var list = document.getElementById('qf-arch-results-list');
+            list.innerHTML = '';
+            if (data.results && data.results.length) {
+              data.results.forEach(function(a) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-sm btn-outline-secondary text-start';
+                btn.innerHTML = '<strong>' + a.name + '</strong><br><small class="text-muted">PIX: ' + a.pix + '</small>';
+                btn.onclick = function() { qfSelectArchitect(a.id, a.name, a.pix); };
+                list.appendChild(btn);
+              });
+            } else {
+              list.innerHTML = '<small class="text-muted">Nenhum arquiteto encontrado.</small>';
+            }
+            document.getElementById('qf-arch-results').classList.remove('d-none');
+            document.getElementById('qf-arch-register').classList.add('d-none');
+          });
+      }
+
+      function qfSelectArchitect(id, name, pix) {
+        document.querySelector('select[name="architect"]').value = id;
+        document.getElementById('qf-arch-selected-name').textContent = name;
+        document.getElementById('qf-arch-selected-pix').textContent = pix ? 'PIX: ' + pix : '';
+        document.getElementById('qf-arch-selected').classList.remove('d-none');
+        document.getElementById('qf-arch-search-box').classList.add('d-none');
+        document.getElementById('qf-arch-results').classList.add('d-none');
+        document.getElementById('qf-arch-register').classList.add('d-none');
+        document.getElementById('qf-arch-search-input').value = '';
+      }
+
+      function qfDeselectArchitect() {
+        document.querySelector('select[name="architect"]').value = '';
+        document.getElementById('qf-arch-selected').classList.add('d-none');
+        document.getElementById('qf-arch-search-box').classList.remove('d-none');
+        document.getElementById('qf-arch-search-input').value = '';
+      }
+
+      function qfShowArchitectRegister() {
+        document.getElementById('qf-arch-register').classList.remove('d-none');
+        document.getElementById('qf-arch-results').classList.add('d-none');
+      }
+
+      function qfHideArchitectRegister() {
+        document.getElementById('qf-arch-register').classList.add('d-none');
+        document.getElementById('qf-arch-new-name').value = '';
+        document.getElementById('qf-arch-new-pix').value = '';
+      }
+
+      function qfCreateArchitect() {
+        var name = document.getElementById('qf-arch-new-name').value.trim();
+        var pix  = document.getElementById('qf-arch-new-pix').value.trim();
+        if (!name) { document.getElementById('qf-arch-new-name').focus(); return; }
+        if (!pix)  { document.getElementById('qf-arch-new-pix').focus(); return; }
+        fetch('/api/create-architect/', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value},
+          body: JSON.stringify({name: name, pix: pix})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            qfSelectArchitect(data.architect.id, data.architect.name, data.architect.pix);
+            qfHideArchitectRegister();
+          } else {
+            alert(data.error || 'Erro ao cadastrar arquiteto.');
+          }
+        })
+        .catch(function() { alert('Erro ao cadastrar arquiteto.'); });
+      }
+      // ── End Architect (quote form) ──────────────────────────────────
 
       function searchCustomer(docNumber) {
         // Hide search results when searching by document
@@ -1358,6 +1544,18 @@
           e.preventDefault();
           showFormWarning('Adicione pelo menos um item completo ao orçamento.');
           return false;
+        }
+
+        // ── Architect validation ──
+        const archChk = document.getElementById('id_has_architect');
+        if (archChk && archChk.checked) {
+          const archSelect = document.querySelector('select[name="architect"]');
+          if (!archSelect || !archSelect.value) {
+            e.preventDefault();
+            showFormWarning('Selecione o arquiteto ou desmarque a opção "Cliente possui Arquiteto".');
+            document.getElementById('qf-architect-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+          }
         }
 
         // ── All validation passed — now convert values for submission ──

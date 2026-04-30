@@ -24,6 +24,7 @@ class QuoteForm(forms.ModelForm):
             "shipping_company",
             "discount_percent",
             "has_architect",
+            "architect",
             "payment_type",
             "payment_installments",
             "payment_fee_percent",
@@ -41,6 +42,7 @@ class QuoteForm(forms.ModelForm):
         # Pricing fields are optional in Step 1 (set in Step 2 – pricing page)
         self.fields['discount_percent'].required = False
         self.fields['has_architect'].required = False
+        self.fields['architect'].required = False
         self.fields['payment_installments'].required = False
         self.fields['payment_fee_percent'].required = False
         
@@ -68,6 +70,9 @@ class QuoteForm(forms.ModelForm):
                 self.add_error('delivery_weeks', 'Informe o prazo de entrega.')
             if responsible == 'CARRIER' and not cleaned.get('shipping_company'):
                 self.add_error('shipping_company', 'Selecione a transportadora.')
+
+        if cleaned.get('has_architect') and not cleaned.get('architect'):
+            self.add_error('architect', 'Selecione o arquiteto.')
 
         return cleaned
 

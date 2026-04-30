@@ -898,75 +898,45 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
     date_str = f"{qd.day} de {_months_pt[qd.month - 1]} de {qd.year}"
 
     # ════════════════════════════════════════════════════════════
-    # PAGE 1 – COVER
+    # STATIC PAGE IMAGES
+    # Place page1 / page2 images in:
+    #   config/templates/proposal/
+    # This folder is committed to git → works on both local and Railway.
+    # To update a page: replace the file, push/redeploy.
+    # Supported formats: .jpg  .jpeg  .png  .webp  (first match wins)
     # ════════════════════════════════════════════════════════════
-    _draw_bg(config.cover_image)
+    import os as _os
+    from django.conf import settings as _settings
+    _PROPOSAL_DIR = _settings.BASE_DIR / 'config' / 'templates' / 'proposal'
 
-    c.setFillColor(WHITE)
-
-    # "Proposta" — italic, letter-spaced
-    p1_font, p1_size, p1_cs = "Helvetica-Oblique", 24, 6
-    p1_y = page_h * 0.53
-    _draw_spaced_centered("Proposta", page_w / 2, p1_y, p1_font, p1_size, p1_cs)
-
-    # "COMERCIAL" — bold, larger
-    p2_font, p2_size, p2_cs = "Helvetica-Bold", 58, 10
-    p2_y = p1_y - p2_size - 10
-    _draw_spaced_centered("COMERCIAL", page_w / 2, p2_y, p2_font, p2_size, p2_cs)
-
-    c.showPage()
+    def _draw_static_page(filename):
+        """Embed a full-bleed image page; falls back to a blank cream page."""
+        drawn = False
+        for ext in ('.jpg', '.jpeg', '.png', '.webp'):
+            candidate = _PROPOSAL_DIR / (filename + ext)
+            if _os.path.isfile(candidate):
+                try:
+                    c.drawImage(ImageReader(str(candidate)), 0, 0,
+                                width=page_w, height=page_h,
+                                preserveAspectRatio=False, mask='auto')
+                    drawn = True
+                except Exception:
+                    pass
+                break
+        if not drawn:
+            c.setFillColor(LINEN)
+            c.rect(0, 0, page_w, page_h, fill=1, stroke=0)
+        c.showPage()
 
     # ════════════════════════════════════════════════════════════
-    # PAGE 2 – SOBRE NÓS
+    # PAGE 1 – COVER  (config/templates/proposal/page1.png)
     # ════════════════════════════════════════════════════════════
-    _draw_bg(config.about_image)
+    _draw_static_page('page1')
 
-    manifesto = [
-        "A MADEIRA SEMPRE FOI MAIS DO QUE",
-        "MATÉRIA-PRIMA.",
-        "ELA CARREGA TEMPO, ORIGEM E",
-        "TRANSFORMAÇÃO.",
-        "NA ROSELAR, CADA PEÇA É ESCOLHIDA",
-        "COM ESSE ENTENDIMENTO.",
-        "",
-        "TRABALHAMOS COM MARCAS QUE UNEM",
-        "TECNOLOGIA, MADEIRAS DE LEI DE ALTA",
-        "QUALIDADE E MATÉRIAS-PRIMAS",
-        "PROVENIENTES DE MANEJO",
-        "RESPONSÁVEL E REFLORESTAMENTO.",
-        "",
-        "SELECIONAMOS MÓVEIS QUE",
-        "EQUILIBRAM DESIGN CONTEMPORÂNEO,",
-        "ESTRUTURA E ACABAMENTO — PEÇAS",
-        "PENSADAS PARA INTEGRAR O AMBIENTE",
-        "COM NATURALIDADE.",
-        "",
-        "ACREDITAMOS QUE BONS ESPAÇOS",
-        "NASCEM DE ESCOLHAS BEM FEITAS.",
-        "E QUANDO A ESCOLHA É CERTA, ELA",
-        "PERMANECE.",
-        "",
-        "MÓVEIS FEITOS PARA ACOMPANHAR",
-        "DÉCADAS, ATRAVESSANDO HISTÓRIAS E",
-        "GERAÇÕES.",
-        "",
-        "DESIGN QUE ATRAVESSA GERAÇÕES.",
-    ]
-
-    c.setFillColor(WHITE)
-    y_m = page_h - 5.5 * cm
-    for line in manifesto:
-        if line:
-            _draw_spaced(line, 2.5 * cm, y_m, "Helvetica", 9.5, cs=2.0)
-        y_m -= 15.5
-
-    # "SOBRE NÓS" label — bottom-right
-    sn_text, sn_font, sn_size, sn_cs = "SOBRE NÓS", "Helvetica-Bold", 12, 4
-    sn_w = _spaced_w(sn_text, sn_font, sn_size, sn_cs)
-    draw_x = page_w - sn_w - 2.5 * cm
-    _draw_spaced(sn_text, draw_x, 3.5 * cm, sn_font, sn_size, sn_cs)
-
-    c.showPage()
+    # ════════════════════════════════════════════════════════════
+    # PAGE 2 – SOBRE NÓS  (config/templates/proposal/page2.png)
+    # ════════════════════════════════════════════════════════════
+    _draw_static_page('page2')
 
     # ════════════════════════════════════════════════════════════
     # PAGE 3+ – ITEMS
@@ -1856,13 +1826,13 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
     ]))
     elements.append(total_tbl)
 
-    # ── Observações ────────────────────────────────────────────
+    # ── Observações
     if order.notes:
         elements.append(Spacer(1, 0.4*cm))
         elements.append(Paragraph("OBSERVAÇÕES", st_section))
         elements.append(Paragraph(order.notes, st_normal))
 
-    # ── Rodapé ─────────────────────────────────────────────────
+    # ── Rodapé
     elements.append(Spacer(1, 0.8*cm))
     elements.append(HRFlowable(width="100%", thickness=0.5, color=LGRAY))
     elements.append(Spacer(1, 0.2*cm))
@@ -1871,7 +1841,7 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
         st_footer,
     ))
 
-    # ── Gerar PDF (uma única chamada) ──────────────────────────
+    # ── Gerar PDF
     try:
         doc.build(elements)
     except Exception:
@@ -2108,31 +2078,84 @@ def _build_simulation_context(
         _blended_pi  = price_increase_pct
         _blended_fee = eff_store_fee_percent
 
-    effective_margin = MARGIN_BASE + _blended_pi
-    max_discount_allowed = MAX_DISCOUNT_ABSOLUTE
-    fixed_costs = _blended_fee + architect_cost_pct + sim_discount
+    # ── Down-payment margin boost ────────────────────────────────────────
+    # The down-payment portion is received upfront (no card-fee drag), so the
+    # store's effective margin grows proportionally:
+    #   new_margin = MARGIN_BASE × (1 + dp_ratio)
+    # e.g. MARGIN=10%, DP=33.33% → 10% × 1.3333 = 13.33%
+    _dp_margin_boost = (MARGIN_BASE * _dp_down_ratio).quantize(Decimal("0.000001"))
 
-    # ── Seller commission — split-aware ─────────────────────────────────
-    # Fixed commissions for specific payment methods (regardless of margin)
-    _FIXED_COMMISSIONS: dict[str, Decimal] = {
-        'PIX': Decimal('5'),
+    effective_margin = MARGIN_BASE + _blended_pi + _dp_margin_boost
+    max_discount_allowed = MAX_DISCOUNT_ABSOLUTE
+
+    # ── Seller commission — schedule + dynamic 7x+ growth ────────────────
+    # Rules:
+    #   PIX / Dinheiro / Cheque  → 5 %    (fixed)
+    #   Débito                   → 4 %    (fixed)
+    #   Crédito ou Boleto 1–6x   → 3 %    (fixed)
+    #   Crédito ou Boleto 7x+    → 2 % BASE, GROWS when the seller adds
+    #                              price-increase or the client pays upfront.
+    #                              Capped at COMMISSION_MAX (admin setting).
+    #
+    # 7x+ formula uses the available-margin equation (multiplicative fee):
+    #     adj_factor    = (100 + pi − discount) / 100
+    #     effective_fee = fee_pct × adj_factor   ← fee on adjusted (post-pi) base
+    #     available     = MARGIN_BASE + pi + dp_boost
+    #                     − effective_fee − discount − architect
+    #     commission    = clamp(available, FLOOR=2 %, COMMISSION_MAX)
+    #
+    # This means each percentage-point of `pi` (or upfront) translates into
+    # extra commission (roughly 1−fee/100 percentage points per 1 % pi),
+    # giving the seller a real reason to bump the price for 7x+ deals.
+    _TYPE_COMMISSION_CAP: dict[str, Decimal] = {
+        'PIX':        Decimal('5'),
+        'CASH':       Decimal('5'),
         'DEBIT_CARD': Decimal('4'),
+        'CHEQUE':     Decimal('5'),
     }
 
-    def _esc(fee_pct: Decimal, pi: Decimal) -> Decimal:
-        """Commission left after fee, discount and architect cost for a given method."""
-        eff   = MARGIN_BASE + pi
-        costs = fee_pct + architect_cost_pct + sim_discount
-        return max(COMMISSION_FLOOR, min(eff - costs, COMMISSION_MAX))
+    def _available_for_commission(fee_pct: Decimal, pi: Decimal) -> Decimal:
+        """Margin remaining after fee/discount/architect (the 7x+ commission pool)."""
+        adj_factor    = max(Decimal('0'), (Decimal('100') + pi - sim_discount) / Decimal('100'))
+        effective_fee = fee_pct * adj_factor
+        return (
+            MARGIN_BASE + pi + _dp_margin_boost
+            - effective_fee
+            - architect_cost_pct
+            - sim_discount
+        )
 
     def _get_comm(payment_type: str, installments: int, fee_pct: Decimal, pi: Decimal) -> Decimal:
-        """Return seller commission: fixed for specific methods, dynamic otherwise."""
-        if payment_type == 'CREDIT_CARD' and installments == 1:
+        """Commission per the schedule. Fixed for instant types and ≤6x cards;
+        dynamic (2 %→MAX) for 7x+ credit/boleto so seller benefits from pi/upfront."""
+        rate = _TYPE_COMMISSION_CAP.get(payment_type)
+        if rate is not None:
+            return rate
+        # Credit / Boleto
+        if installments <= 6:
             return Decimal('3')
-        fixed = _FIXED_COMMISSIONS.get(payment_type)
-        if fixed is not None:
-            return fixed
-        return _esc(fee_pct, pi)
+        # 7x+: dynamic — starts at 2 %, grows with pi/upfront, capped at MAX
+        avail = _available_for_commission(fee_pct, pi)
+        return max(COMMISSION_FLOOR, min(avail, COMMISSION_MAX))
+
+    # ── Helper: minimum price-increase delta to reach a commission target ──────
+    # Solves the correct (multiplicative) equation:
+    #   available(pi_total) = target_comm
+    #   → pi_total = (target_comm − M − dp + fee×(1−disc/100) + disc + arch) / (1 − fee/100)
+    #   → delta    = max(0, pi_total − current_pi)
+    def _pi_needed(target_comm: Decimal, fee: Decimal, current_pi: Decimal) -> Decimal:
+        denom = Decimal('1') - fee / Decimal('100')
+        if denom <= Decimal('0.001'):          # fee ≥ 100 % — mathematically impossible
+            return Decimal('100')
+        pi_total = (
+            target_comm
+            - MARGIN_BASE
+            - _dp_margin_boost
+            + fee * (Decimal('1') - sim_discount / Decimal('100'))
+            + sim_discount
+            + architect_cost_pct
+        ) / denom
+        return max(Decimal('0'), pi_total - current_pi)
 
     if split_mode:
         if _split_m1_avista:
@@ -2149,36 +2172,76 @@ def _build_simulation_context(
     original_commission_percent = COMMISSION_MAX
 
     # ── Global margin status (blended costs vs blended margin) ──────────
-    total_cost_pct     = fixed_costs
+    # Corrected fixed costs: fee is applied to the adjusted (post-pi, post-discount) total.
+    # adj_factor = (100 + blended_pi − discount) / 100
+    _blended_adj_factor   = max(Decimal('0'), (Decimal('100') + _blended_pi - sim_discount) / Decimal('100'))
+    _blended_fee_on_base  = _blended_fee * _blended_adj_factor   # fee as % of base (multiplicative)
+    fixed_costs           = _blended_fee_on_base + architect_cost_pct + sim_discount
+
+    # total_cost_pct includes the seller commission so the margin check reflects
+    # whether the store can actually pay the commission without going below MARGIN_BASE.
+    total_cost_pct     = fixed_costs + seller_commission_percent
     margin_exceeded    = total_cost_pct > effective_margin
     commission_reduced = seller_commission_percent < COMMISSION_MAX
     margin_excess      = total_cost_pct - effective_margin if margin_exceeded else Decimal("0")
 
-    margin_limit_exceeded = total_cost_pct > (margin_limit + _blended_pi)
+    # Hard block: even at 0 % commission the fixed costs exceed the margin limit.
+    margin_limit_exceeded = fixed_costs > (margin_limit + _blended_pi + _dp_margin_boost)
     controls_blocked      = margin_limit_exceeded
 
+    # Minimum increase to unblock (break-even, target commission = 0):
     min_increase_to_unblock = Decimal("0")
     if margin_limit_exceeded:
-        needed = total_cost_pct - (margin_limit + _blended_pi)
-        if needed > Decimal("0"):
-            min_increase_to_unblock = needed.quantize(Decimal("0.1"), rounding=ROUND_CEILING)
+        _delta_unblock = _pi_needed(Decimal('0'), _blended_fee, _blended_pi)
+        if _delta_unblock > Decimal("0"):
+            min_increase_to_unblock = _delta_unblock.quantize(Decimal("0.1"), rounding=ROUND_CEILING)
 
+    # ── Suggested price increase ─────────────────────────────────────────
+    # Two distinct purposes:
+    #   (a) margin_exceeded → cost > margin, suggest pi to break even (cover
+    #       the fixed-rate commission already promised, e.g. 3 % at 6x with
+    #       heavy discount).
+    #   (b) 7x+ credit/boleto with commission < COMMISSION_MAX → pure incentive:
+    #       suggest pi that would lift the dynamic commission up to MAX.
     suggested_increase = Decimal("0")
+    suggestion_is_opportunity = False  # True = "you could earn more" (incentive), False = warning
     if margin_exceeded:
-        suggested_increase = (margin_excess * 2).quantize(Decimal("1"), rounding=ROUND_CEILING) / 2
+        # Need to cover the current commission rate.  Target = current commission.
+        _delta_suggest = _pi_needed(seller_commission_percent, _blended_fee, _blended_pi)
+        suggested_increase = _delta_suggest.quantize(Decimal("0.1"), rounding=ROUND_CEILING)
+    elif (
+        not split_mode
+        and sim_payment_type in {'CREDIT_CARD', 'BOLETO'}
+        and sim_installments >= 7
+        and seller_commission_percent < COMMISSION_MAX
+    ):
+        # 7x+: dynamic commission has room to grow.  Suggest pi to hit MAX.
+        _delta_suggest = _pi_needed(COMMISSION_MAX, _blended_fee, _blended_pi)
+        if _delta_suggest > Decimal("0"):
+            suggested_increase = _delta_suggest.quantize(Decimal("0.1"), rounding=ROUND_CEILING)
+            suggestion_is_opportunity = True
 
     # ── Per-method margin status (shown on individual sliders) ──────────
     _split_m2_avista = split_mode and sim_payment_type_2 in _AVISTA_TYPES
     split_both_cards = split_mode and bool(sim_payment_type_2) and not _split_m1_avista and not _split_m2_avista
     if split_mode:
-        _eff1 = MARGIN_BASE + _pi1_eff
-        _eff2 = MARGIN_BASE + price_increase_pct_2
-        _c1   = eff_store_fee_percent + architect_cost_pct + sim_discount
-        _c2   = store_fee_percent_2 + architect_cost_pct + sim_discount
+        _eff1      = MARGIN_BASE + _pi1_eff + _dp_margin_boost
+        _eff2      = MARGIN_BASE + price_increase_pct_2 + _dp_margin_boost
+        # Corrected per-method fee on base (multiplicative)
+        _adj1      = max(Decimal('0'), (Decimal('100') + _pi1_eff - sim_discount) / Decimal('100'))
+        _adj2      = max(Decimal('0'), (Decimal('100') + price_increase_pct_2 - sim_discount) / Decimal('100'))
+        _c1        = eff_store_fee_percent * _adj1 + architect_cost_pct + sim_discount + _comm1
+        _c2        = store_fee_percent_2   * _adj2 + architect_cost_pct + sim_discount + _comm2
         margin_exceeded_1    = _c1 > _eff1
         margin_exceeded_2    = _c2 > _eff2
-        suggested_increase_1 = max(Decimal("0"), _c1 - _eff1).quantize(Decimal("0.1"), rounding=ROUND_CEILING) if margin_exceeded_1 else Decimal("0")
-        suggested_increase_2 = max(Decimal("0"), _c2 - _eff2).quantize(Decimal("0.1"), rounding=ROUND_CEILING) if margin_exceeded_2 else Decimal("0")
+        suggested_increase_1 = (
+            _pi_needed(_comm1, eff_store_fee_percent, _pi1_eff).quantize(Decimal("0.1"), rounding=ROUND_CEILING)
+            if margin_exceeded_1 else Decimal("0")
+        )
+        suggested_increase_2 = (
+            _pi_needed(_comm2, store_fee_percent_2, price_increase_pct_2).quantize(Decimal("0.1"), rounding=ROUND_CEILING)
+            if margin_exceeded_2 else Decimal("0")
+        )
     else:
         margin_exceeded_1    = False
         margin_exceeded_2    = False
@@ -2263,18 +2326,23 @@ def _build_simulation_context(
     # Net received by store (before commission — base product value minus fees)
     valor_avista = total_after_disc - payment_fee_value
 
-    if sim_has_architect:
-        architect_commission_value = valor_avista * architect_percent / Decimal("100")
-
-    # Base da comissão do vendedor
+    # ── Seller commission ────────────────────────────────────────────────
+    # Base = adj_subtotal (price-increase applied) minus discount on raw subtotal.
+    # Architect commission is no longer deducted from this base.
     seller_commission_base = adj_subtotal
-    # Desconto sobre valor base (sem ajuste de margem)
     seller_discount_value  = subtotal * sim_discount / Decimal("100")
-    seller_commission_base = seller_commission_base - seller_discount_value
-    if sim_has_architect:
-        seller_commission_base -= architect_commission_value
-    seller_commission_base  = max(Decimal("0"), seller_commission_base)
+    seller_commission_base = max(Decimal("0"), seller_commission_base - seller_discount_value)
     seller_commission_value = seller_commission_base * seller_commission_percent / Decimal("100")
+
+    # ── Architect commission ─────────────────────────────────────────────
+    # Base = subtotal (no freight)
+    #      - store margin amount  (subtotal × MARGIN_BASE%)
+    # Seller commission is informational only and does NOT affect this base.
+    # Example: 15,000 − 1,500 (10%) = 13,500 → 5% = 675
+    if sim_has_architect:
+        _arch_store_deduction      = subtotal * MARGIN_BASE / Decimal("100")
+        _arch_base                 = max(Decimal("0"), subtotal - _arch_store_deduction)
+        architect_commission_value = _arch_base * architect_percent / Decimal("100")
 
     # Payment selects
     payment_type_choices = list(PaymentMethodType.choices)
@@ -2340,6 +2408,7 @@ def _build_simulation_context(
         'seller_commission_base':    seller_commission_base,
         'original_commission_percent': original_commission_percent,
         'commission_floor':            COMMISSION_FLOOR,
+        'commission_max':              COMMISSION_MAX,
         'commission_reduced':          commission_reduced,
         'margin_base':               MARGIN_BASE,
         'effective_margin':          effective_margin,
@@ -2353,6 +2422,7 @@ def _build_simulation_context(
         'max_discount_allowed':      max_discount_allowed,
 
         'suggested_increase':        suggested_increase,
+        'suggestion_is_opportunity': suggestion_is_opportunity,
         'architect_percent':          architect_percent,
         'architect_commission_value': architect_commission_value,
         'valor_avista':               valor_avista,
@@ -2414,7 +2484,10 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
         sim_payment_type    = request.POST.get('sim_payment_type', '') or ''
         sim_has_architect   = request.POST.get('sim_has_architect') == '1'
         sim_architect_id    = request.POST.get('sim_architect_id', '') or ''
-        sim_discount        = Decimal(request.POST.get('discount_percent', '0') or '0')
+        try:
+            sim_discount = Decimal(request.POST.get('discount_percent', '0') or '0')
+        except Exception:
+            sim_discount = Decimal('0')
         try:
             price_increase_pct = Decimal(request.POST.get('price_increase_percent', '0') or '0')
         except Exception:
@@ -2522,7 +2595,8 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
                 quote.payment_fee_percent_2  = Decimal("0.00")
                 quote.payment_split_amount   = None
             quote.has_architect          = ctx['sim_has_architect']
-            quote.architect              = selected_architect
+            if not ctx['sim_has_architect']:
+                quote.architect = None  # clear if toggled off; keep existing when toggled on
             quote.save()
         request.session[save_session_key] = True
         messages.success(request, f"Condições do orçamento {quote.number} salvas com sucesso.")
@@ -2536,6 +2610,7 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
     ctx['sim_architect_id']   = sim_architect_id
     ctx['quote_actions_unlocked'] = quote_actions_unlocked
     ctx['can_view_commission'] = _can_view_commission(request.user)
+    ctx['is_admin'] = _is_admin(request.user)
     return render(request, 'sales/quote_simulation.html', ctx)
 
 

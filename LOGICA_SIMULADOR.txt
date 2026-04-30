@@ -1,0 +1,389 @@
+═══════════════════════════════════════════════════════════════════════════════
+            📐 LÓGICA DO SIMULADOR DE VENDAS — ROSELAR 📐
+         Documento técnico-gerencial para os proprietários da loja
+═══════════════════════════════════════════════════════════════════════════════
+
+Este documento descreve como o simulador de vendas funciona por dentro:
+quais regras de negócio foram implementadas, como os cálculos são feitos
+e por que cada decisão foi tomada dessa forma.
+
+Todos os parâmetros marcados com ★ são configuráveis no painel de admin
+sem necessidade de alteração no código.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 1 — ESTRUTURA DA MARGEM
+═══════════════════════════════════════════════════════════════════════════════
+
+Toda venda parte de um subtotal (soma dos produtos + frete). Sobre esse
+valor, a empresa tem uma MARGEM BRUTA configurada no admin ★ (atualmente
+10%). Dentro dessa margem, precisam caber todos os custos da transação:
+
+   ┌──────────────────────────────────────────────────────────────────┐
+   │  MARGEM BRUTA (10%)  =                                          │
+   │     taxa de pagamento  +  desconto concedido                    │
+   │   + comissão do arquiteto (se houver)                           │
+   │   + comissão do vendedor                                        │
+   └──────────────────────────────────────────────────────────────────┘
+
+O que sobrar da margem após todos esses custos é o lucro líquido da loja.
+
+Se a soma dos custos ultrapassar a margem, o sistema avisa ou bloqueia a
+operação — garantindo que nenhuma venda seja fechada no prejuízo sem que
+os responsáveis saibam.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 2 — POR QUE PORCENTAGEM NÃO É SIMÉTRICA (E O QUE FIZEMOS)
+═══════════════════════════════════════════════════════════════════════════════
+
+Existe um erro matemático muito comum ao trabalhar com porcentagens que
+afetava sistemas anteriores:
+
+   Adicionar 12% a R$ 100,00 resulta em R$ 112,00.
+   Deduzir 12% de R$ 112,00 resulta em R$ 98,56 — NÃO em R$ 100,00.
+
+   Motivo: a taxa de 12% incide sobre uma base maior (R$ 112,00), portanto
+   desconta R$ 13,44 — não apenas R$ 12,00.
+
+Isso é crítico no simulador porque a taxa da maquininha é cobrada sobre
+o valor final da transação (já com o ajuste de preço aplicado), não sobre
+o subtotal original dos produtos.
+
+Fórmula correta implementada no sistema:
+
+    fator_ajuste  = (100 + ajuste_preco − desconto) / 100
+    taxa_efetiva  = taxa_cartao × fator_ajuste
+
+    margem_efetiva = MARGEM_BASE + ajuste_preco + bonus_entrada
+                     − taxa_efetiva − desconto − comissao_arquiteto
+
+Exemplo concreto:
+    Subtotal R$ 10.000, ajuste +12%, taxa cartão 12%
+    → fator = (100 + 12) / 100 = 1,12
+    → taxa efetiva = 12% × 1,12 = 13,44% da base
+    → margem restante = 10% + 12% − 13,44% = 8,56%   (não 10%)
+
+Sistemas que não fazem esse cálculo correto superestimam a margem
+disponível e podem aprovar vendas com comissão inflada ou prejuízo
+disfarçado. Este simulador não comete esse erro.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 3 — REGRAS DE COMISSÃO DO VENDEDOR
+═══════════════════════════════════════════════════════════════════════════════
+
+As comissões foram desenhadas para alinhar o incentivo do vendedor com
+o custo real de cada método de pagamento para a loja:
+
+   ┌─────────────────────────────────┬────────────────────────────────────┐
+   │  Método de pagamento            │  Comissão do vendedor              │
+   ├─────────────────────────────────┼────────────────────────────────────┤
+   │  Dinheiro / PIX / Cheque        │  5%  (fixo)  ★                    │
+   │  Cartão de Débito               │  4%  (fixo)  ★                    │
+   │  Cartão de Crédito / Boleto 1x  │  3%  (fixo)  ★                    │
+   │  Cartão de Crédito / Boleto 2x  │  3%  (fixo)  ★                    │
+   │  ...até 6x                      │  3%  (fixo)  ★                    │
+   │  7x ou mais                     │  DINÂMICO: começa em 2%, sobe ★   │
+   └─────────────────────────────────┴────────────────────────────────────┘
+
+Lógica por trás das faixas:
+
+  • Dinheiro/PIX/Cheque não têm taxa de maquininha. A loja não perde nada
+    no recebimento, então pode oferecer a comissão máxima de 5%.
+
+  • Débito tem taxa baixa (geralmente ~1%). A comissão de 4% ainda é
+    viável dentro da margem de 10%.
+
+  • Crédito 1x–6x tem taxa moderada (até ~3%). A comissão de 3% é fixa
+    independente de desconto ou ajuste de preço — o vendedor sabe
+    exatamente o que vai receber.
+
+  • Crédito/Boleto 7x ou mais: a taxa da maquininha cresce
+    significativamente (frequentemente 3,5% a 6,5%). Se a comissão
+    fosse fixa em 3%, a loja poderia facilmente fechar vendas no prejuízo.
+    Por isso, a comissão é DINÂMICA:
+
+      - Começa em 2% (piso mínimo ★).
+      - Cresce proporcionalmente conforme o vendedor adiciona ajuste
+        de preço ou o cliente paga entrada à vista.
+      - Pode atingir até 5% (teto máximo ★) quando a margem suporta.
+
+  Isso cria um incentivo direto e transparente: para ganhar mais em
+  vendas longas, o vendedor precisa trabalhar o preço ou a entrada.
+  A loja nunca paga comissão que não cabe na margem.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 4 — OS CONTROLES DO SIMULADOR E O QUE CADA UM FAZ
+═══════════════════════════════════════════════════════════════════════════════
+
+  ┌─ DESCONTO ───────────────────────────────────────────────────────────┐
+  │                                                                      │
+  │   Percentual de abatimento concedido ao cliente sobre o total        │
+  │   (subtotal + frete). Vai de 0% até 30% (limite absoluto no código). │
+  │                                                                      │
+  │   Impacto na margem: cada 1% de desconto retira exatamente 1% da    │
+  │   margem disponível. O desconto é calculado sobre o valor BASE       │
+  │   (sem ajuste de preço), evitando que ajuste e desconto se anulem    │
+  │   artificialmente.                                                   │
+  │                                                                      │
+  │   O sistema bloqueia descontos que tornariam a venda inviável        │
+  │   mesmo com ajuste máximo.                                           │
+  └──────────────────────────────────────────────────────────────────────┘
+
+  ┌─ AJUSTE DE PREÇO ────────────────────────────────────────────────────┐
+  │                                                                      │
+  │   Acréscimo percentual aplicado ao subtotal (0% a 30%). É o         │
+  │   mecanismo pelo qual o vendedor recupera custos de taxa e/ou        │
+  │   aumenta sua comissão em vendas parceladas longas.                  │
+  │                                                                      │
+  │   Em vendas 1x–6x: serve apenas para cobrir desconto ou taxa.       │
+  │   A comissão permanece fixa — o ajuste não a altera.                 │
+  │                                                                      │
+  │   Em vendas 7x+: cada ponto percentual de ajuste aumenta a          │
+  │   margem efetiva e, consequentemente, a comissão do vendedor.        │
+  │   O simulador calcula e exibe em tempo real quanto de ajuste é       │
+  │   necessário para atingir a comissão máxima.                         │
+  │                                                                      │
+  │   Importante: o ajuste eleva o preço que o CLIENTE paga. O          │
+  │   vendedor deve negociar esse aumento como parte do processo         │
+  │   de venda, não aplicá-lo silenciosamente.                           │
+  └──────────────────────────────────────────────────────────────────────┘
+
+  ┌─ FORMA DE PAGAMENTO E PARCELAS ──────────────────────────────────────┐
+  │                                                                      │
+  │   Determina qual taxa de maquininha incide (configurada no admin ★)  │
+  │   e em qual faixa de comissão o vendedor se enquadra.                │
+  │                                                                      │
+  │   As taxas por método e número de parcelas são totalmente            │
+  │   editáveis no painel de administração sem alterar o código.         │
+  └──────────────────────────────────────────────────────────────────────┘
+
+  ┌─ ENTRADA DO CLIENTE ─────────────────────────────────────────────────┐
+  │                                                                      │
+  │   Valor pago à vista (PIX ou dinheiro) antes do financiamento        │
+  │   no cartão. A entrada NÃO sofre incidência de taxa de maquininha.   │
+  │                                                                      │
+  │   Mecanismo interno:                                                 │
+  │      proporcao_entrada = entrada / total_da_venda                    │
+  │      bonus_margem      = MARGEM_BASE × proporcao_entrada             │
+  │      margem_efetiva    = MARGEM_BASE + ajuste + bonus_margem         │
+  │                                                                      │
+  │   Efeito prático: uma entrada de 33% em uma venda de R$ 15.000      │
+  │   eleva a margem efetiva de 10% para 13,3%. Isso cria espaço para   │
+  │   mais desconto OU comissão maior para o vendedor — ambos dentro     │
+  │   do limite seguro para a loja.                                      │
+  │                                                                      │
+  │   Restrição: o valor mínimo de entrada é o equivalente a uma        │
+  │   parcela do financiamento, para evitar entradas simbólicas.         │
+  └──────────────────────────────────────────────────────────────────────┘
+
+  ┌─ ARQUITETO ──────────────────────────────────────────────────────────┐
+  │                                                                      │
+  │   Quando o cliente foi encaminhado por um arquiteto parceiro,        │
+  │   a loja paga uma comissão de indicação ★ (padrão: 10%) calculada   │
+  │   sobre o valor à vista líquido:                                     │
+  │                                                                      │
+  │      base = subtotal − (subtotal × MARGEM_BASE%)                    │
+  │      comissao_arquiteto = base × percentual_arquiteto                │
+  │                                                                      │
+  │   Exemplo: subtotal R$ 15.000, margem 10%                           │
+  │      base = 15.000 − 1.500 = 13.500                                  │
+  │      comissão = 13.500 × 10% = R$ 1.350                              │
+  │                                                                      │
+  │   Essa comissão é um custo fixo que aperta a margem disponível       │
+  │   para desconto e comissão do vendedor. O simulador contabiliza      │
+  │   isso automaticamente e avisa quando a combinação é inviável.       │
+  └──────────────────────────────────────────────────────────────────────┘
+
+  ┌─ VALOR FINAL DESEJADO / PARCELA DESEJADA ────────────────────────────┐
+  │                                                                      │
+  │   Permite ao vendedor trabalhar "de trás pra frente": em vez de      │
+  │   ajustar sliders manualmente, ele informa o valor que o cliente     │
+  │   quer pagar e o sistema calcula automaticamente o ajuste de preço   │
+  │   ou desconto necessário para atingir esse alvo.                     │
+  │                                                                      │
+  │   Lógica: se o alvo é MAIOR que o total atual → aplica ajuste de    │
+  │   preço. Se é MENOR → aplica desconto. Sempre respeitando os        │
+  │   limites configurados (máx 30% ajuste, máx 30% desconto).          │
+  │                                                                      │
+  │   "Parcela desejada" é convertida em valor total (parcela ×          │
+  │   número de parcelas) e segue o mesmo fluxo acima.                   │
+  └──────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 5 — OS 4 ESTADOS DE ALERTA DO SIMULADOR
+═══════════════════════════════════════════════════════════════════════════════
+
+O simulador classifica cada combinação de condições em um de quatro estados:
+
+  VERDE — "Condições OK!"
+  ─────────────────────────────────────────────────────────────────────
+  A margem cobre todos os custos (taxa + desconto + arquiteto +
+  comissão do vendedor). A venda pode ser fechada normalmente.
+
+  VERDE COM ÍCONE DE CRESCIMENTO — "Para maximizar sua comissão..."
+  ─────────────────────────────────────────────────────────────────────
+  Aparece exclusivamente em vendas 7x+, quando a comissão do vendedor
+  está no piso (2%) mas há margem para crescer. O sistema calcula e
+  exibe o ajuste de preço exato para atingir a comissão máxima.
+
+  Este estado é um INCENTIVO COMERCIAL, não um alerta de risco.
+  A venda já está segura para a loja; é apenas uma oportunidade
+  de maximizar o ganho do vendedor (e, indiretamente, o engajamento
+  dele em negociar melhor o preço com o cliente).
+
+  AMARELO — "Atenção! Sugestão: aumente +X%"
+  ─────────────────────────────────────────────────────────────────────
+  Os custos totais ultrapassaram a margem disponível. A venda pode
+  ser salva, mas exige ajuste. O sistema calcula o percentual mínimo
+  de ajuste de preço para cobrir exatamente os custos com a comissão
+  prometida. Não é um bloqueio — o vendedor (ou gestor) ainda pode
+  aprovar manualmente.
+
+  VERMELHO — "Bloqueado!"
+  ─────────────────────────────────────────────────────────────────────
+  Os custos FIXOS (taxa + desconto + arquiteto) já superam a margem,
+  mesmo que a comissão do vendedor fosse zero. É matematicamente
+  impossível fechar essa venda dentro dos parâmetros atuais.
+  O simulador trava os campos e exige uma das seguintes correções:
+    • Reduzir o desconto
+    • Reduzir o número de parcelas
+    • Adicionar ajuste de preço
+    • Obter entrada à vista do cliente
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 6 — EXEMPLOS NUMÉRICOS COMPLETOS
+═══════════════════════════════════════════════════════════════════════════════
+
+CENÁRIO A — Venda ideal (PIX, sem desconto)
+───────────────────────────────────────────
+   Subtotal:    R$ 10.000
+   Pagamento:   PIX
+   Desconto:    0%    Ajuste: 0%    Arquiteto: não
+
+   Taxa maquininha:   0%  (PIX não tem custo)
+   Comissão vendedor: 5%  (fixo para PIX)
+   Total de custos:   5%  → R$ 500
+   Margem da loja:    10% − 5% = 5%  → R$ 500 de lucro líquido
+   Estado:            VERDE ✓
+
+
+CENÁRIO B — Crédito em 12x sem ajuste de preço
+───────────────────────────────────────────────
+   Subtotal:    R$ 10.000
+   Pagamento:   Crédito 12x  (taxa 4,5% — cadastrada no admin)
+   Desconto:    0%    Ajuste: 0%    Arquiteto: não
+
+   Taxa efetiva sobre base:  4,5% × (100+0−0)/100 = 4,5%
+   Comissão vendedor (7x+, sem ajuste): 2%  (piso dinâmico)
+   Total de custos: 4,5% + 2% = 6,5%
+   Margem restante: 10% − 6,5% = 3,5%  → lucro de R$ 350
+
+   Estado: VERDE COM ÍCONE ↗
+   Sugestão exibida: "Aumente +X% para comissão chegar a 5%"
+
+   Se o vendedor acrescenta +6,1% no ajuste:
+      Taxa efetiva = 4,5% × 1,061 = 4,77%
+      Comissão = 5%  (teto atingido)
+      Custos = 4,77% + 5% = 9,77%
+      Margem restante = 10% + 6,1% − 9,77% = 6,33%  → R$ 633
+   A loja lucra mais; o vendedor também. Win-win.
+
+
+CENÁRIO C — Desconto elevado em crédito 6x
+───────────────────────────────────────────
+   Subtotal:    R$ 10.000
+   Pagamento:   Crédito 6x  (taxa 2,7%)
+   Desconto:    10%    Ajuste: 0%    Arquiteto: não
+
+   Taxa efetiva = 2,7% × (100+0−10)/100 = 2,7% × 0,9 = 2,43%
+   Comissão vendedor (1–6x): 3%  (fixo)
+   Total de custos: 2,43% + 10% + 3% = 15,43%
+   Margem disponível: 10%
+
+   Estado: AMARELO ⚠️
+   Sugestão: "Aumente +5,7% no ajuste de preço."
+   → Vendedor precisa negociar reajuste com o cliente ou reduzir desconto.
+
+
+CENÁRIO D — Combinação inviável
+────────────────────────────────
+   Subtotal:    R$ 10.000
+   Pagamento:   Crédito 18x  (taxa 6,5%)
+   Desconto:    25%    Ajuste: 0%    Arquiteto: 10%
+
+   Taxa efetiva = 6,5% × (100−25)/100 = 6,5% × 0,75 = 4,875%
+   Arquiteto = 10% × (10.000 − 1.000) / 10.000 = 9%
+   Custos fixos = 4,875% + 25% + 9% = 38,875%
+   Margem disponível: 10%
+
+   Estado: VERMELHO 🔴 — BLOQUEADO
+   → Não existe ajuste de preço possível que torne essa venda viável
+     dentro dos parâmetros configurados. A operação não pode ser salva
+     sem cortar desconto ou remover o arquiteto.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 7 — PARÂMETROS CONFIGURÁVEIS NO ADMIN (RESUMO)
+═══════════════════════════════════════════════════════════════════════════════
+
+Todos os valores abaixo podem ser alterados no painel de administração
+sem nenhuma mudança no código do sistema:
+
+   ┌────────────────────────────────────┬──────────────────────────────┐
+   │  Parâmetro                         │  Valor atual                 │
+   ├────────────────────────────────────┼──────────────────────────────┤
+   │  Margem bruta da empresa           │  10%                         │
+   │  Piso de comissão do vendedor      │  2%                          │
+   │  Teto de comissão do vendedor      │  5%                          │
+   │  Comissão do arquiteto             │  10%                         │
+   │  Taxa por método/parcela           │  editável por linha no admin │
+   │  Limite máximo de desconto         │  30% (hardcoded por segurança│
+   │  Limite máximo de ajuste de preço  │  30% (hardcoded por segurança│
+   └────────────────────────────────────┴──────────────────────────────┘
+
+Alterar a margem bruta afeta TODAS as vendas simuladas em tempo real.
+Recomenda-se cautela ao modificar durante períodos de vendas ativas.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTE 8 — DECISÕES DE DESIGN E JUSTIFICATIVAS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. POR QUE A TAXA É CALCULADA DE FORMA MULTIPLICATIVA?
+   ────────────────────────────────────────────────────
+   Porque é assim que as operadoras de cartão cobram. A taxa incide sobre
+   o valor transacionado (já com ajuste), não sobre o preço de tabela.
+   Sistemas que somam/subtraem porcentagens linearmente produzem margens
+   fictícias que levam a aprovações equivocadas.
+
+2. POR QUE COMISSÃO 7x+ É DINÂMICA E NÃO FIXA?
+   ─────────────────────────────────────────────
+   Com taxa de maquininha de 4–6,5% em vendas longas, uma comissão fixa
+   de 3% tornaria a maioria dessas vendas deficitária automaticamente.
+   A comissão dinâmica protege a loja enquanto mantém o vendedor motivado:
+   ele sabe que, trabalhando o preço ou a entrada, pode ganhar até 5%.
+
+3. POR QUE O DESCONTO É CALCULADO SOBRE O VALOR BASE (SEM AJUSTE)?
+   ─────────────────────────────────────────────────────────────────
+   Para evitar que ajuste e desconto se compensem circularmente.
+   Exemplo incorreto: ajuste 10% + desconto 10% = zero efeito (errado).
+   Exemplo correto: ajuste eleva o preço; desconto reduz o total;
+   os dois afetam a margem de formas independentes e previsíveis.
+
+4. POR QUE O BLOQUEIO IGNORA A COMISSÃO DO VENDEDOR?
+   ───────────────────────────────────────────────────
+   O bloqueio vermelho indica que os CUSTOS FIXOS (taxa + desconto +
+   arquiteto) já superam a margem, antes mesmo de pagar qualquer
+   comissão. Isso é uma linha de proteção absoluta da loja — não
+   depende de quanto o vendedor ganharia.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                     Documento técnico — uso interno
+                  Dúvidas: equipe de desenvolvimento / financeiro
+═══════════════════════════════════════════════════════════════════════════════

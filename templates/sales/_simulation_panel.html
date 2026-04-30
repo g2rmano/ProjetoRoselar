@@ -40,7 +40,9 @@
                              value="{{ discount_percent|floatformat:1 }}"
                              class="pct-input"
                              inputmode="decimal"
-                             aria-label="Desconto em porcentagem">
+                             aria-label="Desconto em porcentagem"
+                             oninput="onDiscountInputEdit(this)"
+                             onblur="onDiscountInputBlur(this)">
                       <span class="pct-suffix">%</span>
                       <button type="button" class="pct-btn" onclick="adjustPercent('discount', 0.5); scheduleSubmit()" aria-label="Aumentar desconto">+</button>
                     </div>
@@ -97,7 +99,9 @@
                                  value="{{ price_increase_pct|floatformat:1 }}"
                                  class="pct-input"
                                  inputmode="decimal"
-                                 aria-label="Ajuste de preço em porcentagem">
+                                 aria-label="Ajuste de preço em porcentagem"
+                                 oninput="onIncreaseInputEdit(this)"
+                                 onblur="onIncreaseInputBlur(this)">
                           <span class="pct-suffix">%</span>
                           <button type="button" class="pct-btn" onclick="adjustPercent('increase', 0.5); scheduleSubmit()" aria-label="Aumentar ajuste de preço">+</button>
                         </div>
@@ -128,7 +132,9 @@
                                  value="{{ price_increase_pct_2|floatformat:1 }}"
                                  class="pct-input"
                                  inputmode="decimal"
-                                 aria-label="Ajuste de preço pagamento 2">
+                                 aria-label="Ajuste de preço pagamento 2"
+                                 oninput="onIncrease2InputEdit(this)"
+                                 onblur="onIncrease2InputBlur(this)">
                           <span class="pct-suffix">%</span>
                           <button type="button" class="pct-btn" onclick="adjustPercent('increase2', 0.5); scheduleSubmit()" aria-label="Aumentar ajuste método 2">+</button>
                         </div>
@@ -171,6 +177,13 @@
                     <div>
                       <strong>Condições OK</strong> — taxa individual do cartão é alta, mas a margem total cobre ({% if can_view_commission %}taxa efetiva: {{ blended_fee_pct|floatformat:2 }}%{% else %}combinação dos métodos{% endif %}).
                       {% if suggested_increase_2 > 0 %}<br><span style="font-size:.8rem;opacity:.85;">Para cobrir a taxa individualmente: ajuste <strong>+{{ suggested_increase_2 }}%</strong> no cartão.</span>{% elif suggested_increase_1 > 0 %}<br><span style="font-size:.8rem;opacity:.85;">Para cobrir a taxa individualmente: ajuste <strong>+{{ suggested_increase_1 }}%</strong> no cartão.</span>{% endif %}
+                    </div>
+                  </div>
+                  {% elif suggestion_is_opportunity and suggested_increase > 0 %}
+                  <div class="sim-msg" style="background:#ecfdf5;border-left:3px solid #10b981;color:#065f46;">
+                    <i class="fa-solid fa-arrow-trend-up" style="color:#10b981;flex-shrink:0;"></i>
+                    <div>
+                      <strong>Condições OK!</strong> Para maximizar sua comissão, aumente <strong>+{{ suggested_increase }}%</strong> no preço — comissão sobe para <strong>{{ commission_max|floatformat:0 }}%</strong>.
                     </div>
                   </div>
                   {% else %}
@@ -396,49 +409,11 @@
                   </span>
                 </label>
 
-                <!-- Architect search / select / register -->
+                <!-- Architect commission note (simulation only – no name required) -->
                 <div id="architect-panel" style="display:{% if sim_has_architect %}block{% else %}none{% endif %}; margin-top:.6rem;">
-                  <!-- Selected architect -->
-                  <div id="arch-selected" class="{% if not selected_architect %}d-none{% endif %}" style="background:#e8f5e9;border-radius:8px;padding:.5rem .7rem;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between;">
-                    <span>
-                      <i class="fa-solid fa-check-circle" style="color:#388e3c;margin-right:.3rem;"></i>
-                      <strong id="arch-selected-name">{% if selected_architect %}{{ selected_architect.name }}{% endif %}</strong>
-                      <small id="arch-selected-pix" style="display:block;color:#666;margin-left:1.3rem;">{% if selected_architect %}PIX: {{ selected_architect.pix }}{% endif %}</small>
-                    </span>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deselectArchitect()" style="font-size:.75rem;">
-                      <i class="fa-solid fa-xmark"></i> Trocar
-                    </button>
-                  </div>
-
-                  <!-- Search input -->
-                  <div id="arch-search-box" class="{% if selected_architect %}d-none{% endif %}">
-                    <input type="text" id="arch-search-input" class="form-control form-control-sm" placeholder="Buscar arquiteto por nome..." autocomplete="off" oninput="searchArchitectDebounce()">
-                  </div>
-
-                  <!-- Search results -->
-                  <div id="arch-results" class="d-none" style="margin-top:.4rem;">
-                    <div id="arch-results-list" style="display:flex;flex-direction:column;gap:.25rem;"></div>
-                    <button type="button" class="btn btn-sm btn-outline-primary mt-1 w-100" onclick="showArchitectRegister()">
-                      <i class="fa-solid fa-plus me-1"></i>Cadastrar novo arquiteto
-                    </button>
-                  </div>
-
-                  <!-- Register form -->
-                  <div id="arch-register" class="d-none" style="margin-top:.5rem;padding:.5rem;background:#f5f5f5;border-radius:8px;">
-                    <div class="mb-2">
-                      <label class="form-label mb-0" style="font-size:.82rem;font-weight:600;">Nome <span class="text-danger">*</span></label>
-                      <input type="text" id="arch-new-name" class="form-control form-control-sm" placeholder="Nome completo">
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label mb-0" style="font-size:.82rem;font-weight:600;">Chave PIX <span class="text-danger">*</span></label>
-                      <input type="text" id="arch-new-pix" class="form-control form-control-sm" placeholder="CPF, e-mail, telefone ou chave aleatória">
-                    </div>
-                    <div class="d-flex gap-2">
-                      <button type="button" class="btn btn-sm btn-success" onclick="createArchitect()">
-                        <i class="fa-solid fa-check me-1"></i>Cadastrar
-                      </button>
-                      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideArchitectRegister()">Cancelar</button>
-                    </div>
+                  <div style="background:#e8f5e9;border-radius:8px;padding:.5rem .7rem;font-size:.82rem;color:#388e3c;">
+                    <i class="fa-solid fa-check-circle me-1"></i>
+                    Comissão de <strong>{{ architect_percent }}%</strong> aplicada sobre o valor à vista.
                   </div>
                 </div>
 
@@ -901,25 +876,69 @@ function onIncrease2Change(val) {
   document.getElementById('h-price-inc-2').value = val.toFixed(1);
 }
 
-function onDiscountInputEdit() {
-  var di = document.getElementById('discount-input');
-  if (!di) return;
-  var raw = String(di.value || '').replace(/[^\d,.-]/g, '').replace(',', '.');
-  if (!raw || raw === '.' || raw === '-') return;
-  var val = parseFloat(raw);
+/* ── Percent input: type freely, sync on input; reformat on blur ── */
+function _parsePctRaw(el) {
+  var raw = String(el.value || '').replace(/[^\d,.-]/g, '').replace(',', '.');
+  if (!raw || raw === '.' || raw === '-') return NaN;
+  return parseFloat(raw);
+}
+
+function onDiscountInputEdit(el) {
+  var val = _parsePctRaw(el);
   if (isNaN(val)) return;
+  var sl = document.getElementById('discount-slider');
+  var maxD = parseFloat(sl.max) || 30;
+  var clamped = Math.max(0, Math.min(maxD, val));
+  clamped = Math.round(clamped * 10) / 10;
+  if (val > maxD) el.value = clamped.toFixed(1);
+  sl.value = clamped;
+  document.getElementById('h-discount').value = clamped.toFixed(1);
+  var lbl = document.getElementById('live-discount-val');
+  if (lbl) lbl.textContent = clamped.toFixed(1) + '%';
+  scheduleSubmit();
+}
+function onDiscountInputBlur(el) {
+  var val = _parsePctRaw(el);
+  if (isNaN(val)) val = 0;
   onDiscountChange(val);
   scheduleSubmit();
 }
 
-function onIncreaseInputEdit() {
-  var ii = document.getElementById('increase-input');
-  if (!ii) return;
-  var raw = String(ii.value || '').replace(/[^\d,.-]/g, '').replace(',', '.');
-  if (!raw || raw === '.' || raw === '-') return;
-  var val = parseFloat(raw);
+function onIncreaseInputEdit(el) {
+  var val = _parsePctRaw(el);
   if (isNaN(val)) return;
+  var clamped = Math.max(0, Math.min(30, val));
+  clamped = Math.round(clamped * 10) / 10;
+  if (val > 30) el.value = clamped.toFixed(1);
+  var sl = document.getElementById('increase-slider');
+  if (sl) sl.value = clamped;
+  document.getElementById('h-price-inc').value = clamped.toFixed(1);
+  var inc1 = document.getElementById('inc1-wrap');
+  if (inc1 && inc1.dataset.splitBothCards === '1') onIncrease2Change(clamped);
+  scheduleSubmit();
+}
+function onIncreaseInputBlur(el) {
+  var val = _parsePctRaw(el);
+  if (isNaN(val)) val = 0;
   onIncreaseChange(val);
+  scheduleSubmit();
+}
+
+function onIncrease2InputEdit(el) {
+  var val = _parsePctRaw(el);
+  if (isNaN(val)) return;
+  var clamped = Math.max(0, Math.min(30, val));
+  clamped = Math.round(clamped * 10) / 10;
+  if (val > 30) el.value = clamped.toFixed(1);
+  var sl = document.getElementById('increase2-slider');
+  if (sl) sl.value = clamped;
+  document.getElementById('h-price-inc-2').value = clamped.toFixed(1);
+  scheduleSubmit();
+}
+function onIncrease2InputBlur(el) {
+  var val = _parsePctRaw(el);
+  if (isNaN(val)) val = 0;
+  onIncrease2Change(val);
   scheduleSubmit();
 }
 
@@ -1265,7 +1284,7 @@ function toggleInstallmentTarget() {
   if (sec) sec.style.display = ((pt === 'CREDIT_CARD' || pt === 'BOLETO') && inst > 1) ? '' : 'none';
 }
 
-/* ── Architect search / select / register ────────────────── */
+/* ── Architect (simulation: toggle only, no name required) ────── */
 var _archSearchTimer = null;
 
 function toggleArchitectPanel() {
@@ -1273,87 +1292,17 @@ function toggleArchitectPanel() {
   if (panel) panel.style.display = document.getElementById('chk-architect').checked ? 'block' : 'none';
 }
 
-function searchArchitectDebounce() {
-  clearTimeout(_archSearchTimer);
-  var q = document.getElementById('arch-search-input').value.trim();
-  if (q.length < 2) { document.getElementById('arch-results').classList.add('d-none'); return; }
-  _archSearchTimer = setTimeout(function() { searchArchitect(q); }, 400);
-}
-
-function searchArchitect(query) {
-  fetch('/api/search-architect/?query=' + encodeURIComponent(query))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var list = document.getElementById('arch-results-list');
-      list.innerHTML = '';
-      if (data.results && data.results.length) {
-        data.results.forEach(function(a) {
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'btn btn-sm btn-outline-secondary text-start';
-          btn.innerHTML = '<strong>' + a.name + '</strong><br><small class="text-muted">PIX: ' + a.pix + '</small>';
-          btn.onclick = function() { selectArchitect(a.id, a.name, a.pix); };
-          list.appendChild(btn);
-        });
-      } else {
-        list.innerHTML = '<small class="text-muted">Nenhum arquiteto encontrado.</small>';
-      }
-      document.getElementById('arch-results').classList.remove('d-none');
-      document.getElementById('arch-register').classList.add('d-none');
-    });
-}
-
-function selectArchitect(id, name, pix) {
-  document.getElementById('h-architect-id').value = id;
-  document.getElementById('arch-selected-name').textContent = name;
-  document.getElementById('arch-selected-pix').textContent = 'PIX: ' + pix;
-  document.getElementById('arch-selected').classList.remove('d-none');
-  document.getElementById('arch-search-box').classList.add('d-none');
-  document.getElementById('arch-results').classList.add('d-none');
-  document.getElementById('arch-register').classList.add('d-none');
-  document.getElementById('arch-search-input').value = '';
-  scheduleSubmit();
-}
-
+/* stubs – name/search UI removed from simulation */
 function deselectArchitect() {
-  document.getElementById('h-architect-id').value = '';
-  document.getElementById('arch-selected').classList.add('d-none');
-  document.getElementById('arch-search-box').classList.remove('d-none');
-  document.getElementById('arch-search-input').value = '';
+  var hid = document.getElementById('h-architect-id');
+  if (hid) hid.value = '';
 }
-
-function showArchitectRegister() {
-  document.getElementById('arch-register').classList.remove('d-none');
-  document.getElementById('arch-results').classList.add('d-none');
-}
-
-function hideArchitectRegister() {
-  document.getElementById('arch-register').classList.add('d-none');
-  document.getElementById('arch-new-name').value = '';
-  document.getElementById('arch-new-pix').value = '';
-}
-
-function createArchitect() {
-  var name = document.getElementById('arch-new-name').value.trim();
-  var pix = document.getElementById('arch-new-pix').value.trim();
-  if (!name) { document.getElementById('arch-new-name').focus(); return; }
-  if (!pix) { document.getElementById('arch-new-pix').focus(); return; }
-  fetch('/api/create-architect/', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value},
-    body: JSON.stringify({name: name, pix: pix})
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (data.success) {
-      selectArchitect(data.architect.id, data.architect.name, data.architect.pix);
-      hideArchitectRegister();
-    } else {
-      alert(data.error || 'Erro ao cadastrar arquiteto.');
-    }
-  })
-  .catch(function(e) { alert('Erro ao cadastrar arquiteto.'); });
-}
+function searchArchitectDebounce() {}
+function searchArchitect(query) {}
+function selectArchitect(id, name, pix) {}
+function showArchitectRegister() {}
+function hideArchitectRegister() {}
+function createArchitect() {}
 
 /* ── Entrada do Cliente ─────────────────────────────────────── */
 function toggleDpPanel() {
