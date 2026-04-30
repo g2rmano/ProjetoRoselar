@@ -2122,11 +2122,19 @@ def _build_simulation_context(
     }
 
     def _available_for_commission(fee_pct: Decimal, pi: Decimal) -> Decimal:
-        """Margin remaining after fee/discount/architect (the 7x+ commission pool)."""
+        """Margin remaining after fee/discount/architect (the 7x+ commission pool).
+
+        NOTE: The down-payment is intentionally treated as **neutral** here —
+        we ignore both the margin boost AND the fee reduction it produces.
+        Rationale: the seller's commission should reflect the deal's quality
+        (price increase, discount, architect, payment method), not how the
+        client chose to fund it. The store still benefits from upfront cash
+        in the actual margin status check below; this helper is only for
+        the dynamic 7x+ commission ladder."""
         adj_factor    = max(Decimal('0'), (Decimal('100') + pi - sim_discount) / Decimal('100'))
         effective_fee = fee_pct * adj_factor
         return (
-            MARGIN_BASE + pi + _dp_margin_boost
+            MARGIN_BASE + pi
             - effective_fee
             - architect_cost_pct
             - sim_discount
@@ -2150,14 +2158,19 @@ def _build_simulation_context(
     #   available(pi_total) = target_comm
     #   → pi_total = (target_comm − M − dp + fee×(1−disc/100) + disc + arch) / (1 − fee/100)
     #   → delta    = max(0, pi_total − current_pi)
-    def _pi_needed(target_comm: Decimal, fee: Decimal, current_pi: Decimal) -> Decimal:
+    # `for_commission=True` makes the down-payment neutral (no dp boost,
+    # raw fee) — used by the 7x+ "earn more" incentive so the suggestion
+    # matches the commission formula in `_available_for_commission`.
+    def _pi_needed(target_comm: Decimal, fee: Decimal, current_pi: Decimal,
+                   *, for_commission: bool = False) -> Decimal:
         denom = Decimal('1') - fee / Decimal('100')
         if denom <= Decimal('0.001'):          # fee ≥ 100 % — mathematically impossible
             return Decimal('100')
+        dp_term = Decimal('0') if for_commission else _dp_margin_boost
         pi_total = (
             target_comm
             - MARGIN_BASE
-            - _dp_margin_boost
+            - dp_term
             + fee * (Decimal('1') - sim_discount / Decimal('100'))
             + sim_discount
             + architect_cost_pct
@@ -2170,11 +2183,14 @@ def _build_simulation_context(
             _comm2 = _get_comm(sim_payment_type_2, sim_installments_2, store_fee_percent_2, price_increase_pct_2)
             seller_commission_percent = (_w1 * _comm1 + _w2 * _comm2).quantize(Decimal("0.1"))
         else:
-            _comm1 = _get_comm(sim_payment_type, sim_installments, eff_store_fee_percent, price_increase_pct)
+            # Commission uses RAW store_fee_percent (not eff_store_fee_percent) —
+            # the down-payment must be neutral for commission purposes.
+            _comm1 = _get_comm(sim_payment_type, sim_installments, store_fee_percent, price_increase_pct)
             _comm2 = _get_comm(sim_payment_type_2, sim_installments_2, store_fee_percent_2, price_increase_pct_2)
             seller_commission_percent = (_w1 * _comm1 + _w2 * _comm2).quantize(Decimal("0.1"))
     else:
-        seller_commission_percent = _get_comm(sim_payment_type, sim_installments, eff_store_fee_percent, price_increase_pct).quantize(Decimal("0.1"))
+        # Commission uses RAW store_fee_percent — down-payment is neutral for commission.
+        seller_commission_percent = _get_comm(sim_payment_type, sim_installments, store_fee_percent, price_increase_pct).quantize(Decimal("0.1"))
 
     original_commission_percent = COMMISSION_MAX
 
@@ -2223,7 +2239,9 @@ def _build_simulation_context(
         and seller_commission_percent < Decimal('3')
     ):
         # 7x+: dynamic commission has room to grow.  Suggest pi to hit 3 % (not max).
-        _delta_suggest = _pi_needed(Decimal('3'), _blended_fee, _blended_pi)
+        # Uses for_commission=True so the math matches _available_for_commission
+        # (down-payment is neutral for commission). Fee is the RAW store_fee_percent.
+        _delta_suggest = _pi_needed(Decimal('3'), store_fee_percent, price_increase_pct, for_commission=True)
         if _delta_suggest > Decimal("0"):
             suggested_increase = _delta_suggest.quantize(Decimal("0.1"), rounding=ROUND_CEILING)
             suggestion_is_opportunity = True
