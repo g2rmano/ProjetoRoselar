@@ -190,7 +190,7 @@ class PaymentTariff(models.Model):
 class Architect(models.Model):
     """Cadastro de arquitetos."""
     name = models.CharField(max_length=160, verbose_name="Nome Completo")
-    pix = models.CharField(max_length=120, verbose_name="Chave PIX")
+    pix = models.CharField(max_length=120, blank=True, default="", verbose_name="Chave PIX")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Cadastrado em")
 
     class Meta:

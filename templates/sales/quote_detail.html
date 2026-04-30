@@ -540,10 +540,18 @@
                         <i class="fa-solid fa-circle-info me-2"></i>
                         Após a conversão, o <strong>financeiro</strong> receberá uma notificação, baixará os PDFs de compra para cada fornecedor e definirá a data de entrega — gerando lembretes automáticos para você e para ele.
                       </div>
-                      {% if quote.delivery_weeks %}
+                      {% if quote.delivery_days_min or quote.delivery_days_max %}
                         <div style="margin-top:.65rem;font-size:.81rem;color:var(--muted);">
                           <i class="fa-solid fa-clock me-1"></i>Prazo estimado no orçamento:
-                          <strong>{{ quote.delivery_weeks }} semana{% if quote.delivery_weeks > 1 %}s{% endif %}</strong>
+                          <strong>
+                            {% if quote.delivery_days_min and quote.delivery_days_max %}
+                              {{ quote.delivery_days_min }} a {{ quote.delivery_days_max }} dias
+                            {% elif quote.delivery_days_min %}
+                              a partir de {{ quote.delivery_days_min }} dias
+                            {% else %}
+                              até {{ quote.delivery_days_max }} dias
+                            {% endif %}
+                          </strong>
                         </div>
                       {% endif %}
                     </div>

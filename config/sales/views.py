@@ -1379,11 +1379,18 @@ def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
         els.append(total_tbl)
 
         # prazo
-        if quote.delivery_weeks:
-            semanas = 'semana' if quote.delivery_weeks == 1 else 'semanas'
+        if quote.delivery_days_min or quote.delivery_days_max:
+            mn = quote.delivery_days_min
+            mx = quote.delivery_days_max
+            if mn and mx:
+                prazo_txt = f"{mn} a {mx} dias"
+            elif mn:
+                prazo_txt = f"a partir de {mn} dias"
+            else:
+                prazo_txt = f"até {mx} dias"
             els.append(Spacer(1, 0.2*cm))
             els.append(Paragraph(
-                f"<b>Prazo de entrega estimado:</b> {quote.delivery_weeks} {semanas}",
+                f"<b>Prazo de entrega estimado:</b> {prazo_txt}",
                 st_normal,
             ))
 

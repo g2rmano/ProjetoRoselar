@@ -679,8 +679,6 @@ def create_architect(request):
         pix = (data.get("pix") or "").strip()
         if not name:
             return JsonResponse({"success": False, "error": "Nome é obrigatório."}, status=400)
-        if not pix:
-            return JsonResponse({"success": False, "error": "Chave PIX é obrigatória."}, status=400)
         from .models import Architect
         architect = Architect.objects.create(name=name, pix=pix)
         return JsonResponse({"success": True, "architect": {"id": architect.id, "name": architect.name, "pix": architect.pix}})

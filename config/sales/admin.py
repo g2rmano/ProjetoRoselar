@@ -18,7 +18,7 @@ class QuoteAdmin(SellerAccess, admin.ModelAdmin):
     readonly_fields = ("created_at", "discount_authorized_at", "total_value_snapshot")
     fields = (
         "number", "customer", "seller", "status", "quote_date", "total_value_snapshot",
-        "delivery_weeks",
+        "delivery_days_min", "delivery_days_max",
         "freight_value", "freight_responsible", "shipping_company", "shipping_payment_method",
         "discount_percent", "discount_authorized_by", "discount_authorized_at",
         "payment_type", "payment_installments", "payment_fee_percent",

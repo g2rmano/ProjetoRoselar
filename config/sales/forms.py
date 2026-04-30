@@ -18,7 +18,8 @@ class QuoteForm(forms.ModelForm):
         model = Quote
         fields = [
             "customer",
-            "delivery_weeks",
+            "delivery_days_min",
+            "delivery_days_max",
             "freight_value",
             "freight_responsible",
             "shipping_company",
@@ -31,7 +32,8 @@ class QuoteForm(forms.ModelForm):
         ]
         widgets = {
             "freight_value": forms.TextInput(attrs={"class": "form-control", "inputmode": "numeric", "placeholder": "0,00"}),
-            "delivery_weeks": forms.Select(attrs={"class": "form-control"}),
+            "delivery_days_min": forms.NumberInput(attrs={"class": "form-control", "min": "1", "placeholder": "Ex: 15"}),
+            "delivery_days_max": forms.NumberInput(attrs={"class": "form-control", "min": "1", "placeholder": "Ex: 20"}),
             "payment_installments": forms.Select(attrs={"class": "form-control"}),
             "payment_fee_percent": forms.HiddenInput(),
         }
@@ -48,7 +50,8 @@ class QuoteForm(forms.ModelForm):
         
         # Freight fields are conditionally required (validated in clean)
         self.fields['freight_value'].required = False
-        self.fields['delivery_weeks'].required = False
+        self.fields['delivery_days_min'].required = False
+        self.fields['delivery_days_max'].required = False
         self.fields['shipping_company'].required = False
         
         # Adicionar classes CSS
@@ -66,8 +69,8 @@ class QuoteForm(forms.ModelForm):
             fv = cleaned.get('freight_value')
             if fv is None or fv <= Decimal('0'):
                 self.add_error('freight_value', 'Informe o valor do frete.')
-            if not cleaned.get('delivery_weeks'):
-                self.add_error('delivery_weeks', 'Informe o prazo de entrega.')
+            if not cleaned.get('delivery_days_min'):
+                self.add_error('delivery_days_min', 'Informe o prazo mínimo de entrega.')
             if responsible == 'CARRIER' and not cleaned.get('shipping_company'):
                 self.add_error('shipping_company', 'Selecione a transportadora.')
 

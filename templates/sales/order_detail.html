@@ -339,10 +339,18 @@
                     <input type="date" id="delivery-date-input" name="delivery_deadline"
                            class="form-control" required
                            value="{{ order.delivery_deadline|date:'Y-m-d' }}">
-                    {% if order.quote.delivery_weeks %}
+                    {% if order.quote.delivery_days_min or order.quote.delivery_days_max %}
                       <small style="font-size:.78rem;color:var(--muted);">
                         <i class="fa-solid fa-clock me-1"></i>Prazo estimado no orçamento:
-                        <strong>{{ order.quote.delivery_weeks }} semana{% if order.quote.delivery_weeks > 1 %}s{% endif %}</strong>
+                        <strong>
+                          {% if order.quote.delivery_days_min and order.quote.delivery_days_max %}
+                            {{ order.quote.delivery_days_min }} a {{ order.quote.delivery_days_max }} dias
+                          {% elif order.quote.delivery_days_min %}
+                            a partir de {{ order.quote.delivery_days_min }} dias
+                          {% else %}
+                            até {{ order.quote.delivery_days_max }} dias
+                          {% endif %}
+                        </strong>
                       </small>
                     {% endif %}
                   </div>

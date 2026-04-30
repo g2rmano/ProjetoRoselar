@@ -417,12 +417,7 @@
                   </div>
                 </div>
 
-                {% if sim_has_architect and not margin_limit_exceeded %}
-                <div class="stat mt-2" style="text-align:left;">
-                  <div class="stat-l">Base do cálculo</div>
-                  <div class="stat-v">R$ {{ valor_avista|floatformat:2 }}</div>
-                </div>
-                {% endif %}
+
               </div>
             </div>
 
@@ -711,60 +706,7 @@
                   Salvar Condições no Orçamento
                 </button>
                 {% endif %}
-                {% if not quote_actions_unlocked %}
-                <div class="sim-msg warn" style="margin:0;">
-                  <i class="fa-solid fa-lock"></i>
-                  <div>
-                    Salve as condições primeiro para liberar: PDF Cliente, Editar e Ver Orçamento.
-                  </div>
-                </div>
-                {% endif %}
-                <div class="d-flex gap-2">
-                  {% if quote_actions_unlocked %}
-                    <a href="{% url 'sales:quote_pdf_client' quote.id %}" class="btn-a secondary flex-fill" target="_blank"
-                       style="justify-content:center;font-size:.82rem;">
-                      <i class="fa-solid fa-file-pdf"></i>PDF Cliente
-                    </a>
-                    {% if is_admin %}
-                    <a href="{% url 'sales:quote_pdf_supplier' quote.id %}" class="btn-a secondary flex-fill" target="_blank"
-                       style="justify-content:center;font-size:.82rem;">
-                      <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
-                    </a>
-                    {% endif %}
-                  {% else %}
-                    <button type="button" class="btn-a secondary flex-fill" disabled
-                            style="justify-content:center;font-size:.82rem;opacity:.55;cursor:not-allowed;">
-                      <i class="fa-solid fa-file-pdf"></i>PDF Cliente
-                    </button>
-                    {% if is_admin %}
-                    <button type="button" class="btn-a secondary flex-fill" disabled
-                            style="justify-content:center;font-size:.82rem;opacity:.55;cursor:not-allowed;">
-                      <i class="fa-solid fa-file-pdf"></i>PDF Fornecedor
-                    </button>
-                    {% endif %}
-                  {% endif %}
-                </div>
-                <div class="d-flex gap-2">
-                  {% if quote_actions_unlocked %}
-                    <a href="{% url 'sales:quote_edit' quote.id %}" class="btn-a secondary flex-fill"
-                       style="justify-content:center;font-size:.82rem;">
-                      <i class="fa-solid fa-pencil"></i>Editar
-                    </a>
-                    <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-a secondary flex-fill"
-                       style="justify-content:center;font-size:.82rem;">
-                      <i class="fa-solid fa-eye"></i>Ver Orçamento
-                    </a>
-                  {% else %}
-                    <button type="button" class="btn-a secondary flex-fill" disabled
-                            style="justify-content:center;font-size:.82rem;opacity:.55;cursor:not-allowed;">
-                      <i class="fa-solid fa-pencil"></i>Editar
-                    </button>
-                    <button type="button" class="btn-a secondary flex-fill" disabled
-                            style="justify-content:center;font-size:.82rem;opacity:.55;cursor:not-allowed;">
-                      <i class="fa-solid fa-eye"></i>Ver Orçamento
-                    </button>
-                  {% endif %}
-                </div>
+
               </div>
             </div>
             {% else %}

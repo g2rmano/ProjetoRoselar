@@ -68,14 +68,18 @@ class Quote(models.Model):
 
     quote_date = models.DateField(default=timezone.localdate, verbose_name="Data")
     
-    # prazo de entrega estimado em semanas (no orçamento)
-    DELIVERY_WEEKS_CHOICES = [(i, f"{i} semana{'s' if i > 1 else ''}") for i in range(1, 13)]
-    delivery_weeks = models.PositiveSmallIntegerField(
+    # prazo de entrega estimado em dias (no orçamento)
+    delivery_days_min = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
-        choices=DELIVERY_WEEKS_CHOICES,
-        verbose_name="Prazo de Entrega (semanas)",
-        help_text="Prazo estimado em semanas"
+        verbose_name="Prazo Mínimo de Entrega (dias)",
+        help_text="Prazo mínimo estimado em dias"
+    )
+    delivery_days_max = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Prazo Máximo de Entrega (dias)",
+        help_text="Prazo máximo estimado em dias"
     )
     
     # frete

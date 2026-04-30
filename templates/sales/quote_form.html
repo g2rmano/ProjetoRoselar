@@ -335,7 +335,6 @@
                     {{ form.payment_type }}
                     {{ form.payment_installments }}
                     {{ form.payment_fee_percent }}
-                    {{ form.architect }}
                   </div>
 
             <div class="s-card fi fi-2">
@@ -432,12 +431,19 @@
                         
                         <div id="delivery-fields-container">
                           <div class="row">
-                            <div class="col-md-6 mb-3">
-                              <label for="{{ form.delivery_weeks.id_for_label }}" class="form-label fw-bold">Prazo de Entrega Estimado</label>
-                              {{ form.delivery_weeks }}
-                              <small class="text-muted">Prazo estimado em semanas. A data real será definida ao gerar o pedido.</small>
-                              {% if form.delivery_weeks.errors %}
-                                <div class="text-danger small">{{ form.delivery_weeks.errors }}</div>
+                            <div class="col-md-3 mb-3">
+                              <label for="{{ form.delivery_days_min.id_for_label }}" class="form-label fw-bold">Prazo Mínimo (dias)</label>
+                              {{ form.delivery_days_min }}
+                              {% if form.delivery_days_min.errors %}
+                                <div class="text-danger small">{{ form.delivery_days_min.errors }}</div>
+                              {% endif %}
+                            </div>
+                            <div class="col-md-3 mb-3">
+                              <label for="{{ form.delivery_days_max.id_for_label }}" class="form-label fw-bold">Prazo Máximo (dias)</label>
+                              {{ form.delivery_days_max }}
+                              <small class="text-muted">Ex: 15 e 20 dias. A data real será definida ao gerar o pedido.</small>
+                              {% if form.delivery_days_max.errors %}
+                                <div class="text-danger small">{{ form.delivery_days_max.errors }}</div>
                               {% endif %}
                             </div>
                           </div>
@@ -465,6 +471,7 @@
                 {% endif %}
 
                 <div id="qf-architect-panel" style="display:none; margin-top:.6rem;">
+                  <div style="display:none;">{{ form.architect }}</div>
                   <!-- Selected architect display -->
                   <div id="qf-arch-selected" class="d-none" style="background:#e8f5e9;border-radius:8px;padding:.5rem .7rem;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between;">
                     <span>
@@ -499,7 +506,7 @@
                       <input type="text" id="qf-arch-new-name" class="form-control form-control-sm" placeholder="Nome completo">
                     </div>
                     <div class="mb-2">
-                      <label class="form-label mb-0" style="font-size:.82rem;font-weight:600;">Chave PIX <span class="text-danger">*</span></label>
+                      <label class="form-label mb-0" style="font-size:.82rem;font-weight:600;">Chave PIX <span class="text-muted" style="font-weight:400;">(opcional)</span></label>
                       <input type="text" id="qf-arch-new-pix" class="form-control form-control-sm" placeholder="CPF, e-mail, telefone ou chave aleatória">
                     </div>
                     <div class="d-flex gap-2">
@@ -668,7 +675,7 @@
         const freightValueInput = document.querySelector('input[name="freight_value"]');
         const shippingCompanyContainer = document.getElementById('shipping-company-container');
         const deliveryFieldsContainer = document.getElementById('delivery-fields-container');
-        const deliveryDeadlineInput = document.querySelector('select[name="delivery_weeks"]');
+        const deliveryDeadlineInput = document.querySelector('input[name="delivery_days_min"]');
         
         function updateFreightAndDeliveryFields() {
           const selectedValue = freightResponsibleSelect.value;
@@ -932,7 +939,6 @@
         var name = document.getElementById('qf-arch-new-name').value.trim();
         var pix  = document.getElementById('qf-arch-new-pix').value.trim();
         if (!name) { document.getElementById('qf-arch-new-name').focus(); return; }
-        if (!pix)  { document.getElementById('qf-arch-new-pix').focus(); return; }
         fetch('/api/create-architect/', {
           method: 'POST',
           headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value},
@@ -1462,7 +1468,7 @@
 
         if (frVal === 'STORE' || frVal === 'CARRIER') {
           const fv = document.querySelector('input[name="freight_value"]');
-          const dw = document.querySelector('select[name="delivery_weeks"]');
+          const dw = document.querySelector('input[name="delivery_days_min"]');
           if (!fv || !fv.value.trim() || parseFloat(fv.value.replace(/\./g, '').replace(',','.')) <= 0) missingFreight.push('Valor do Frete');
           if (!dw || !dw.value) missingFreight.push('Prazo de Entrega');
           if (frVal === 'CARRIER') {
