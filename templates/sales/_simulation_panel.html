@@ -623,7 +623,7 @@
                 </div>
 
                 <!-- Target Installment (collapsible, card only) -->
-                <div class="mt-2" id="target-installment-section" style="background:var(--bg);border-radius:8px;overflow:hidden;{% if sim_payment_type != 'CREDIT_CARD' and sim_payment_type != 'BOLETO' or sim_installments <= 1 %}display:none;{% endif %}">
+                <div class="mt-2" id="target-installment-section" style="background:var(--bg);border-radius:8px;overflow:hidden;{% if sim_payment_type != 'CREDIT_CARD' and sim_payment_type != 'BOLETO' and sim_payment_type != 'CHEQUE' or sim_installments <= 1 %}display:none;{% endif %}">
                   <div style="padding:.55rem .9rem;cursor:pointer;" onclick="this.querySelector('.col-toggle').click()">
                     <button type="button" class="col-toggle"
                             data-bs-toggle="collapse" data-bs-target="#target-installment-collapse"
@@ -920,7 +920,7 @@ function onInstChange(val) {
 function onPaymentTypeChange() {
   var pt = document.getElementById('sel-ptype').value;
   document.getElementById('h-ptype').value = pt;
-  var hasInst = (pt === 'CREDIT_CARD' || pt === 'BOLETO');
+  var hasInst = (pt === 'CREDIT_CARD' || pt === 'BOLETO' || pt === 'CHEQUE');
   document.getElementById('inst-dropdown-row').style.display = hasInst ? '' : 'none';
   if (!hasInst) { document.getElementById('inst-select').value = 1; document.getElementById('h-installments').value = 1; }
   rebuildInstOptions();
@@ -935,7 +935,7 @@ function onPaymentTypeChange() {
 function onPaymentType2Change() {
   var pt2 = document.getElementById('sel-ptype2').value;
   document.getElementById('h-ptype2').value = pt2;
-  var hasInst2 = (pt2 === 'CREDIT_CARD' || pt2 === 'BOLETO');
+  var hasInst2 = (pt2 === 'CREDIT_CARD' || pt2 === 'BOLETO' || pt2 === 'CHEQUE');
   document.getElementById('inst2-dropdown-row').style.display = hasInst2 ? '' : 'none';
   if (!hasInst2) { document.getElementById('inst2-select').value = 1; document.getElementById('h-installments2').value = 1; }
   rebuildInst2Options();
@@ -986,7 +986,7 @@ function toggleSplitMode() {
   scheduleSubmit();
 }
 
-var _AVISTA_TYPES_JS = ['CASH', 'PIX', 'CHEQUE', 'BOLETO'];
+var _AVISTA_TYPES_JS = ['CASH', 'PIX', 'BOLETO'];
 function _isBothCards() {
   var pt1 = document.getElementById('sel-ptype').value;
   var pt2 = document.getElementById('sel-ptype2').value;
@@ -1223,7 +1223,7 @@ function toggleInstallmentTarget() {
   var pt = document.getElementById('sel-ptype').value;
   var inst = parseInt(document.getElementById('inst-select').value) || 1;
   var sec = document.getElementById('target-installment-section');
-  if (sec) sec.style.display = ((pt === 'CREDIT_CARD' || pt === 'BOLETO') && inst > 1) ? '' : 'none';
+  if (sec) sec.style.display = ((pt === 'CREDIT_CARD' || pt === 'BOLETO' || pt === 'CHEQUE') && inst > 1) ? '' : 'none';
 }
 
 /* ── Architect (simulation: toggle only, no name required) ────── */
@@ -1309,7 +1309,7 @@ function clearDpValue() {
 
 function updateDpCalcVisibility() {
   var pt = document.getElementById('sel-ptype').value;
-  var isCard = (pt === 'CREDIT_CARD' || pt === 'BOLETO');
+  var isCard = (pt === 'CREDIT_CARD' || pt === 'BOLETO' || pt === 'CHEQUE');
   var card = document.getElementById('dp-calc-card');
   if (card) card.style.display = isCard ? '' : 'none';
   // When payment type no longer supports down payment, clear it
@@ -1412,7 +1412,7 @@ function resetSimulation() {
   rebuildInstOptions();
   document.getElementById('inst-select').value = initInstall;
   document.getElementById('inst-dropdown-row').style.display =
-    (initPType === 'CREDIT_CARD' || initPType === 'BOLETO') ? '' : 'none';
+    (initPType === 'CREDIT_CARD' || initPType === 'BOLETO' || initPType === 'CHEQUE') ? '' : 'none';
   updateFeeDisplay(initInstall);
   // Init method 2 if split mode is on
   var initPType2 = '{{ sim_payment_type_2 }}';
@@ -1423,7 +1423,7 @@ function resetSimulation() {
   if (initPType2) {
     document.getElementById('inst2-select').value = initInstall2;
     document.getElementById('inst2-dropdown-row').style.display =
-      (initPType2 === 'CREDIT_CARD' || initPType2 === 'BOLETO') ? '' : 'none';
+      (initPType2 === 'CREDIT_CARD' || initPType2 === 'BOLETO' || initPType2 === 'CHEQUE') ? '' : 'none';
     updateFee2Display(initInstall2);
   }
   // Restore split amount display

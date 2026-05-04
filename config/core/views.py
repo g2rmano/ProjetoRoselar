@@ -867,28 +867,53 @@ def report_commissions(request):
         quote_date__lte=date_to,
     ).select_related("seller")
 
-    commissions = []
-    sellers_data = (
-        qs.values("seller__id", "seller__username")
-        .annotate(
-            total_sold=Sum("total_value_snapshot"),
-            count=Count("id"),
-            avg_discount=Avg("discount_percent"),
-            avg_fee=Avg("payment_fee_percent"),
-        )
-        .order_by("-total_sold")
-    )
+    MAX_DISC = 30.0
 
-    for s in sellers_data:
-        avg_disc = s["avg_discount"] or 0
-        avg_fee = s["avg_fee"] or 0
-        comm_pct = max(float(MIN_COMM), min(float(MAX_COMM), float(TOTAL_MARGIN) - avg_disc - avg_fee))
-        total_sold = float(s["total_sold"] or 0)
-        est_commission = total_sold * comm_pct / 100
+    def _pix_cash_comm(disc):
+        if disc <= 0:
+            return 5.0
+        elif disc <= 10.0:
+            return 4.0 - (disc / 10.0) * 1.0
+        else:
+            frac = min(1.0, (disc - 10.0) / 2.0)
+            return max(2.0, 3.0 - frac * 1.0) #discounted commission for high discounts on PIX/CASH, with a floor at 2%
+
+    def _per_quote_commission_pct(payment_type, discount, fee, installments):
+        disc = float(discount or 0)
+        fee_pct = float(fee or 0)
+        inst = int(installments or 1)
+        if payment_type in ('PIX', 'CASH'):
+            return _pix_cash_comm(disc)
+        if payment_type in ('CREDIT_CARD', 'CHEQUE') and inst == 1:
+            return 4.0
+        if payment_type in ('CREDIT_CARD', 'CHEQUE') and inst <= 6:
+            return 3.0
+        return max(float(MIN_COMM), min(float(MAX_COMM), float(TOTAL_MARGIN) - disc - fee_pct))
+
+    from collections import defaultdict
+    seller_totals = defaultdict(lambda: {"total_sold": 0.0, "commission": 0.0, "count": 0, "disc_sum": 0.0})
+
+    for q in qs.values("seller__id", "seller__username", "total_value_snapshot", "discount_percent", "payment_fee_percent", "payment_type", "payment_installments"):
+        sid = q["seller__id"]
+        val = float(q["total_value_snapshot"] or 0)
+        comm_pct = _per_quote_commission_pct(q["payment_type"], q["discount_percent"], q["payment_fee_percent"], q["payment_installments"])
+        seller_totals[sid]["seller"] = q["seller__username"]
+        seller_totals[sid]["total_sold"] += val
+        seller_totals[sid]["commission"] += val * comm_pct / 100
+        seller_totals[sid]["count"] += 1
+        seller_totals[sid]["disc_sum"] += float(q["discount_percent"] or 0)
+
+    commissions = []
+    for sid, data in sorted(seller_totals.items(), key=lambda x: -x[1]["total_sold"]):
+        count = data["count"]
+        avg_disc = data["disc_sum"] / count if count else 0
+        total_sold = data["total_sold"]
+        est_commission = data["commission"]
+        comm_pct = est_commission / total_sold * 100 if total_sold else 0
         commissions.append({
-            "seller": s["seller__username"],
-            "total_sold": s["total_sold"],
-            "count": s["count"],
+            "seller": data["seller"],
+            "total_sold": round(total_sold, 2),
+            "count": count,
             "avg_discount": round(avg_disc, 1),
             "comm_pct": round(comm_pct, 1),
             "est_commission": round(est_commission, 2),
