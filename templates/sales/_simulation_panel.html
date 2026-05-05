@@ -53,7 +53,7 @@
                          value="{{ discount_percent }}"
                          oninput="onDiscountChange(this.value); scheduleSubmit()">
                 </div>
-                {% if controls_blocked %}
+                {% if controls_blocked and subtotal %}
                 <div class="sim-msg bad">
                   <i class="fa-solid fa-lock"></i>
                   <div><strong>Limite atingido!</strong> Desconto limitado a {{ max_discount_allowed|floatformat:1 }}%.</div>
@@ -155,12 +155,12 @@
 
                   <hr style="border-color:var(--border);margin:.8rem 0;">
                   <div id="margin-zone">
-                  {% if margin_limit_exceeded %}
+                  {% if margin_limit_exceeded and subtotal %}
                   <div class="sim-msg bad">
                     <i class="fa-solid fa-ban"></i>
                     <div>
                       <strong>Bloqueado!</strong>
-                      {% if min_increase_to_unblock > 0 %}Adicione no mínimo <strong>+{{ min_increase_to_unblock }}%</strong> de ajuste para desbloquear.{% elif standalone %}Reduza o desconto, remova o arquiteto ou aumente o preço.{% else %}Reduza o desconto, o número de parcelas ou aumente o preço.{% endif %}
+                      {% if min_increase_to_unblock > 0 %}Adicione no mínimo <strong>+{{ min_increase_to_unblock }}%</strong> de ajuste para desbloquear.{% elif standalone %}Reduza o desconto ou aumente o preço.{% else %}Reduza o desconto, o número de parcelas ou aumente o preço.{% endif %}
                     </div>
                   </div>
                   {% elif margin_exceeded %}
