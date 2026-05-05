@@ -688,10 +688,9 @@
                 {% endif %}{# end standalone empty-state check #}
               </div>
             </div>
-            </div><!-- /sim-results -->
 
             {% if not standalone %}
-            <!-- Actions (quote-only) -->
+            <!-- Actions (quote-only) — inside sim-results so AJAX keeps button state in sync -->
             <div class="fi fi-2" style="margin-bottom:1rem;">
               <div class="d-flex flex-column gap-2">
                 {% if margin_limit_exceeded %}
@@ -700,16 +699,23 @@
                   <i class="fa-solid fa-ban"></i>
                   Condições Bloqueadas
                 </button>
+                {% if dp_to_unlock > 0 %}
+                <div style="font-size:.8rem;color:#7c3aed;text-align:center;margin-top:.2rem;">
+                  <i class="fa-solid fa-unlock me-1"></i>Entrada mínima para liberar: <strong>R$ {{ dp_to_unlock|floatformat:2 }}</strong>
+                </div>
+                {% endif %}
                 {% else %}
                 <button type="button" class="btn-a primary w-100" onclick="saveConditions()" style="justify-content:center;padding:.75rem;">
                   <i class="fa-solid fa-floppy-disk"></i>
                   Salvar Condições no Orçamento
                 </button>
                 {% endif %}
-
               </div>
             </div>
-            {% else %}
+            {% endif %}
+            </div><!-- /sim-results -->
+
+            {% if standalone %}
             <!-- Actions (standalone-only) -->
             <div class="fi fi-2" style="margin-bottom:1rem;">
               <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">

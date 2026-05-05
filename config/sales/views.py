@@ -1882,14 +1882,12 @@ def _build_simulation_context(
             'fee_pct': fee_1, 'value': valor_temporario_total,
         })
 
-    # ---- Higienização da entrada (down payment) ----
+    # ---- Higienização da entrada (down payment) HONESTA ----
     dp_input = max(Decimal("0"), Decimal(str(down_payment_value or 0)))
-    # Se parcelado, exige no mínimo o valor de 1 parcela como entrada.
-    if sim_installments > 1 and valor_temporario_total > 0:
-        dp_min_value = (valor_temporario_total / Decimal(sim_installments)).quantize(Decimal("0.01"), rounding=ROUND_CEILING)
-    else:
-        dp_min_value = Decimal("0")
-    dp_capped = min(max(dp_input, dp_min_value), valor_temporario_total)
+
+    dp_min_value = Decimal("0")
+    # Usa EXATAMENTE o que o cara digitou (dp_input), sem forçar mínimo nenhum.
+    dp_capped = min(dp_input, valor_temporario_total)
 
     # ---- Executa o Motor Centralizado ----
     resultado = _run_simulation(
@@ -2191,6 +2189,10 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
             messages.error(request, "Condições bloqueadas. Ajuste o preço antes de salvar.")
             ctx['quote'] = quote
             ctx['quote_actions_unlocked'] = quote_actions_unlocked
+            ctx['selected_architect'] = selected_architect
+            ctx['sim_architect_id']   = sim_architect_id
+            ctx['can_view_commission'] = _can_view_commission(request.user)
+            ctx['is_admin'] = _is_admin(request.user)
             return render(request, 'sales/quote_simulation.html', ctx)
         with transaction.atomic():
             quote.discount_percent       = ctx['discount_percent']
