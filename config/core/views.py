@@ -891,17 +891,43 @@ def report_commissions(request):
         return max(float(MIN_COMM), min(float(MAX_COMM), float(TOTAL_MARGIN) - disc - fee_pct))
 
     from collections import defaultdict
-    seller_totals = defaultdict(lambda: {"total_sold": 0.0, "commission": 0.0, "count": 0, "disc_sum": 0.0})
+    seller_totals = defaultdict(lambda: {"total_sold": 0.0, "commission": 0.0, "count": 0, "disc_sum": 0.0, "seller_name": ""})
 
-    for q in qs.values("seller__id", "seller__username", "total_value_snapshot", "discount_percent", "payment_fee_percent", "payment_type", "payment_installments"):
-        sid = q["seller__id"]
-        val = float(q["total_value_snapshot"] or 0)
-        comm_pct = _per_quote_commission_pct(q["payment_type"], q["discount_percent"], q["payment_fee_percent"], q["payment_installments"])
-        seller_totals[sid]["seller"] = q["seller__username"]
-        seller_totals[sid]["total_sold"] += val
-        seller_totals[sid]["commission"] += val * comm_pct / 100
-        seller_totals[sid]["count"] += 1
-        seller_totals[sid]["disc_sum"] += float(q["discount_percent"] or 0)
+    # Pre-fetch commission splits for all quotes in the queryset
+    from sales.models import QuoteCommissionSplit
+    split_map: dict[int, list] = {}  # quote_id -> list of (user_id, username)
+    for sp in (
+        QuoteCommissionSplit.objects
+        .filter(quote__in=qs)
+        .prefetch_related("users")
+    ):
+        users = list(sp.users.all())
+        if users:
+            split_map[sp.quote_id] = [(u.pk, u.get_full_name() or u.username) for u in users]
+
+    for q in qs.select_related("seller"):
+        val = float(q.total_value_snapshot or 0)
+        comm_pct = _per_quote_commission_pct(q.payment_type, q.discount_percent, q.payment_fee_percent, q.payment_installments)
+        comm_value = val * comm_pct / 100
+        disc = float(q.discount_percent or 0)
+
+        recipients = split_map.get(q.pk)
+        if recipients:
+            share = comm_value / len(recipients)
+            share_val = val / len(recipients)
+            for uid, uname in recipients:
+                seller_totals[uid]["seller_name"] = uname
+                seller_totals[uid]["total_sold"] += share_val
+                seller_totals[uid]["commission"] += share
+                seller_totals[uid]["count"] += 1
+                seller_totals[uid]["disc_sum"] += disc
+        else:
+            sid = q.seller_id
+            seller_totals[sid]["seller_name"] = q.seller.get_full_name() or q.seller.username
+            seller_totals[sid]["total_sold"] += val
+            seller_totals[sid]["commission"] += comm_value
+            seller_totals[sid]["count"] += 1
+            seller_totals[sid]["disc_sum"] += disc
 
     commissions = []
     for sid, data in sorted(seller_totals.items(), key=lambda x: -x[1]["total_sold"]):
@@ -911,7 +937,7 @@ def report_commissions(request):
         est_commission = data["commission"]
         comm_pct = est_commission / total_sold * 100 if total_sold else 0
         commissions.append({
-            "seller": data["seller"],
+            "seller": data["seller_name"],
             "total_sold": round(total_sold, 2),
             "count": count,
             "avg_discount": round(avg_disc, 1),

@@ -516,3 +516,36 @@ def _on_quote_save(sender, instance, update_fields=None, **kwargs):
     # Only recalculate when financially relevant fields may have changed
     # (runs on every save except snapshot-only saves to stay safe)
     _refresh_quote_snapshot(instance.pk)
+
+
+# ── Commission Split ───────────────────────────────────────────────────────────
+class QuoteCommissionSplit(models.Model):
+    """
+    Opcional: define como a comissão de um orçamento é dividida entre vendedores.
+    Se nenhum usuário for selecionado (ou o registro não existir), 100% vai ao
+    quote.seller original.  Se houver usuários, o valor é dividido igualmente.
+    """
+    quote = models.OneToOneField(
+        Quote,
+        on_delete=models.CASCADE,
+        related_name="commission_split",
+        verbose_name="Orçamento",
+    )
+    users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="shared_commission_quotes",
+        verbose_name="Vendedores",
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = "Divisão de Comissão"
+        verbose_name_plural = "Divisões de Comissão"
+
+    def __str__(self) -> str:
+        return f"Divisão de comissão — {self.quote.number}"
+
+    def get_sellers(self):
+        """Retorna lista de usuários que recebem comissão. Fallback para quote.seller."""
+        users = list(self.users.all())
+        return users if users else [self.quote.seller]

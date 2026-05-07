@@ -1720,6 +1720,7 @@ def _run_simulation(
 
     # 3. Juros do Banco (Ponderado caso haja Split)
     juros_totais_banco = Decimal('0')
+    juros_so_do_frete  = Decimal('0')
     metodo_principal = None
     max_parcelas = 1
     maior_valor = Decimal('-1')
@@ -1742,6 +1743,11 @@ def _run_simulation(
 
             juros_metodo = valor_real_financiado_neste_metodo * (metodo_fee / Decimal('100'))
             juros_totais_banco += juros_metodo
+
+            # Isola a parcela do juro gerada pelo frete (custo do cliente, não da loja)
+            if valor_total_venda > 0:
+                proporcao_frete = freight_value / valor_total_venda
+                juros_so_do_frete += juros_metodo * proporcao_frete
     else:
         # Sem método de pagamento informado → tratado como à vista / PIX.
         metodo_principal = 'PIX'
@@ -1752,7 +1758,8 @@ def _run_simulation(
     gordura_acrescimo  = subtotal * (markup_pct / Decimal('100'))
     queima_desconto    = subtotal * (discount_pct / Decimal('100'))
 
-    custos_operacionais = juros_totais_banco + custo_arquiteto + queima_desconto
+    # Subtrai o juro gerado pelo frete: esse custo é do cliente, não da margem da loja
+    custos_operacionais = (juros_totais_banco - juros_so_do_frete) + custo_arquiteto + queima_desconto
     lucro_sobra         = (budget_loja + gordura_acrescimo) - custos_operacionais
 
     # Converte o lucro real que sobrou em percentual (Margem Líquida Disponível – MLD)
