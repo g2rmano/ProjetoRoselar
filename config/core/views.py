@@ -8,10 +8,6 @@ from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Sum, Count, Q, F, Avg
-
-
-def health_check(request):
-    return HttpResponse("ok", content_type="text/plain")
 from django.db.models.functions import TruncMonth
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -30,6 +26,18 @@ from .models import (
 from sales.models import Quote, QuoteStatus, Order, OrderStatus, QuoteItem
 from accounts.models import User, Role
 from calendar_app.models import CalendarEvent, EventStatus
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Health check — no DB queries, always returns 200
+# ──────────────────────────────────────────────────────────────────────
+def health_check(request):
+    """Lightweight liveness probe for Railway healthchecks.
+
+    Intentionally avoids any database access so it responds even when
+    the Postgres connection is slow or temporarily unavailable.
+    """
+    return HttpResponse("ok", content_type="text/plain", status=200)
 
 
 def _month_bounds(day: date_type) -> tuple[date_type, date_type]:
