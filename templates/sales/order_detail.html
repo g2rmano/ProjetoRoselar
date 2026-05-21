@@ -285,7 +285,7 @@
           </div>
           <div class="s-body">
 
-            {% if order.status == "PENDING" %}
+            {% if order.status == "PENDING" or order.status == "OPEN" or order.status == "SENT" %}
             <!-- ─ FASE 1: Aguardando aprovação ─ -->
             <div style="background:#fff8e1;border:1px solid #f5c27a;border-radius:8px;padding:.75rem 1rem;font-size:.84rem;color:#78350f;margin-bottom:1rem;display:flex;align-items:center;gap:.6rem;">
               <i class="fa-solid fa-clock" style="font-size:1rem;flex-shrink:0;"></i>

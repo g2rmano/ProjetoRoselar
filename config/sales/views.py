@@ -435,6 +435,10 @@ def quote_detail(request: HttpRequest, quote_id: int) -> HttpResponse:
         messages.error(request, "Acesso negado.")
         return redirect("sales:quote_list")
 
+    _fin_or_admin = _is_finance(request.user) or _is_admin(request.user)
+    total_order = next(
+        (o for o in quote.orders.all() if o.is_total_conference), None
+    )
     return render(request, "sales/quote_detail.html", {
         "quote": quote,
         "today": timezone.localdate(),
@@ -444,6 +448,17 @@ def quote_detail(request: HttpRequest, quote_id: int) -> HttpResponse:
         "can_generate_order_pdf": _can_generate_order_pdf(request.user),
         "can_view_supplier_pdf": _is_admin(request.user),
         "can_view_commission": _can_view_commission(request.user),
+        "total_order": total_order,
+        "can_approve_order": (
+            _fin_or_admin
+            and total_order is not None
+            and total_order.status in (OrderStatus.PENDING, OrderStatus.OPEN, OrderStatus.SENT)
+        ),
+        "can_conclude_order": (
+            _fin_or_admin
+            and total_order is not None
+            and total_order.status == OrderStatus.ONGOING
+        ),
     })
 
 @login_required
@@ -1295,6 +1310,10 @@ def order_list(request: HttpRequest) -> HttpResponse:
     orders = Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller').order_by('-created_at')
     if not _can_view_all_orders(request.user):
         orders = orders.filter(quote__seller=request.user)
+        try:
+            print(orders.aget)
+        except Exception as e:
+            print("formulario não encontrado")
     
     search_query = request.GET.get('search', '').strip()
     if search_query:
@@ -1347,7 +1366,7 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         'is_seller': _is_seller(request.user),
         'can_generate_order_pdf': _can_generate_order_pdf(request.user),
         'can_set_delivery': _can_generate_order_pdf(request.user),
-        'can_approve_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.PENDING,
+        'can_approve_order': _can_finance_action and order.is_total_conference and order.status in (OrderStatus.PENDING, OrderStatus.OPEN, OrderStatus.SENT),
         'can_conclude_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.ONGOING,
         'supplier_orders': (
             order.quote.orders.select_related('supplier')
@@ -1477,7 +1496,7 @@ def order_approve(request: HttpRequest, order_id: int) -> HttpResponse:
     if not order.is_total_conference:
         messages.error(request, "A aprovação deve ser feita no pedido total.")
         return redirect("sales:order_detail", order_id=order.id)
-    if order.status != OrderStatus.PENDING:
+    if order.status not in (OrderStatus.PENDING, OrderStatus.OPEN, OrderStatus.SENT):
         messages.error(request, "Este pedido não está aguardando aprovação.")
         return redirect("sales:order_detail", order_id=order.id)
 

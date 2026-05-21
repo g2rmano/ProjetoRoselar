@@ -453,6 +453,61 @@
           </div>
         </div>
 
+        <!-- ═══ FINANCE ACTION PANEL ═══ -->
+        {% if total_order and is_finance or total_order and is_admin %}
+          <div class="s-card fi fi-5" style="border-left:3px solid var(--orange);">
+            <div class="s-hdr">
+              <div class="s-icon orange"><i class="fa-solid fa-star"></i></div>
+              Ações do Financeiro
+            </div>
+            <div class="s-body">
+
+              {% if can_approve_order %}
+              <!-- PENDING: aguardando aprovação -->
+              <div style="background:#fff8e1;border:1px solid #f5c27a;border-radius:8px;padding:.75rem 1rem;font-size:.84rem;color:#78350f;margin-bottom:1rem;display:flex;align-items:center;gap:.6rem;">
+                <i class="fa-solid fa-clock" style="font-size:1rem;flex-shrink:0;"></i>
+                <div>
+                  <strong>Aguardando aprovação.</strong>
+                  Revise os itens acima e aprove para iniciar a compra dos fornecedores.
+                </div>
+              </div>
+              <form method="post" action="{% url 'sales:order_approve' total_order.id %}" style="display:inline;" onsubmit="return confirm('Aprovar este pedido e colocar em andamento?')">
+                {% csrf_token %}
+                <button type="submit" class="btn-a" style="background:#0a6cb0;color:#fff;">
+                  <i class="fa-solid fa-circle-check"></i>Aprovar Pedido
+                </button>
+              </form>
+
+              {% elif can_conclude_order %}
+              <!-- ONGOING: em andamento -->
+              {% if total_order.delivery_deadline %}
+                <div style="background:#e8f5e9;border:1px solid #a3cfbb;border-radius:8px;padding:.7rem 1rem;font-size:.84rem;color:#0f5132;margin-bottom:1rem;">
+                  <i class="fa-solid fa-circle-check me-2"></i>
+                  Em andamento — entrega prevista: <strong>{{ total_order.delivery_deadline|date:"d/m/Y" }}</strong>
+                </div>
+              {% else %}
+                <div style="background:#fff8f0;border:1px solid #f5c27a;border-radius:8px;padding:.7rem 1rem;font-size:.84rem;color:#7a4f00;margin-bottom:1rem;">
+                  <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                  <strong>Data de entrega não definida.</strong>
+                  Acesse o pedido para definir a data antes de concluir.
+                </div>
+              {% endif %}
+              <a href="{% url 'sales:order_detail' total_order.id %}" class="btn-a primary">
+                <i class="fa-solid fa-arrow-right"></i>Ir para o Pedido
+              </a>
+
+              {% elif total_order.status == "DONE" %}
+              <!-- DONE -->
+              <div style="background:#e8f5e9;border:1px solid #a3cfbb;border-radius:8px;padding:.7rem 1rem;font-size:.84rem;color:#0f5132;display:flex;align-items:center;gap:.5rem;">
+                <i class="fa-solid fa-flag-checkered"></i>
+                <strong>Pedido concluído.</strong>
+              </div>
+
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
         <!-- ═══ ORDERS SECTION ═══ -->
         {% if quote.orders.exists %}
           <div class="s-card fi fi-5">
