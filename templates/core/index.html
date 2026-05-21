@@ -246,7 +246,7 @@
           {% if user.is_authenticated %}
           <div class="row align-items-center">
             <div class="col-lg-5 mb-4 mb-lg-0 idx-greeting">
-              <h1>Olá, {{ user.username }}!</h1>
+              <h1>Olá, {{ user.username|capfirst }}!</h1>
               <p>Acompanhe seus resultados e gerencie seus orçamentos em tempo real.</p>
               <div class="hdr-btns">
                 <a href="{% url 'sales:quote_create' %}" class="btn-a primary"><i class="fa-solid fa-plus"></i>Novo Orçamento</a>
