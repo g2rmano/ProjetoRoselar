@@ -41,6 +41,7 @@ class QuoteStatus(models.TextChoices):
     SENT = "SENT", "Enviado"
     APPROVED = "APPROVED", "Aprovado"
     CONVERTED = "CONVERTED", "Convertido em Pedido"
+    POS_VENDA = "POS_VENDA", "Pós-Venda"
     CANCELED = "CANCELED", "Cancelado"
 
 
@@ -356,8 +357,10 @@ class QuoteItemImage(models.Model):
 
 
 class OrderStatus(models.TextChoices):
+    PENDING = "PENDING", "Aguardando Aprovação"
     OPEN = "OPEN", "Aberto"
     SENT = "SENT", "Enviado"
+    ONGOING = "ONGOING", "Em Andamento"
     DONE = "DONE", "Concluído"
     CANCELED = "CANCELED", "Cancelado"
 
@@ -376,7 +379,7 @@ class Order(models.Model):
     )
     is_total_conference = models.BooleanField(default=False, verbose_name="Conferência Total")
 
-    status = models.CharField(max_length=10, choices=OrderStatus.choices, default=OrderStatus.OPEN, verbose_name="Status")
+    status = models.CharField(max_length=10, choices=OrderStatus.choices, default=OrderStatus.PENDING, verbose_name="Status")
 
     purchase_condition_text = models.CharField(max_length=200, blank=True, verbose_name="Condição de Compra")
     notes = models.TextField(blank=True, verbose_name="Observações")

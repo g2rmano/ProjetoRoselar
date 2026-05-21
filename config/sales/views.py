@@ -118,6 +118,7 @@ from .models import (
     QuoteItemImage,
     Order,
     OrderItem,
+    OrderStatus,
     FreightResponsible,
     ProposalConfig,
 )
@@ -589,7 +590,7 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                     quote=quote,
                     supplier_id=supplier_id,
                     is_total_conference=False,
-                    status="OPEN",
+                    status=OrderStatus.PENDING,
                     delivery_deadline=None,
                 )
                 created_orders.append(order)
@@ -611,7 +612,7 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                 quote=quote,
                 supplier=None,
                 is_total_conference=True,
-                status="OPEN",
+                status=OrderStatus.PENDING,
                 delivery_deadline=None,
             )
 
@@ -695,17 +696,17 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
             if _can_view_all_orders(finance_user) and finance_user != request.user:
                 Notification.send(
                     finance_user,
-                    f"Novo pedido aguardando: {quote.number}",
+                    f"Pedido aguardando aprovação: {quote.number}",
                     NotificationType.ORDER_CONFIRMED,
                     message=(
                         f"Orçamento {quote.number} (cliente: {quote.customer.name}) "
                         f"foi convertido em pedido pelo vendedor {request.user.get_full_name() or request.user.username}. "
-                        f"Baixe os PDFs dos fornecedores e defina a data de entrega."
+                        f"Aguardando sua aprovação."
                     ),
-                    url=f"/sales/orders/",
+                    url=f"/sales/orders/?status=PENDING",
                 )
 
-        messages.success(request, f"Orçamento {quote.number} convertido em pedido. O financeiro definirá a data de entrega.")
+        messages.success(request, f"Orçamento {quote.number} convertido em pedido. Aguardando aprovação do financeiro.")
         return redirect("sales:quote_detail", quote_id=quote.id)
 
     except ValidationError as e:
@@ -1338,6 +1339,7 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
     
     total = sum(item.line_total for item in items)
     
+    _can_finance_action = (_is_finance(request.user) or _is_admin(request.user))
     context = {
         'order': order,
         'items': items,
@@ -1345,6 +1347,8 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         'is_seller': _is_seller(request.user),
         'can_generate_order_pdf': _can_generate_order_pdf(request.user),
         'can_set_delivery': _can_generate_order_pdf(request.user),
+        'can_approve_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.PENDING,
+        'can_conclude_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.ONGOING,
         'supplier_orders': (
             order.quote.orders.select_related('supplier')
                                .filter(is_total_conference=False)
@@ -1457,6 +1461,105 @@ def order_set_delivery(request: HttpRequest, order_id: int) -> HttpResponse:
         f"Lembretes criados para {quote.seller.get_full_name() or quote.seller.username} e para você."
     )
     return redirect("sales:order_detail", order_id=order.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def order_approve(request: HttpRequest, order_id: int) -> HttpResponse:
+    """Finance/Admin: aprova pedido aguardando aprovação (PENDING → ONGOING)."""
+    order = get_object_or_404(
+        Order.objects.select_related('quote', 'quote__customer', 'quote__seller'),
+        pk=order_id,
+    )
+    if not (_is_finance(request.user) or _is_admin(request.user)):
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:order_list")
+    if not order.is_total_conference:
+        messages.error(request, "A aprovação deve ser feita no pedido total.")
+        return redirect("sales:order_detail", order_id=order.id)
+    if order.status != OrderStatus.PENDING:
+        messages.error(request, "Este pedido não está aguardando aprovação.")
+        return redirect("sales:order_detail", order_id=order.id)
+
+    with transaction.atomic():
+        Order.objects.filter(quote=order.quote).update(status=OrderStatus.ONGOING)
+        from core.models import AuditLog, AuditAction, Notification, NotificationType
+        AuditLog.log(
+            request.user,
+            AuditAction.CONVERT_ORDER,
+            f"Pedido {order.quote.number} aprovado pelo financeiro. Status: Em Andamento.",
+            obj=order.quote,
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        Notification.send(
+            order.quote.seller,
+            f"Pedido aprovado: {order.quote.number}",
+            NotificationType.ORDER_CONFIRMED,
+            message=(
+                f"Seu pedido {order.quote.number} para {order.quote.customer.name} "
+                f"foi aprovado pelo financeiro e está em andamento."
+            ),
+            url=f"/sales/orders/{order.id}/",
+        )
+
+    messages.success(request, f"Pedido {order.quote.number} aprovado. Status: Em Andamento.")
+    return redirect("sales:order_detail", order_id=order.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def order_conclude(request: HttpRequest, order_id: int) -> HttpResponse:
+    """Finance/Admin: conclui pedido entregue (ONGOING → DONE) e dispara pós-venda."""
+    order = get_object_or_404(
+        Order.objects.select_related('quote', 'quote__customer', 'quote__seller'),
+        pk=order_id,
+    )
+    if not (_is_finance(request.user) or _is_admin(request.user)):
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:order_list")
+    if not order.is_total_conference:
+        messages.error(request, "A conclusão deve ser feita no pedido total.")
+        return redirect("sales:order_detail", order_id=order.id)
+    if order.status != OrderStatus.ONGOING:
+        messages.error(request, "Este pedido não está em andamento.")
+        return redirect("sales:order_detail", order_id=order.id)
+
+    if not order.delivery_deadline:
+        messages.error(request, "Defina a data de entrega antes de concluir o pedido.")
+        return redirect("sales:order_detail", order_id=order.id)
+
+    with transaction.atomic():
+        Order.objects.filter(quote=order.quote).update(status=OrderStatus.DONE)
+        quote = order.quote
+        quote.status = QuoteStatus.POS_VENDA
+        quote.save(update_fields=["status"])
+        from core.models import AuditLog, AuditAction, Notification, NotificationType
+        AuditLog.log(
+            request.user,
+            AuditAction.CONVERT_ORDER,
+            f"Pedido {quote.number} concluído. Orçamento enviado para pós-venda.",
+            obj=quote,
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        Notification.send(
+            quote.seller,
+            f"Pós-venda: {quote.number}",
+            NotificationType.GENERAL,
+            message=(
+                f"O pedido {quote.number} foi entregue ao cliente {quote.customer.name}. "
+                f"Realize o acompanhamento pós-venda com o cliente."
+            ),
+            url=f"/sales/quotes/{quote.id}/",
+        )
+
+    seller_name = order.quote.seller.get_full_name() or order.quote.seller.username
+    messages.success(
+        request,
+        f"Pedido {order.quote.number} concluído com sucesso. "
+        f"Vendedor {seller_name} notificado para pós-venda.",
+    )
+    return redirect("sales:order_detail", order_id=order.id)
+
 
 @login_required
 def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:

@@ -174,6 +174,14 @@ def home(request):
         # Notifications
         unread_count = Notification.objects.filter(recipient=user, read=False).count()
 
+        # Pending orders count (Finance / Admin banner)
+        pending_orders_count = 0
+        if user.role in (Role.FINANCE, Role.ADMIN) or user.is_superuser:
+            pending_orders_count = Order.objects.filter(
+                status=OrderStatus.PENDING,
+                is_total_conference=True,
+            ).count()
+
         # Monthly chart (6 months) — net values
         month_starts = _last_n_month_starts(today, n=6)
         series_start = month_starts[0]
@@ -319,6 +327,7 @@ def home(request):
             "upcoming_deliveries": upcoming_deliveries,
             "overdue_events": overdue_events,
             "unread_count": unread_count,
+            "pending_orders_count": pending_orders_count,
             "chart_labels_json": json.dumps(chart_labels),
             "chart_values_json": json.dumps(chart_values),
             "my_status_labels_json": json.dumps(my_status_labels),
