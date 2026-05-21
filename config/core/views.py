@@ -92,6 +92,7 @@ def _build_net_month_series_from_quotes(quotes, month_starts: list[date_type]) -
 # ──────────────────────────────────────────────────────────────────────
 # Home
 # ──────────────────────────────────────────────────────────────────────
+@login_required
 def home(request):
     context = {}
     if request.user.is_authenticated:
@@ -799,11 +800,6 @@ def _is_admin_user(user):
     return user.is_superuser or user.role == Role.ADMIN
 
 
-def _is_staff_or_admin_user(user):
-    """True for FINANCE, ADMIN or superuser."""
-    return user.is_superuser or user.role in (Role.FINANCE, Role.ADMIN)
-
-
 @login_required
 def reports_hub(request):
     if not _is_admin_user(request.user):
@@ -869,26 +865,17 @@ def report_commissions(request):
 
     MAX_DISC = 30.0
 
-    def _pix_cash_comm(disc):
-        if disc <= 0:
-            return 5.0
-        elif disc <= 10.0:
-            return 4.0 - (disc / 10.0) * 1.0
-        else:
-            frac = min(1.0, (disc - 10.0) / 2.0)
-            return max(2.0, 3.0 - frac * 1.0) #discounted commission for high discounts on PIX/CASH, with a floor at 2%
-
     def _per_quote_commission_pct(payment_type, discount, fee, installments):
+        """Mesma fórmula linear do simulador (_run_simulation).
+
+        MLD aproximado = budget (12%) − juros do banco − queima do desconto.
+        Cap: 5% para PIX/Dinheiro (amplitude 3), 4% para demais (amplitude 2).
+        """
         disc = float(discount or 0)
         fee_pct = float(fee or 0)
-        inst = int(installments or 1)
-        if payment_type in ('PIX', 'CASH'):
-            return _pix_cash_comm(disc)
-        if payment_type in ('CREDIT_CARD', 'CHEQUE') and inst == 1:
-            return 4.0
-        if payment_type in ('CREDIT_CARD', 'CHEQUE') and inst <= 6:
-            return 3.0
-        return max(float(MIN_COMM), min(float(MAX_COMM), float(TOTAL_MARGIN) - disc - fee_pct))
+        mld = max(0.0, min(12.0 - fee_pct - disc, 12.0))
+        cap = 3.0 if payment_type in ('PIX', 'CASH') else 2.0
+        return round(2.0 + (mld / 12.0) * cap, 2)
 
     from collections import defaultdict
     seller_totals = defaultdict(lambda: {"total_sold": 0.0, "commission": 0.0, "count": 0, "disc_sum": 0.0, "seller_name": ""})

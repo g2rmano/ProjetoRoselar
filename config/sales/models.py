@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import io
+import logging
 import re
 from datetime import timedelta
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -231,11 +234,14 @@ class Quote(models.Model):
         return Decimal(str(subtotal))
     
     def calculate_total_with_freight_and_discount(self) -> Decimal:
-        """Calcula total com frete e desconto, mas SEM taxa de pagamento."""
+        """Calcula total com frete e desconto, mas SEM taxa de pagamento.
+
+        O desconto incide apenas sobre os produtos (subtotal), não sobre o frete,
+        alinhado com o motor de simulação (_run_simulation).
+        """
         subtotal = self.calculate_subtotal()
-        with_freight = subtotal + (self.freight_value or Decimal("0.00"))
-        discount_value = with_freight * (self.discount_percent or Decimal("0.000")) / Decimal("100")
-        return with_freight - discount_value
+        discount_value = subtotal * (self.discount_percent or Decimal("0.000")) / Decimal("100")
+        return (subtotal - discount_value) + (self.freight_value or Decimal("0.00"))
     
     def calculate_payment_fee_value(self) -> Decimal:
         """Calcula o valor da taxa de pagamento (suporta pagamento dividido)."""
@@ -340,7 +346,11 @@ class QuoteItemImage(models.Model):
                 name = self.image.name.rsplit('.', 1)[0] + '.jpg'
                 self.image.save(name, ContentFile(buf.read()), save=False)
             except Exception:
-                pass  # If processing fails, save original
+                logger.warning(
+                    "Falha ao processar imagem do item %s; salvando original.",
+                    self.pk or "<new>",
+                    exc_info=True,
+                )
         super().save(*args, **kwargs)
 
 

@@ -122,22 +122,23 @@ from calendar_app.models import (
 )
 
 def generate_next_quote_number() -> str:
-    last_quote = Quote.objects.order_by("-id").first()
-    if not last_quote:
-        candidate = 1
-    else:
-        try:
-            if last_quote.number.startswith("ORC-"):
-                candidate = int(last_quote.number.split("-")[1]) + 1
-            else:
+    with transaction.atomic():
+        last_quote = Quote.objects.select_for_update().order_by("-id").first()
+        if not last_quote:
+            candidate = 1
+        else:
+            try:
+                if last_quote.number.startswith("ORC-"):
+                    candidate = int(last_quote.number.split("-")[1]) + 1
+                else:
+                    candidate = Quote.objects.count() + 1
+            except (ValueError, IndexError):
                 candidate = Quote.objects.count() + 1
-        except (ValueError, IndexError):
-            candidate = Quote.objects.count() + 1
 
-    while Quote.objects.filter(number=f"ORC-{candidate:04d}").exists():
-        candidate += 1
+        while Quote.objects.filter(number=f"ORC-{candidate:04d}").exists():
+            candidate += 1
 
-    return f"ORC-{candidate:04d}"
+        return f"ORC-{candidate:04d}"
 
 @login_required
 def quotes_hub(request: HttpRequest) -> HttpResponse:
@@ -212,7 +213,7 @@ def authorize_discount_api(request: HttpRequest) -> JsonResponse:
         target_username = username if username else request.user.username
         user = authenticate(username=target_username, password=password)
         
-        if user and user.is_staff:
+        if user and _is_admin(user):
             return JsonResponse({
                 'authorized': True,
                 'authorized_by': user.username,
@@ -1749,10 +1750,12 @@ def _run_simulation(
     lucro_sobra         = (budget_loja + gordura_acrescimo) - custos_operacionais
     mld_pct = (lucro_sobra / subtotal) * Decimal('100') if subtotal > Decimal('0') else Decimal('0')
 
-    # 5. Comissão linear blindada [2%, 5%] + status
+    # 5. Comissão linear blindada: [2%, 5%] para PIX/Dinheiro, [2%, 4%] para cartão e demais
     sacrificio_ativo = False
     mld_clamp = max(Decimal('0'), min(mld_pct, Decimal('12')))
-    comissao_final = (Decimal('2') + (mld_clamp / Decimal('12')) * Decimal('3')).quantize(
+    _avista_types = {'CASH', 'PIX'}
+    _comm_teto = Decimal('3') if metodo_principal in _avista_types else Decimal('2')
+    comissao_final = (Decimal('2') + (mld_clamp / Decimal('12')) * _comm_teto).quantize(
         Decimal('0.01'), rounding=ROUND_HALF_UP
     )
 

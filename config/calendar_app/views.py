@@ -37,15 +37,21 @@ def _is_admin(user: User) -> bool:
 def _get_events_qs(user: User):
     """
     Retorna queryset de eventos filtrado por permissão:
-    - Vendedor: somente os seus eventos
     - Admin/Dono: todos os eventos
+    - Financeiro: apenas seus próprios eventos (entregas e pagamentos)
+    - Vendedor: somente os seus eventos
     """
     qs = CalendarEvent.objects.select_related(
         "assigned_to", "quote", "order", "customer"
     ).prefetch_related("tags", "attachments")
     if _is_admin(user):
         return qs
-    return qs.filter(assigned_to=user)
+    base_qs = qs.filter(assigned_to=user)
+    if user.role == Role.FINANCE:
+        return base_qs.filter(
+            event_type__in=[EventType.DELIVERY, EventType.ARCHITECT_PAYMENT, EventType.CUSTOM]
+        )
+    return base_qs
 
 
 @login_required
@@ -85,7 +91,7 @@ def calendar_view(request: HttpRequest) -> HttpResponse:
         event_date__lte=last_day,
     ).exclude(status=EventStatus.CANCELED)
 
-    if seller_filter:
+    if _is_admin(request.user) and seller_filter:
         try:
             events_qs = events_qs.filter(assigned_to_id=int(seller_filter))
         except (ValueError, TypeError):
