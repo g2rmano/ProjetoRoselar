@@ -107,8 +107,6 @@
       padding: .3rem .8rem; border-radius: 2rem; font-weight: 700;
       font-size: .75rem; text-transform: uppercase; letter-spacing: .04em;
     }
-    .status-OPEN     { background: #e3f2fd; color: var(--cyan); }
-    .status-SENT     { background: #e3f2fd; color: var(--blue); }
     .status-PENDING  { background: #fff8e1; color: #b45309; }
     .status-ONGOING  { background: #e8f4fd; color: #0a6cb0; }
     .status-DONE     { background: #e8f5e9; color: #0f5132; }
@@ -285,7 +283,7 @@
           </div>
           <div class="s-body">
 
-            {% if order.status == "PENDING" or order.status == "OPEN" or order.status == "SENT" %}
+            {% if order.status == "PENDING" %}
             <!-- ─ FASE 1: Aguardando aprovação ─ -->
             <div style="background:#fff8e1;border:1px solid #f5c27a;border-radius:8px;padding:.75rem 1rem;font-size:.84rem;color:#78350f;margin-bottom:1rem;display:flex;align-items:center;gap:.6rem;">
               <i class="fa-solid fa-clock" style="font-size:1rem;flex-shrink:0;"></i>
@@ -374,6 +372,14 @@
                   <p style="font-size:.86rem;color:var(--muted);margin-bottom:1rem;">
                     Pedido <strong style="color:var(--brand);">{{ order.number }}</strong> — {{ order.quote.customer.name }}
                   </p>
+                  <div class="mb-3">
+                    <label for="transport-info-input" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.3rem;display:block;">
+                      Informações de Transporte
+                    </label>
+                    <input type="text" id="transport-info-input" name="transport_info"
+                           class="form-control" maxlength="300" placeholder="Ex: Transportadora X, retira na fábrica..."
+                           value="{{ order.transport_info }}">
+                  </div>
                   <div class="mb-3">
                     <label for="delivery-date-input" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.3rem;display:block;">
                       Data de Entrega <span style="color:var(--red);">*</span>

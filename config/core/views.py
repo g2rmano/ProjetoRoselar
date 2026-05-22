@@ -178,7 +178,7 @@ def home(request):
         pending_orders_count = 0
         if user.role in (Role.FINANCE, Role.ADMIN) or user.is_superuser:
             pending_orders_count = Order.objects.filter(
-                status__in=(OrderStatus.PENDING, OrderStatus.OPEN, OrderStatus.SENT),
+                status=OrderStatus.PENDING,
                 is_total_conference=True,
             ).count()
 

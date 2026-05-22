@@ -447,12 +447,12 @@ def quote_detail(request: HttpRequest, quote_id: int) -> HttpResponse:
         "is_admin": _is_admin(request.user),
         "can_generate_order_pdf": _can_generate_order_pdf(request.user),
         "can_view_supplier_pdf": _is_admin(request.user),
-        "can_view_commission": _can_view_commission(request.user),
+        "can_view_commission": _can_view_commission(request.user) or (quote.seller_id == request.user.id),
         "total_order": total_order,
         "can_approve_order": (
             _fin_or_admin
             and total_order is not None
-            and total_order.status in (OrderStatus.PENDING, OrderStatus.OPEN, OrderStatus.SENT)
+            and total_order.status == OrderStatus.PENDING
         ),
         "can_conclude_order": (
             _fin_or_admin
@@ -1366,7 +1366,7 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         'is_seller': _is_seller(request.user),
         'can_generate_order_pdf': _can_generate_order_pdf(request.user),
         'can_set_delivery': _can_generate_order_pdf(request.user),
-        'can_approve_order': _can_finance_action and order.is_total_conference and order.status in (OrderStatus.PENDING, OrderStatus.OPEN, OrderStatus.SENT),
+        'can_approve_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.PENDING,
         'can_conclude_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.ONGOING,
         'supplier_orders': (
             order.quote.orders.select_related('supplier')
@@ -1412,6 +1412,10 @@ def order_set_delivery(request: HttpRequest, order_id: int) -> HttpResponse:
     subtotal_fmt = f"R$ {float(subtotal):,.2f}".replace(',', '\x00').replace('.', ',').replace('\x00', '.')
 
     Order.objects.filter(quote=quote).update(delivery_deadline=delivery_date)
+
+    transport_info = request.POST.get("transport_info", "").strip()
+    if transport_info:
+        Order.objects.filter(quote=quote).update(transport_info=transport_info)
 
     from core.models import AuditLog, AuditAction, Notification, NotificationType
 
@@ -1496,7 +1500,7 @@ def order_approve(request: HttpRequest, order_id: int) -> HttpResponse:
     if not order.is_total_conference:
         messages.error(request, "A aprovação deve ser feita no pedido total.")
         return redirect("sales:order_detail", order_id=order.id)
-    if order.status not in (OrderStatus.PENDING, OrderStatus.OPEN, OrderStatus.SENT):
+    if order.status != OrderStatus.PENDING:
         messages.error(request, "Este pedido não está aguardando aprovação.")
         return redirect("sales:order_detail", order_id=order.id)
 
@@ -1762,6 +1766,11 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
         elements.append(Spacer(1, 0.4*cm))
         elements.append(Paragraph("OBSERVAÇÕES", st_section))
         elements.append(Paragraph(order.notes, st_normal))
+
+    if order.transport_info:
+        elements.append(Spacer(1, 0.4*cm))
+        elements.append(Paragraph("INFORMAÇÕES DE TRANSPORTE", st_section))
+        elements.append(Paragraph(order.transport_info, st_normal))
 
     elements.append(Spacer(1, 0.8*cm))
     elements.append(HRFlowable(width="100%", thickness=0.5, color=LGRAY))

@@ -358,8 +358,6 @@ class QuoteItemImage(models.Model):
 
 class OrderStatus(models.TextChoices):
     PENDING = "PENDING", "Aguardando Aprovação"
-    OPEN = "OPEN", "Aberto"
-    SENT = "SENT", "Enviado"
     ONGOING = "ONGOING", "Em Andamento"
     DONE = "DONE", "Concluído"
     CANCELED = "CANCELED", "Cancelado"
@@ -382,6 +380,7 @@ class Order(models.Model):
     status = models.CharField(max_length=10, choices=OrderStatus.choices, default=OrderStatus.PENDING, verbose_name="Status")
 
     purchase_condition_text = models.CharField(max_length=200, blank=True, verbose_name="Condição de Compra")
+    transport_info = models.CharField(max_length=300, blank=True, verbose_name="Informações de Transporte")
     notes = models.TextField(blank=True, verbose_name="Observações")
 
     # data real de entrega (obrigatória ao converter o orçamento em pedido)
