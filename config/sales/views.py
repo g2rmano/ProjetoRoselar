@@ -1639,6 +1639,19 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
         messages.error(request, "Não é possível gerar PDF para pedido de conferência total.")
         return redirect('sales:order_detail', order_id=order.id)
 
+    # GET → exibe formulário com campos pré-preenchidos do pedido
+    if request.method != "POST":
+        return render(request, "sales/order_pdf_form.html", {"order": order})
+
+    # POST → salva os campos no pedido e gera o PDF
+    transportadora = request.POST.get("transportadora", "").strip()
+    cond_pagamento = request.POST.get("cond_pagamento", "").strip()
+    observacoes    = request.POST.get("observacoes", "").strip()
+    order.transport_info          = transportadora
+    order.purchase_condition_text = cond_pagamento
+    order.notes                   = observacoes
+    order.save(update_fields=["transport_info", "purchase_condition_text", "notes"])
+
     def _fmt_brl(value) -> str:
         s = f"{float(value):,.2f}"
         return s.replace(',', '\x00').replace('.', ',').replace('\x00', '.')
@@ -1692,6 +1705,10 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
         [
             Paragraph(f"<b>Vendedor:</b> {seller_name}", st_normal),
             Paragraph(f"<b>Prazo de entrega:</b> {prazo}", st_normal),
+        ],
+        [
+            Paragraph(f"<b>Transportadora:</b> {order.transport_info or '—'}", st_normal),
+            Paragraph(f"<b>Cond. Pagamento:</b> {order.purchase_condition_text or '—'}", st_normal),
         ],
     ]
     meta_tbl = Table(meta_data, colWidths=[8.5*cm, 8.5*cm])
@@ -1802,13 +1819,26 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
 
     if order.notes:
         elements.append(Spacer(1, 0.4*cm))
-        elements.append(Paragraph("OBSERVAÇÕES", st_section))
-        elements.append(Paragraph(order.notes, st_normal))
-
-    if order.transport_info:
-        elements.append(Spacer(1, 0.4*cm))
-        elements.append(Paragraph("INFORMAÇÕES DE TRANSPORTE", st_section))
-        elements.append(Paragraph(order.transport_info, st_normal))
+        st_obs_lbl = _ps('od_obs_lbl', fontSize=8, fontName='Helvetica-Bold',
+                         textColor=NAVY, spaceBefore=4, spaceAfter=3)
+        st_obs_txt = _ps('od_obs_txt', fontSize=8, leading=12,
+                         textColor=colors.HexColor('#333333'))
+        obs_tbl = Table(
+            [[
+                [Paragraph("OBSERVAÇÕES", st_obs_lbl),
+                 Paragraph(order.notes, st_obs_txt)]
+            ]],
+            colWidths=[17*cm],
+        )
+        obs_tbl.setStyle(TableStyle([
+            ('BOX',           (0, 0), (-1, -1), 0.5, LGRAY),
+            ('BACKGROUND',    (0, 0), (-1, -1), BGROW),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 8),
+            ('TOPPADDING',    (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(obs_tbl)
 
     elements.append(Spacer(1, 0.8*cm))
     elements.append(HRFlowable(width="100%", thickness=0.5, color=LGRAY))
