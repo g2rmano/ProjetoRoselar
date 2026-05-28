@@ -1087,7 +1087,6 @@ def quote_pdf_supplier(request: HttpRequest, quote_id: int) -> HttpResponse:
     cond_pagamento = request.POST.get("cond_pagamento", "").strip()
     observacoes    = request.POST.get("observacoes", "").strip()
 
-    # Preços digitados pelo financeiro — obrigatório, nunca usa item.unit_value
     supplier_prices: dict[int, Decimal] = {}
     for item in quote.items.all():
         if not item.supplier_id:
@@ -1668,6 +1667,20 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
     order.notes                   = observacoes
     order.save(update_fields=["transport_info", "purchase_condition_text", "notes"])
 
+    # Read manual prices entered in the form (do NOT use stored purchase_unit_cost)
+    items_qs_pre = list(order.items.all())
+    manual_prices: dict[int, Decimal] = {}
+    for item in items_qs_pre:
+        raw = request.POST.get(f"price_{item.id}", "").strip()
+        try:
+            manual_prices[item.id] = Decimal(raw.replace(",", "."))
+        except Exception:
+            messages.error(
+                request,
+                f'Valor inválido para o produto "{item.product_name}". Preencha todos os preços corretamente.',
+            )
+            return render(request, "sales/order_pdf_form.html", {"order": order})
+
     def _fmt_brl(value) -> str:
         s = f"{float(value):,.2f}"
         return s.replace(',', '\x00').replace('.', ',').replace('\x00', '.')
@@ -1770,7 +1783,7 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
 
     elements.append(Paragraph("ITENS DO PEDIDO", st_section))
 
-    items_qs = list(order.items.all())
+    items_qs = items_qs_pre  # already fetched above
 
     hdr = [
         Paragraph('#',          st_th),
@@ -1784,7 +1797,7 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
 
     for idx, item in enumerate(items_qs, 1):
         desc = item.description.strip() if item.description else '—'
-        unit = item.purchase_unit_cost or Decimal('0.00')
+        unit = manual_prices.get(item.id, Decimal('0.00'))
         total_item = unit * item.quantity
         table_data.append([
             Paragraph(str(idx),                    st_td_c),
@@ -1820,7 +1833,7 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
     elements.append(items_tbl)
     elements.append(Spacer(1, 0.3*cm))
 
-    grand_total = sum((it.purchase_unit_cost or Decimal('0.00')) * it.quantity for it in items_qs)
+    grand_total = sum(manual_prices.get(it.id, Decimal('0.00')) * it.quantity for it in items_qs)
     total_tbl = Table(
         [[Paragraph(f"<b>Total do pedido:</b> R$ {_fmt_brl(grand_total)}", st_normal)]],
         colWidths=[17*cm],

@@ -200,6 +200,40 @@
                           maxlength="600">{{ order.notes }}</textarea>
                 <p class="hint"><i class="fa-solid fa-circle-info me-1"></i>Será exibido em um bloco destacado no PDF. Deixe vazio para omitir.</p>
               </div>
+              <!-- Item prices -->
+              <div class="mb-4">
+                <label class="f-label">
+                  <i class="fa-solid fa-tag me-1"></i>Preços de Compra por Item
+                </label>
+                <p class="hint mb-2"><i class="fa-solid fa-circle-info me-1"></i>Informe o valor unitário de compra para cada item. Esses valores aparecerão no PDF.</p>
+                <div style="border:1.5px solid var(--border);border-radius:8px;overflow:hidden;">
+                  <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+                    <thead>
+                      <tr style="background:#f4f6f9;">
+                        <th style="padding:.5rem .8rem;text-align:left;font-weight:700;color:var(--brand);border-bottom:1px solid var(--border);">Produto</th>
+                        <th style="padding:.5rem .8rem;text-align:center;font-weight:700;color:var(--brand);border-bottom:1px solid var(--border);width:70px;">Qtd</th>
+                        <th style="padding:.5rem .8rem;text-align:right;font-weight:700;color:var(--brand);border-bottom:1px solid var(--border);width:160px;">Valor Unitário (R$)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for item in order.items.all %}
+                      <tr style="{% if forloop.counter|divisibleby:2 %}background:#fafbfc;{% endif %}border-bottom:1px solid var(--border);">
+                        <td style="padding:.55rem .8rem;color:var(--brand);font-weight:600;">
+                          {{ item.product_name }}
+                          {% if item.description %}<div style="font-size:.75rem;color:var(--muted);font-weight:400;">{{ item.description|truncatechars:60 }}</div>{% endif %}
+                        </td>
+                        <td style="padding:.55rem .8rem;text-align:center;color:var(--muted);">{{ item.quantity }}</td>
+                        <td style="padding:.55rem .8rem;">
+                          <input type="text" name="price_{{ item.id }}"
+                                 class="f-input" style="text-align:right;padding:.4rem .7rem;"
+                                 placeholder="0,00" autocomplete="off" required>
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
               <div class="d-flex flex-wrap gap-2 btn-row">
                 <button type="submit" class="btn-a primary">
