@@ -1,3 +1,7 @@
+[build]
+[build.variables]
+MISE_PYTHON_GITHUB_ATTESTATIONS = "false"
+
 [deploy]
 startCommand = "bash start.sh"
 restartPolicyType = "on_failure"
