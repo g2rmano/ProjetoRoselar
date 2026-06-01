@@ -272,6 +272,7 @@ def quote_list(request: HttpRequest) -> HttpResponse:
         'quotes': quotes,
         'search_query': search_query,
         'status_filter': status_filter,
+        'is_admin': _is_admin(request.user),
     }
     
     return render(request, 'sales/quote_list.html', context)
@@ -583,9 +584,27 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
             if quote.status == QuoteStatus.CANCELED:
                 raise ValidationError("Orçamento cancelado não pode ser convertido.")
 
-            items = list(quote.items.all())
-            if not items:
+            all_items = list(quote.items.all())
+            if not all_items:
                 raise ValidationError("Orçamento sem itens não pode ser convertido.")
+
+            # Compatibilidade: se o formulário não enviar seleção explícita,
+            # mantém comportamento antigo (todos os itens do orçamento).
+            has_item_selection = request.POST.get("has_item_selection") == "1"
+            selected_item_ids_raw = request.POST.getlist("selected_item_ids")
+            if has_item_selection:
+                if not selected_item_ids_raw:
+                    raise ValidationError("Selecione ao menos um item para gerar pedido de compra.")
+                try:
+                    selected_item_ids = {int(item_id) for item_id in selected_item_ids_raw}
+                except (TypeError, ValueError):
+                    raise ValidationError("Seleção de itens inválida.")
+
+                items = [it for it in all_items if it.id in selected_item_ids]
+                if not items:
+                    raise ValidationError("Nenhum item válido foi selecionado para pedido.")
+            else:
+                items = all_items
 
             missing_supplier = [it for it in items if it.supplier_id is None]
             if missing_supplier:
@@ -721,7 +740,17 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                     url=f"/sales/orders/?status=PENDING",
                 )
 
-        messages.success(request, f"Orçamento {quote.number} convertido em pedido. Aguardando aprovação do financeiro.")
+        if len(items) != len(all_items):
+            messages.success(
+                request,
+                (
+                    f"Orçamento {quote.number} convertido em pedido com "
+                    f"{len(items)} de {len(all_items)} item(ns) selecionado(s). "
+                    "Aguardando aprovação do financeiro."
+                ),
+            )
+        else:
+            messages.success(request, f"Orçamento {quote.number} convertido em pedido. Aguardando aprovação do financeiro.")
         return redirect("sales:quote_detail", quote_id=quote.id)
 
     except ValidationError as e:
@@ -1419,6 +1448,7 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         'is_seller': _is_seller(request.user),
         'can_generate_order_pdf': _can_generate_order_pdf(request.user),
         'can_set_delivery': _can_generate_order_pdf(request.user),
+        'can_cancel_order': _can_finance_action,
         'can_approve_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.PENDING,
         'can_conclude_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.ONGOING,
         'supplier_orders': (
@@ -1635,6 +1665,62 @@ def order_conclude(request: HttpRequest, order_id: int) -> HttpResponse:
         f"Vendedor {seller_name} notificado para pós-venda.",
     )
     return redirect("sales:order_detail", order_id=order.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def order_cancel(request: HttpRequest, order_id: int) -> HttpResponse:
+    """Finance/Admin: cancela pedido removendo o(s) registro(s) de pedido."""
+    order = get_object_or_404(
+        Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller'),
+        pk=order_id,
+    )
+    if not (_is_finance(request.user) or _is_admin(request.user)):
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:order_list")
+
+    quote = order.quote
+    order_number = order.number
+    is_total = order.is_total_conference
+    supplier_name = order.supplier.name if order.supplier else "pedido total"
+
+    with transaction.atomic():
+        if is_total:
+            deleted_count, _ = Order.objects.filter(quote=quote).delete()
+            if quote.status == QuoteStatus.CONVERTED:
+                quote.status = QuoteStatus.APPROVED
+                quote.save(update_fields=["status"])
+            removed_label = f"todos os pedidos do orçamento {quote.number}"
+        else:
+            order.delete()
+            deleted_count = 1
+            if not Order.objects.filter(quote=quote).exists() and quote.status == QuoteStatus.CONVERTED:
+                quote.status = QuoteStatus.APPROVED
+                quote.save(update_fields=["status"])
+            removed_label = f"pedido {order_number} ({supplier_name})"
+
+    from core.models import AuditLog, AuditAction, Notification, NotificationType
+    AuditLog.log(
+        request.user,
+        AuditAction.CONVERT_ORDER,
+        f"Cancelamento de pedido: {removed_label}. Registros removidos: {deleted_count}.",
+        obj=quote,
+        ip_address=request.META.get('REMOTE_ADDR'),
+    )
+
+    if quote.seller_id != request.user.id:
+        Notification.send(
+            quote.seller,
+            f"Pedido cancelado: {quote.number}",
+            NotificationType.GENERAL,
+            message=(
+                f"O financeiro cancelou {removed_label} do cliente {quote.customer.name}."
+            ),
+            url=f"/sales/quotes/{quote.id}/",
+        )
+
+    messages.success(request, f"Cancelamento realizado com sucesso: {removed_label}.")
+    return redirect("sales:order_list")
 
 
 @login_required
@@ -2700,4 +2786,56 @@ def quote_delete(request, quote_id):
         messages.success(request, f"Orçamento {number} excluído com sucesso (incluindo {deleted_orders} pedido(s) vinculado(s)).")
     else:
         messages.success(request, f"Orçamento {number} excluído com sucesso.")
+    return redirect("sales:quote_list")
+
+
+@login_required
+@require_http_methods(["POST"])
+def quotes_bulk_delete(request: HttpRequest) -> HttpResponse:
+    from django.db.models.deletion import ProtectedError
+    from core.models import AuditLog, AuditAction
+
+    if not _is_admin(request.user):
+        messages.error(request, "Apenas administradores podem excluir orçamentos.")
+        return redirect("sales:quote_list")
+
+    ids_raw = request.POST.getlist("quote_ids")
+    if not ids_raw:
+        messages.warning(request, "Nenhum orçamento selecionado.")
+        return redirect("sales:quote_list")
+
+    # Validate all values are integers to prevent injection
+    try:
+        ids = [int(i) for i in ids_raw]
+    except (ValueError, TypeError):
+        messages.error(request, "Seleção inválida.")
+        return redirect("sales:quote_list")
+
+    quotes = Quote.objects.filter(id__in=ids)
+    deleted_count = 0
+    error_count = 0
+    numbers = []
+
+    for quote in quotes:
+        try:
+            with transaction.atomic():
+                number = quote.number
+                deleted_orders = quote.orders.count()
+                quote.orders.all().delete()
+                quote.delete()
+                AuditLog.log(
+                    request.user, AuditAction.DELETE_QUOTE,
+                    f"Orçamento excluído (bulk): {number} (pedidos removidos: {deleted_orders})",
+                    obj=None,
+                )
+                numbers.append(number)
+                deleted_count += 1
+        except ProtectedError:
+            error_count += 1
+
+    if deleted_count:
+        messages.success(request, f"{deleted_count} orçamento(s) excluído(s) com sucesso: {', '.join(numbers)}.")
+    if error_count:
+        messages.error(request, f"{error_count} orçamento(s) não puderam ser excluídos por dependências vinculadas.")
+
     return redirect("sales:quote_list")

@@ -17,6 +17,7 @@ urlpatterns = [
     path("quotes/<int:quote_id>/pdf/supplier/", views.quote_pdf_supplier, name="quote_pdf_supplier"),
     path("quotes/<int:quote_id>/duplicate/", views.quote_duplicate, name="quote_duplicate"),
     path("quotes/<int:quote_id>/delete/", views.quote_delete, name="quote_delete"),
+    path("quotes/bulk-delete/", views.quotes_bulk_delete, name="quotes_bulk_delete"),
     
     # Standalone simulator
     path("simulador/", views.standalone_simulation, name="standalone_simulation"),
@@ -32,5 +33,6 @@ urlpatterns = [
     path("orders/<int:order_id>/set-delivery/", views.order_set_delivery, name="order_set_delivery"),
     path("orders/<int:order_id>/approve/", views.order_approve, name="order_approve"),
     path("orders/<int:order_id>/conclude/", views.order_conclude, name="order_conclude"),
+    path("orders/<int:order_id>/cancel/", views.order_cancel, name="order_cancel"),
     path("orders/<int:order_id>/pdf/", views.order_pdf, name="order_pdf"),
 ]

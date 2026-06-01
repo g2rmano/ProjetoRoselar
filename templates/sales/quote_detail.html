@@ -597,6 +597,7 @@
                   </div>
                   <form method="post" action="{% url 'sales:quote_convert' quote.id %}">
                     {% csrf_token %}
+                    <input type="hidden" name="has_item_selection" value="1">
                     <div class="modal-body">
                       <p style="font-size:.86rem;color:var(--muted);margin-bottom:.75rem;">
                         Confirme a conversão do orçamento <strong style="color:var(--brand);">{{ quote.number }}</strong> em pedido.
@@ -619,6 +620,46 @@
                           </strong>
                         </div>
                       {% endif %}
+
+                      <!-- Seleção de itens para pedido de compra -->
+                      <div style="margin-top:1rem;border-top:1px solid #e3e8ef;padding-top:.85rem;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:.45rem;">
+                          <div style="font-size:.82rem;font-weight:700;color:var(--brand);">
+                            <i class="fa-solid fa-boxes-stacked me-1"></i>Itens que entrarão no pedido de compra
+                          </div>
+                          <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--muted);cursor:pointer;">
+                            <input type="checkbox" id="selectAllOrderItems" checked style="accent-color:var(--brand);width:14px;height:14px;">
+                            Marcar todos
+                          </label>
+                        </div>
+                        <p style="font-size:.79rem;color:var(--muted);margin-bottom:.5rem;">
+                          Desmarque os produtos que já estão em estoque e não precisam ser comprados.
+                        </p>
+
+                        <div style="max-height:190px;overflow:auto;background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:.55rem .6rem;display:flex;flex-direction:column;gap:.35rem;">
+                          {% for item in quote.items.all %}
+                            <label style="display:flex;align-items:flex-start;gap:.55rem;font-size:.82rem;line-height:1.25;cursor:pointer;">
+                              <input
+                                type="checkbox"
+                                name="selected_item_ids"
+                                value="{{ item.id }}"
+                                class="order-item-checkbox"
+                                checked
+                                style="accent-color:var(--brand);width:15px;height:15px;margin-top:1px;flex-shrink:0;"
+                              >
+                              <span>
+                                <strong style="color:var(--brand);">{{ item.product_name }}</strong>
+                                <span style="color:var(--muted);">- Qtd {{ item.quantity }}</span>
+                                {% if item.supplier %}
+                                  <span style="color:#0f5132;">- {{ item.supplier.name }}</span>
+                                {% else %}
+                                  <span style="color:var(--red);">- sem fornecedor</span>
+                                {% endif %}
+                              </span>
+                            </label>
+                          {% endfor %}
+                        </div>
+                      </div>
 
                       <!-- Divisão de comissão -->
                       <div style="margin-top:1rem;border-top:1px solid #e3e8ef;padding-top:.85rem;">
@@ -716,5 +757,27 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
   <script src="{% static 'assets/js/theme.js' %}"></script>
   <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+  <script>
+    (function () {
+      const selectAll = document.getElementById('selectAllOrderItems');
+      if (!selectAll) return;
+
+      const getItems = () => Array.from(document.querySelectorAll('.order-item-checkbox'));
+
+      const syncSelectAll = () => {
+        const items = getItems();
+        if (!items.length) return;
+        selectAll.checked = items.every((cb) => cb.checked);
+      };
+
+      selectAll.addEventListener('change', function () {
+        getItems().forEach((cb) => { cb.checked = selectAll.checked; });
+      });
+
+      getItems().forEach((cb) => {
+        cb.addEventListener('change', syncSelectAll);
+      });
+    })();
+  </script>
 </body>
 </html>

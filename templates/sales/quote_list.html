@@ -286,7 +286,62 @@
         </div>
 
         <!-- ═══ LIST ═══ -->
-        {% if quotes %}
+        {% if is_admin and quotes %}
+          <!-- Bulk-delete toolbar (admin only) -->
+          <form id="bulk-delete-form" method="post" action="{% url 'sales:quotes_bulk_delete' %}">
+            {% csrf_token %}
+            <div id="bulk-bar" style="display:none;background:#fff0f0;border:1.5px solid #f5c2c7;border-radius:10px;
+                 padding:.65rem 1.1rem;margin-bottom:.75rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+              <span id="sel-count" style="font-size:.85rem;font-weight:700;color:#842029;"></span>
+              <button type="button" id="btn-delete-selected" class="btn-a"
+                      style="background:#dc3545;color:#fff;padding:.4rem 1rem;font-size:.8rem;">
+                <i class="fa-solid fa-trash"></i>Excluir Selecionados
+              </button>
+              <button type="button" id="btn-cancel-select" class="btn-a secondary"
+                      style="padding:.4rem .9rem;font-size:.8rem;">
+                <i class="fa-solid fa-times"></i>Cancelar
+              </button>
+            </div>
+
+            <!-- select-all row -->
+            <div style="display:flex;align-items:center;gap:.6rem;font-size:.78rem;font-weight:700;
+                        color:var(--muted);margin-bottom:.35rem;padding-left:.3rem;">
+              <input type="checkbox" id="chk-all" style="width:16px;height:16px;cursor:pointer;"
+                     title="Selecionar todos">
+              <label for="chk-all" style="cursor:pointer;margin:0;">Selecionar todos</label>
+            </div>
+
+            {% for quote in quotes %}
+              <div class="q-row fi fi-3" id="row-{{ quote.id }}">
+                {% if is_admin %}
+                  <input type="checkbox" name="quote_ids" value="{{ quote.id }}"
+                         class="quote-chk"
+                         style="width:17px;height:17px;cursor:pointer;flex-shrink:0;accent-color:var(--red);">
+                {% endif %}
+                <div class="q-main">
+                  <div class="q-num">
+                    <i class="fa-solid fa-file-invoice" style="font-size:.8rem;opacity:.5;"></i>
+                    {{ quote.number }}
+                    <span class="status-badge status-{{ quote.status }}">{{ quote.get_status_display }}</span>
+                  </div>
+                  <div class="q-meta">
+                    <span><i class="fa-solid fa-user"></i>{{ quote.customer.name }}</span>
+                    <span><i class="fa-solid fa-user-tie"></i>{{ quote.seller.get_full_name|default:quote.seller.username }}</span>
+                    <span><i class="fa-solid fa-box"></i>{{ quote.items.count }} itens</span>
+                    <span><i class="fa-solid fa-calendar"></i>{{ quote.quote_date|date:"d/m/Y" }}</span>
+                  </div>
+                </div>
+                <div class="q-val">R$ {{ quote.total_value_snapshot|floatformat:2 }}</div>
+                <div class="q-actions">
+                  <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-a dark" style="padding:.4rem .9rem;font-size:.78rem;">
+                    <i class="fa-solid fa-eye"></i>Ver
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </form>
+
+        {% elif quotes %}
           {% for quote in quotes %}
             <div class="q-row fi fi-3">
               <div class="q-main">
@@ -320,6 +375,27 @@
           </div>
         {% endif %}
 
+        <!-- ═══ CONFIRM MODAL ═══ -->
+        <div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+             z-index:9999;align-items:center;justify-content:center;">
+          <div style="background:#fff;border-radius:12px;padding:2rem 2.2rem;max-width:420px;width:90%;
+               box-shadow:0 8px 32px rgba(0,0,0,.18);text-align:center;">
+            <div style="font-size:2.2rem;color:#dc3545;margin-bottom:.75rem;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h5 style="font-weight:800;color:var(--brand);margin-bottom:.5rem;">Confirmar exclusão</h5>
+            <p id="confirm-msg" style="font-size:.9rem;color:var(--muted);margin-bottom:1.4rem;"></p>
+            <div style="display:flex;gap:.75rem;justify-content:center;">
+              <button id="confirm-yes" class="btn-a" style="background:#dc3545;color:#fff;padding:.5rem 1.4rem;">
+                <i class="fa-solid fa-trash"></i>Excluir
+              </button>
+              <button id="confirm-no" class="btn-a secondary" style="padding:.5rem 1.2rem;">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
   </main>
@@ -328,5 +404,82 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
   <script src="{% static 'assets/js/theme.js' %}"></script>
   <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+
+  {% if is_admin %}
+  <script>
+    (function () {
+      const chkAll    = document.getElementById('chk-all');
+      const bulkBar   = document.getElementById('bulk-bar');
+      const selCount  = document.getElementById('sel-count');
+      const btnDelete = document.getElementById('btn-delete-selected');
+      const btnCancel = document.getElementById('btn-cancel-select');
+      const form      = document.getElementById('bulk-delete-form');
+      const modal     = document.getElementById('confirm-modal');
+      const confirmMsg= document.getElementById('confirm-msg');
+      const confirmYes= document.getElementById('confirm-yes');
+      const confirmNo = document.getElementById('confirm-no');
+
+      function getChecked() {
+        return Array.from(document.querySelectorAll('.quote-chk:checked'));
+      }
+
+      function updateBar() {
+        const checked = getChecked();
+        if (checked.length > 0) {
+          bulkBar.style.display = 'flex';
+          selCount.textContent  = checked.length + ' selecionado(s)';
+        } else {
+          bulkBar.style.display = 'none';
+        }
+        // highlight selected rows
+        document.querySelectorAll('.quote-chk').forEach(chk => {
+          const row = chk.closest('.q-row');
+          if (row) row.style.background = chk.checked ? '#fff5f5' : '';
+        });
+      }
+
+      chkAll.addEventListener('change', function () {
+        document.querySelectorAll('.quote-chk').forEach(c => c.checked = this.checked);
+        updateBar();
+      });
+
+      document.querySelectorAll('.quote-chk').forEach(c => {
+        c.addEventListener('change', function () {
+          chkAll.checked = document.querySelectorAll('.quote-chk').length ===
+                           document.querySelectorAll('.quote-chk:checked').length;
+          updateBar();
+        });
+      });
+
+      btnCancel.addEventListener('click', function () {
+        document.querySelectorAll('.quote-chk').forEach(c => c.checked = false);
+        chkAll.checked = false;
+        updateBar();
+      });
+
+      btnDelete.addEventListener('click', function () {
+        const n = getChecked().length;
+        if (n === 0) return;
+        confirmMsg.textContent = 'Você está prestes a excluir ' + n + ' orçamento(s). ' +
+          'Pedidos vinculados também serão removidos. Essa ação não pode ser desfeita.';
+        modal.style.display = 'flex';
+      });
+
+      confirmNo.addEventListener('click', function () {
+        modal.style.display = 'none';
+      });
+
+      confirmYes.addEventListener('click', function () {
+        modal.style.display = 'none';
+        form.submit();
+      });
+
+      // close modal on backdrop click
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) modal.style.display = 'none';
+      });
+    })();
+  </script>
+  {% endif %}
 </body>
 </html>

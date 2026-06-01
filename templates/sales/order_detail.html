@@ -275,6 +275,15 @@
               <a href="{% url 'sales:quote_detail' order.quote.id %}" class="btn-a info">
                 <i class="fa-solid fa-file-invoice"></i>Ver Orçamento
               </a>
+              {% if can_cancel_order %}
+                <form method="post" action="{% url 'sales:order_cancel' order.id %}" style="display:inline;"
+                      onsubmit="return confirm('Cancelar este pedido? Esta ação remove o registro do pedido.')">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-a" style="background:var(--red);color:#fff;">
+                    <i class="fa-solid fa-ban"></i>Cancelar Pedido
+                  </button>
+                </form>
+              {% endif %}
             </div>
           </div>
         </div>
