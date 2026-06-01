@@ -587,7 +587,7 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
             all_items = list(quote.items.all())
             if not all_items:
                 raise ValidationError("Orçamento sem itens não pode ser convertido.")
-
+            #sexo
             # Compatibilidade: se o formulário não enviar seleção explícita,
             # mantém comportamento antigo (todos os itens do orçamento).
             has_item_selection = request.POST.get("has_item_selection") == "1"
