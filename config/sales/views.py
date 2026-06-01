@@ -2081,19 +2081,27 @@ def _run_simulation(
     # 5. Comissão por tipo de pagamento (conforme LOGICA_SIMULADOR.txt)
     #    PIX / CASH (Dinheiro):         dinâmico, clamp(mld, 2%, 5%)
     #    Débito:                        4% fixo
-    #    Crédito/Boleto 1x–6x:          3% fixo
-    #    Crédito/Boleto 7x+:            dinâmico, clamp(mld, 2%, 4%)
+    #    Boleto à vista (1x):           4% fixo (máximo)
+    #    Boleto parcelado (2x+):        dinâmico, clamp(mld, 2%, 4%)
+    #    Crédito 1x–6x:                 3% fixo
+    #    Crédito 7x+:                   dinâmico, clamp(mld, 2%, 4%)
     #    Cheque / outros:               dinâmico, clamp(mld, 2%, 4%)
     sacrificio_ativo = False
-    _AVISTA_5    = {'CASH', 'PIX'}        # único teto 5%
-    _DEBIT_COMM  = {'DEBIT_CARD'}
-    _CREDIT_BOLETO = {'CREDIT_CARD', 'BOLETO'}
+    _AVISTA_5   = {'CASH', 'PIX'}        # único teto 5%
+    _DEBIT_COMM = {'DEBIT_CARD'}
 
     if metodo_principal in _AVISTA_5:
         comissao_final = max(Decimal('2'), min(mld_pct, Decimal('5')))
     elif metodo_principal in _DEBIT_COMM:
         comissao_final = Decimal('4')
-    elif metodo_principal in _CREDIT_BOLETO:
+    elif metodo_principal == 'BOLETO':
+        if max_parcelas == 1:
+            # boleto à vista = máximo da faixa
+            comissao_final = Decimal('4')
+        else:
+            # boleto parcelado: dinâmico, teto 4%
+            comissao_final = max(Decimal('2'), min(mld_pct, Decimal('4')))
+    elif metodo_principal == 'CREDIT_CARD':
         if max_parcelas >= 7:
             # 7x+: dinâmico, teto 4%
             comissao_final = max(Decimal('2'), min(mld_pct, Decimal('4')))
@@ -2367,13 +2375,13 @@ def _build_simulation_context(
     sacrifice_active          = resultado['seller']['sacrifice_active']
 
     # Teto real de comissão depende do método principal da venda.
-    # PIX/CASH → 5%, Débito → 4%, Crédito/Boleto 1x-6x → 3%, Crédito/Boleto 7x+ → 4%, outros → 4%
+    # PIX/CASH → 5%, Débito → 4%, Boleto (todos) → 4%, Crédito 1x-6x → 3%, Crédito 7x+ → 4%, outros → 4%
     _AVISTA_COMM_5 = {'PIX', 'CASH'}
     _main_method_for_comm = resultado.get('main_method') or sim_payment_type or ''
     _main_inst = resultado.get('max_parcelas') or sim_installments or 1
     if _main_method_for_comm in _AVISTA_COMM_5:
         commission_max_actual = Decimal('5')
-    elif _main_method_for_comm in {'CREDIT_CARD', 'BOLETO'} and _main_inst < 7:
+    elif _main_method_for_comm == 'CREDIT_CARD' and _main_inst < 7:
         commission_max_actual = Decimal('3')
     else:
         commission_max_actual = Decimal('4')
