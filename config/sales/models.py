@@ -129,6 +129,15 @@ class Quote(models.Model):
     )
     discount_authorized_at = models.DateTimeField(null=True, blank=True, verbose_name="Desconto Autorizado em")
 
+    # ajuste de preço (markup repassado ao cliente) — definido na simulação
+    price_increase_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        default=Decimal("0.0"),
+        verbose_name="Ajuste de Preço (%)",
+        help_text="Acréscimo percentual sobre o subtotal, repassado ao cliente.",
+    )
+
     # arquiteto
     has_architect = models.BooleanField(
         default=False,
@@ -235,14 +244,19 @@ class Quote(models.Model):
         return Decimal(str(subtotal))
     
     def calculate_total_with_freight_and_discount(self) -> Decimal:
-        """Calcula total com frete e desconto, mas SEM taxa de pagamento.
+        """Calcula total com frete, ajuste de preço e desconto, mas SEM taxa de pagamento.
 
-        O desconto incide apenas sobre os produtos (subtotal), não sobre o frete,
-        alinhado com o motor de simulação (_run_simulation).
+        O ajuste de preço (markup) e o desconto incidem apenas sobre os produtos
+        (subtotal), não sobre o frete, alinhado com o motor de simulação
+        (_run_simulation): adj = subtotal × (1 + ajuste% − desconto%).
         """
         subtotal = self.calculate_subtotal()
-        discount_value = subtotal * (self.discount_percent or Decimal("0.000")) / Decimal("100")
-        return (subtotal - discount_value) + (self.freight_value or Decimal("0.00"))
+        markup_pct = self.price_increase_percent or Decimal("0.0")
+        discount_pct = self.discount_percent or Decimal("0.0")
+        adj_subtotal = subtotal * (
+            Decimal("1") + markup_pct / Decimal("100") - discount_pct / Decimal("100")
+        )
+        return adj_subtotal + (self.freight_value or Decimal("0.00"))
     
     def calculate_payment_fee_value(self) -> Decimal:
         """Calcula o valor da taxa de pagamento (suporta pagamento dividido)."""

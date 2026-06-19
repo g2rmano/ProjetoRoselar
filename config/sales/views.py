@@ -1020,17 +1020,19 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
 
         ty -= 8
 
-        subtotal = quote.calculate_subtotal()
-        disc_pct = quote.discount_percent or Decimal('0')
-        disc_val = subtotal * disc_pct / Decimal('100')
-        avista   = subtotal - disc_val
+        subtotal   = quote.calculate_subtotal()
+        markup_pct = quote.price_increase_percent or Decimal('0')
+        disc_pct   = quote.discount_percent or Decimal('0')
+        list_price = subtotal * (Decimal('1') + markup_pct / Decimal('100'))  # com ajuste, sem desconto
+        disc_val   = subtotal * disc_pct / Decimal('100')
+        avista     = list_price - disc_val  # = subtotal × (1 + ajuste − desconto)
 
         if disc_pct > 0:
             c.setFillColor(NAVY)
             c.setFont("Helvetica", 9.5)
             c.drawString(MX, ty, "Valor normal do investimento")
             c.setFont("Helvetica-Bold", 11)
-            c.drawRightString(MX + CW, ty, _fmt_brl(subtotal))
+            c.drawRightString(MX + CW, ty, _fmt_brl(list_price))
             ty -= 18
 
         n = quote.payment_installments or 1
@@ -1055,7 +1057,7 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
             "Valor do investimento com desconto:" if disc_pct > 0 else "Valor do investimento:",
         )
         c.setFont("Helvetica-Bold", 14)
-        c.drawRightString(MX + CW, ty, _fmt_brl(avista if disc_pct > 0 else subtotal))
+        c.drawRightString(MX + CW, ty, _fmt_brl(avista))
 
     _items_page_bg()
     cur_y = _draw_header()
@@ -2527,7 +2529,7 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
         sim_has_architect   = quote.has_architect
         sim_architect_id    = str(quote.architect_id or '')
         sim_discount        = quote.discount_percent or Decimal("0")
-        price_increase_pct  = Decimal('0')
+        price_increase_pct  = quote.price_increase_percent or Decimal('0')
         sim_installments    = quote.payment_installments or 1
         sim_payment_type_2  = quote.payment_type_2 or ''
         sim_installments_2  = quote.payment_installments_2 or 1
@@ -2573,6 +2575,7 @@ def quote_simulate_commission(request: HttpRequest, quote_id: int) -> HttpRespon
             return render(request, 'sales/quote_simulation.html', ctx)
         with transaction.atomic():
             quote.discount_percent       = ctx['discount_percent']
+            quote.price_increase_percent = ctx['price_increase_pct']
             quote.payment_type           = ctx['sim_payment_type']
             quote.payment_installments   = ctx['sim_installments']
             quote.payment_fee_percent    = ctx['payment_fee_percent']
@@ -2735,6 +2738,7 @@ def quote_duplicate(request, quote_id):
             shipping_company=original.shipping_company,
             shipping_payment_method=original.shipping_payment_method,
             discount_percent=original.discount_percent,
+            price_increase_percent=original.price_increase_percent,
             has_architect=original.has_architect,
             architect=original.architect,
             payment_type=original.payment_type,
