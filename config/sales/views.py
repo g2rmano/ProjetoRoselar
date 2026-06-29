@@ -818,7 +818,8 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
     c = pdf_canvas.Canvas(buffer, pagesize=A4)
 
     WHITE = colors.white
-    GOLD  = colors.HexColor('#C9A84C')
+    # Loja não usa amarelo/dourado — accent agora é cinza neutro.
+    GOLD  = colors.HexColor('#9A9A9A')
     NAVY  = colors.HexColor('#0A2640')
     LINEN = colors.HexColor('#FAF7F2')
     GRAY  = colors.HexColor('#888888')
@@ -914,7 +915,7 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
     HEADER_H = 72
     ITEM_H   = 178
     IMG_SZ   = 128
-    FOOTER_H = 185
+    FOOTER_H = 230
 
     items = list(quote.items.prefetch_related('images').all())
 
@@ -934,7 +935,7 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
         c.drawString(MX, top - 30, quote.customer.name)
 
         c.setFillColor(GRAY)
-        _draw_spaced_centered("Consultora", page_w / 2, top - 14, "Helvetica", 7.5, cs=1.0)
+        _draw_spaced_centered("Consultor(a)", page_w / 2, top - 14, "Helvetica", 7.5, cs=1.0)
         seller_label = quote.seller.get_full_name() or quote.seller.username
         c.setFillColor(NAVY)
         c.setFont("Helvetica-Bold", 12)
@@ -1037,30 +1038,34 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
         return bot_y - 5
 
     def _draw_proposta_especial(y_top):
+        # ── Cabeçalho da seção: rótulo + filete dourado ──────────────────
         c.setStrokeColor(GOLD)
         c.setLineWidth(1.5)
         c.line(MX, y_top, MX + CW, y_top)
 
-        ty = y_top - 22
+        ty = y_top - 24
 
         c.setFillColor(NAVY)
         _draw_spaced("PROPOSTA ESPECIAL", MX, ty, "Helvetica-Bold", 13, cs=3)
-        ty -= 20
-
         c.setFillColor(GRAY)
-        c.setFont("Helvetica", 8.5)
-        c.drawString(MX, ty, "Orçamento válido por 03 dias.")
-        ty -= 13
+        c.setFont("Helvetica-Oblique", 8)
+        c.drawRightString(MX + CW, ty + 1, "Orçamento válido por 03 dias")
+        ty -= 17
 
         if quote.freight_responsible == FreightResponsible.STORE:
+            c.setFillColor(GRAY)
+            c.setFont("Helvetica", 8.5)
             c.drawString(MX, ty, "Entrega e montagem grátis pela equipe Roselar Móveis.")
             ty -= 13
         elif quote.freight_responsible == FreightResponsible.CUSTOMER:
+            c.setFillColor(GRAY)
+            c.setFont("Helvetica", 8.5)
             c.drawString(MX, ty, "Frete por conta do cliente.")
             ty -= 13
 
-        ty -= 8
+        ty -= 12
 
+        # ── Cálculo dos valores ──────────────────────────────────────────
         subtotal   = quote.calculate_subtotal()
         markup_pct = quote.price_increase_percent or Decimal('0')
         disc_pct   = quote.discount_percent or Decimal('0')
@@ -1068,19 +1073,46 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
         disc_val   = subtotal * disc_pct / Decimal('100')
         avista     = list_price - disc_val  # = subtotal × (1 + ajuste − desconto)
 
-        if disc_pct > 0:
-            c.setFillColor(NAVY)
-            c.setFont("Helvetica", 9.5)
-            c.drawString(MX, ty, "Valor normal do investimento")
-            c.setFont("Helvetica-Bold", 11)
-            c.drawRightString(MX + CW, ty, _fmt_brl(list_price))
-            ty -= 18
-
         from core.models import PaymentMethodType
         _pay_names = dict(PaymentMethodType.choices)
 
         def _method_label(code):
             return _pay_names.get(code, code or "")
+
+        # ── Helpers de linha ─────────────────────────────────────────────
+        def _row(label, value, *, lbl_color=NAVY, val_color=NAVY,
+                 lbl_font=("Helvetica", 9.5), val_font=("Helvetica-Bold", 11),
+                 strike=False):
+            nonlocal ty
+            c.setFillColor(lbl_color)
+            c.setFont(*lbl_font)
+            c.drawString(MX, ty, label)
+            c.setFillColor(val_color)
+            c.setFont(*val_font)
+            c.drawRightString(MX + CW, ty, value)
+            if strike:
+                vw = _sw(value, val_font[0], val_font[1])
+                c.setStrokeColor(val_color)
+                c.setLineWidth(0.7)
+                c.line(MX + CW - vw, ty + 3, MX + CW, ty + 3)
+            ty -= 16
+
+        def _subnote(text):
+            nonlocal ty
+            c.setFillColor(GRAY)
+            c.setFont("Helvetica", 8)
+            c.drawString(MX + 12, ty, text)
+            ty -= 13
+
+        # rótulo "COMO PAGAR"
+        c.setFillColor(GOLD)
+        _draw_spaced("COMO PAGAR", MX, ty, "Helvetica-Bold", 7.5, cs=1.5)
+        ty -= 15
+
+        if disc_pct > 0:
+            _row("Valor sem desconto", _fmt_brl(list_price),
+                 lbl_color=GRAY, val_color=GRAY,
+                 val_font=("Helvetica", 10), strike=True)
 
         split_active = bool(quote.payment_type_2) and quote.payment_split_amount is not None
 
@@ -1093,49 +1125,41 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
             m1 = _method_label(quote.payment_type)
             m2 = _method_label(quote.payment_type_2)
 
-            entrada_lbl = f"Entrada ({m1})" if n1 == 1 else f"Entrada ({m1}) em {n1}x"
-            c.setFillColor(NAVY)
-            c.setFont("Helvetica", 9.5)
-            c.drawString(MX, ty, entrada_lbl)
-            c.setFont("Helvetica-Bold", 11)
-            c.drawRightString(MX + CW, ty, _fmt_brl(entrada_val))
-            ty -= 18
+            entrada_lbl = f"Entrada no {m1}" if m1 else "Entrada"
+            if n1 > 1:
+                entrada_lbl += f" em {n1}x"
+            _row(entrada_lbl, _fmt_brl(entrada_val))
 
+            restante_lbl = f"Restante no {m2}" if m2 else "Restante"
+            _row(restante_lbl, _fmt_brl(restante_val))
             if n2 > 1:
                 parcela = restante_val / Decimal(n2)
-                restante_lbl = f"Restante ({m2}) em {n2}x de {_fmt_brl(parcela)}"
-            else:
-                restante_lbl = f"Restante ({m2}) à vista"
-            c.setFillColor(NAVY)
-            c.setFont("Helvetica", 9.5)
-            c.drawString(MX, ty, restante_lbl)
-            c.setFont("Helvetica-Bold", 11)
-            c.drawRightString(MX + CW, ty, _fmt_brl(restante_val))
-            ty -= 18
+                _subnote(f"em {n2}x de {_fmt_brl(parcela)} sem juros")
         else:
-            n = quote.payment_installments or 1
+            n  = quote.payment_installments or 1
+            m1 = _method_label(quote.payment_type)
             if n > 1:
-                inst_val = avista / Decimal(n)
-                c.setFillColor(GRAY)
-                c.setFont("Helvetica", 8.5)
-                c.drawString(MX, ty, f"OU em {n}x sem juros de {_fmt_brl(inst_val)}")
-                ty -= 18
+                parcela = avista / Decimal(n)
+                lbl = f"Parcelado no {m1}" if m1 else "Parcelado"
+                _row(lbl, f"{n}x de {_fmt_brl(parcela)}")
+                _subnote("sem juros")
+            elif m1:
+                _row(f"À vista no {m1}", _fmt_brl(avista))
 
-        ty -= 4
-        c.setStrokeColor(GOLD)
-        c.setLineWidth(0.8)
-        c.line(MX, ty, MX + CW, ty)
-        ty -= 16
-
+        # ── Barra de total destacada (navy) ──────────────────────────────
+        ty -= 6
+        bar_h = 42
+        bar_y = ty - bar_h
         c.setFillColor(NAVY)
-        c.setFont("Helvetica", 10)
-        c.drawString(
-            MX,
-            ty,
-            "Valor do investimento com desconto:" if disc_pct > 0 else "Valor do investimento:",
-        )
-        c.setFont("Helvetica-Bold", 14)
-        c.drawRightString(MX + CW, ty, _fmt_brl(avista))
+        c.roundRect(MX, bar_y, CW, bar_h, 6, fill=1, stroke=0)
+
+        total_lbl = "Valor do investimento com desconto" if disc_pct > 0 else "Valor do investimento"
+        c.setFillColor(WHITE)
+        c.setFont("Helvetica", 9.5)
+        c.drawString(MX + 16, bar_y + bar_h / 2 - 3, total_lbl)
+        c.setFillColor(WHITE)
+        c.setFont("Helvetica-Bold", 17)
+        c.drawRightString(MX + CW - 16, bar_y + bar_h / 2 - 6, _fmt_brl(avista))
 
     _items_page_bg()
     cur_y = _draw_header()
