@@ -35,19 +35,50 @@ from calendar_app.models import CalendarEvent, EventStatus
 logger = logging.getLogger(__name__)
 
 
+# The company's sales month runs from the 25th of one calendar month through
+# the 24th of the next, and is labeled by its closing month
+# (e.g. 25/Jun–24/Jul is the "Jul" sales month).
+SALES_MONTH_START_DAY = 25
+
+
+def _sales_month_start(day: date_type) -> date_type:
+    """Start date (a 25th) of the sales month containing `day`."""
+    if day.day >= SALES_MONTH_START_DAY:
+        return day.replace(day=SALES_MONTH_START_DAY)
+    prev_month_end = day.replace(day=1) - timedelta(days=1)
+    return prev_month_end.replace(day=SALES_MONTH_START_DAY)
+
+
+def _next_sales_month_start(start: date_type) -> date_type:
+    """Next sales month's start, given a sales-month start (a 25th)."""
+    return (start.replace(day=28) + timedelta(days=10)).replace(day=SALES_MONTH_START_DAY)
+
+
+def _sales_month_label(start: date_type) -> str:
+    """Label for a sales month: its closing calendar month, e.g. 'Jul/25'."""
+    close = (start.replace(day=28) + timedelta(days=10)).replace(day=1)
+    return close.strftime("%b/%y")
+
+
 def _month_bounds(day: date_type) -> tuple[date_type, date_type]:
-    month_start = day.replace(day=1)
-    next_month = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
-    month_end = next_month - timedelta(days=1)
+    """Start (25th) and end (24th) of the sales month containing `day`."""
+    month_start = _sales_month_start(day)
+    month_end = _next_sales_month_start(month_start) - timedelta(days=1)
     return month_start, month_end
+
+
+def _prev_month_bounds(month_start: date_type) -> tuple[date_type, date_type]:
+    """Bounds of the sales month immediately before the one at `month_start`."""
+    prev_start = _sales_month_start(month_start - timedelta(days=1))
+    return prev_start, month_start - timedelta(days=1)
 
 
 def _last_n_month_starts(day: date_type, n: int = 6) -> list[date_type]:
     starts = []
-    cur = day.replace(day=1)
+    cur = _sales_month_start(day)
     for _ in range(n):
         starts.append(cur)
-        cur = (cur - timedelta(days=1)).replace(day=1)
+        cur = _sales_month_start(cur - timedelta(days=1))
     starts.reverse()
     return starts
 
@@ -81,12 +112,12 @@ def _build_net_month_series_from_quotes(quotes, month_starts: list[date_type]) -
     totals = {m: Decimal("0") for m in month_starts}
     counts = {m: 0 for m in month_starts}
     for q in quotes:
-        m = q.quote_date.replace(day=1)
+        m = _sales_month_start(q.quote_date)
         if m in totals:
             totals[m] += _net_quote_value(q)
             counts[m] += 1
     return (
-        [m.strftime("%b/%y") for m in month_starts],
+        [_sales_month_label(m) for m in month_starts],
         [float(totals[m]) for m in month_starts],
         [counts[m] for m in month_starts],
     )
@@ -125,8 +156,7 @@ def home(request):
         )
 
         # Previous month
-        prev_month_end = month_start - timedelta(days=1)
-        prev_month_start = prev_month_end.replace(day=1)
+        prev_month_start, prev_month_end = _prev_month_bounds(month_start)
         prev_total = _sum_net_quote_values(
             my_quotes.filter(
                 status=QuoteStatus.CONVERTED,
@@ -391,8 +421,7 @@ def dashboard(request):
     )
 
     # ── Previous month comparison ──
-    prev_month_end = month_start - timedelta(days=1)
-    prev_month_start = prev_month_end.replace(day=1)
+    prev_month_start, prev_month_end = _prev_month_bounds(month_start)
     prev_converted = my_quotes.filter(
         status=QuoteStatus.CONVERTED,
         quote_date__gte=prev_month_start,
@@ -888,7 +917,7 @@ def report_sales(request):
         messages.error(request, "Acesso negado.")
         return redirect("core:index")
     today = timezone.localdate()
-    date_from = _parse_date_param(request.GET.get("date_from"), today.replace(day=1)).isoformat()
+    date_from = _parse_date_param(request.GET.get("date_from"), _month_bounds(today)[0]).isoformat()
     date_to = _parse_date_param(request.GET.get("date_to"), today).isoformat()
     seller_id = request.GET.get("seller", "")
 
@@ -925,7 +954,7 @@ def report_commissions(request):
         messages.error(request, "Acesso negado.")
         return redirect("core:index")
     today = timezone.localdate()
-    date_from = _parse_date_param(request.GET.get("date_from"), today.replace(day=1)).isoformat()
+    date_from = _parse_date_param(request.GET.get("date_from"), _month_bounds(today)[0]).isoformat()
     date_to = _parse_date_param(request.GET.get("date_to"), today).isoformat()
 
     from core.models import SalesMarginConfig
@@ -1034,7 +1063,7 @@ def report_discounts(request):
         messages.error(request, "Acesso negado.")
         return redirect("core:index")
     today = timezone.localdate()
-    date_from = _parse_date_param(request.GET.get("date_from"), today.replace(day=1)).isoformat()
+    date_from = _parse_date_param(request.GET.get("date_from"), _month_bounds(today)[0]).isoformat()
     date_to = _parse_date_param(request.GET.get("date_to"), today).isoformat()
 
     qs = Quote.objects.filter(
@@ -1061,7 +1090,7 @@ def report_products(request):
         messages.error(request, "Acesso negado.")
         return redirect("core:index")
     today = timezone.localdate()
-    date_from = _parse_date_param(request.GET.get("date_from"), today.replace(day=1)).isoformat()
+    date_from = _parse_date_param(request.GET.get("date_from"), _month_bounds(today)[0]).isoformat()
     date_to = _parse_date_param(request.GET.get("date_to"), today).isoformat()
 
     items = (
@@ -1092,7 +1121,7 @@ def report_csv_export(request):
         return redirect("core:index")
     import csv
     today = timezone.localdate()
-    date_from = _parse_date_param(request.GET.get("date_from"), today.replace(day=1)).isoformat()
+    date_from = _parse_date_param(request.GET.get("date_from"), _month_bounds(today)[0]).isoformat()
     date_to = _parse_date_param(request.GET.get("date_to"), today).isoformat()
 
     qs = Quote.objects.filter(

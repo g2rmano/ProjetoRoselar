@@ -796,6 +796,57 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
         messages.error(request, str(e))
         return redirect("sales:quote_detail", quote_id=quote.id)
 
+_BRAND_FONTS_CACHE = None
+
+
+def _register_brand_fonts():
+    """Registra a fonte da marca (Manrope) para os PDFs de proposta.
+
+    O app usa Manrope (Google Font) na identidade visual, mas o reportlab não
+    lê Google Fonts — precisa do arquivo .ttf local. Procura os arquivos em
+    pastas conhecidas e registra; se não achar, cai para Helvetica.
+
+    Para ativar a fonte correta, coloque os arquivos em
+    ``config/templates/fonts/``:
+        - Manrope-Regular.ttf
+        - Manrope-Bold.ttf
+
+    Retorna (nome_regular, nome_bold).
+    """
+    global _BRAND_FONTS_CACHE
+    if _BRAND_FONTS_CACHE is not None:
+        return _BRAND_FONTS_CACHE
+
+    import os
+    from django.conf import settings as _s
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    search_dirs = [
+        _s.BASE_DIR / 'config' / 'templates' / 'fonts',
+        _s.BASE_DIR / 'templates' / 'fonts',
+        _s.BASE_DIR / 'config' / 'templates' / 'proposal' / 'fonts',
+    ]
+    reg = bold = None
+    for d in search_dirs:
+        rp = os.path.join(str(d), 'Manrope-Regular.ttf')
+        bp = os.path.join(str(d), 'Manrope-Bold.ttf')
+        if os.path.isfile(rp) and os.path.isfile(bp):
+            try:
+                pdfmetrics.registerFont(TTFont('Manrope', rp))
+                pdfmetrics.registerFont(TTFont('Manrope-Bold', bp))
+                reg, bold = 'Manrope', 'Manrope-Bold'
+                break
+            except Exception:
+                logger.warning("Falha ao registrar a fonte Manrope.", exc_info=True)
+
+    if not reg:
+        reg, bold = 'Helvetica', 'Helvetica-Bold'
+
+    _BRAND_FONTS_CACHE = (reg, bold)
+    return _BRAND_FONTS_CACHE
+
+
 @login_required
 def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
     from reportlab.pdfgen import canvas as pdf_canvas
@@ -818,12 +869,18 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
     c = pdf_canvas.Canvas(buffer, pagesize=A4)
 
     WHITE = colors.white
-    # Loja não usa amarelo/dourado — accent agora é cinza neutro.
-    GOLD  = colors.HexColor('#9A9A9A')
-    NAVY  = colors.HexColor('#0A2640')
-    LINEN = colors.HexColor('#FAF7F2')
-    GRAY  = colors.HexColor('#888888')
-    LGRAY = colors.HexColor('#DDDDDD')
+    # Loja não usa amarelo/dourado nem azul — paleta neutra (grafite + cinzas).
+    GOLD   = colors.HexColor('#9A9A9A')   # accent neutro (antigo dourado)
+    NAVY   = colors.HexColor('#1F1F1F')   # grafite quase-preto (antigo azul)
+    LINEN  = colors.HexColor('#FAF7F2')
+    GRAY   = colors.HexColor('#888888')
+    LGRAY  = colors.HexColor('#DDDDDD')
+    RULE   = colors.HexColor('#CCCCCC')   # cor única das linhas divisórias
+    RULE_W = 0.8                          # espessura única das linhas
+
+    # Fonte da marca (Manrope) com fallback para Helvetica.
+    FONT_REG, FONT_BOLD = _register_brand_fonts()
+    FONT_ITALIC = "Helvetica-Oblique"
 
     def _sw(text, font, size):
         return stringWidth(text, font, size)
@@ -929,36 +986,36 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
         top = page_h - MY
 
         c.setFillColor(GRAY)
-        _draw_spaced("Cliente", MX, top - 14, "Helvetica", 7.5, cs=1.0)
+        _draw_spaced("Cliente", MX, top - 14, FONT_REG, 7.5, cs=1.0)
         c.setFillColor(NAVY)
-        c.setFont("Helvetica-Bold", 12)
+        c.setFont(FONT_BOLD, 12)
         c.drawString(MX, top - 30, quote.customer.name)
 
         c.setFillColor(GRAY)
-        _draw_spaced_centered("Consultor(a)", page_w / 2, top - 14, "Helvetica", 7.5, cs=1.0)
+        _draw_spaced_centered("Consultor(a)", page_w / 2, top - 14, FONT_REG, 7.5, cs=1.0)
         seller_label = quote.seller.get_full_name() or quote.seller.username
         c.setFillColor(NAVY)
-        c.setFont("Helvetica-Bold", 12)
+        c.setFont(FONT_BOLD, 12)
         c.drawCentredString(page_w / 2, top - 30, seller_label)
 
         c.setFillColor(GRAY)
-        data_w = _spaced_w("Data", "Helvetica", 7.5, 1.0)
-        _draw_spaced("Data", MX + CW - data_w, top - 14, "Helvetica", 7.5, cs=1.0)
+        data_w = _spaced_w("Data", FONT_REG, 7.5, 1.0)
+        _draw_spaced("Data", MX + CW - data_w, top - 14, FONT_REG, 7.5, cs=1.0)
         c.setFillColor(NAVY)
-        c.setFont("Helvetica-Bold", 12)
+        c.setFont(FONT_BOLD, 12)
         c.drawRightString(MX + CW, top - 30, date_str)
 
         sep_y = page_h - MY - HEADER_H + 10
-        c.setStrokeColor(GOLD)
-        c.setLineWidth(1.2)
+        c.setStrokeColor(RULE)
+        c.setLineWidth(RULE_W)
         c.line(MX, sep_y, MX + CW, sep_y)
-        return sep_y - 15
+        return sep_y - 24
 
     def _img_placeholder(x, y, sz):
         c.setFillColor(LGRAY)
         c.rect(x, y, sz, sz, fill=1, stroke=0)
         c.setFillColor(GRAY)
-        c.setFont("Helvetica", 7)
+        c.setFont(FONT_REG, 7)
         c.drawCentredString(x + sz / 2, y + sz / 2 - 4, "sem imagem")
 
     def _draw_item(item, y_top, idx):
@@ -985,10 +1042,11 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
         else:
             _img_placeholder(img_x, img_y, IMG_SZ)
 
-        ty = y_top - 6
+        # padding superior dentro do bloco do item (texto não cola na linha de cima)
+        ty = y_top - 16
 
         qty_str  = f"{item.quantity:02d}"
-        qty_font, qty_size = "Helvetica-Bold", 32
+        qty_font, qty_size = FONT_BOLD, 32
         c.setFillColor(GOLD)
         c.setFont(qty_font, qty_size)
         c.drawString(txt_x, ty - qty_size, qty_str)
@@ -996,24 +1054,24 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
         name_x = txt_x + _sw(qty_str, qty_font, qty_size) + 8
         c.setFillColor(NAVY)
         _draw_spaced(item.product_name.upper(), name_x, ty - 20,
-                     "Helvetica-Bold", 11, cs=1.5)
+                     FONT_BOLD, 11, cs=1.5)
 
-        ty -= qty_size + 10
+        ty -= qty_size + 12
 
         if item.description:
             for raw_line in item.description.split('\n'):
                 raw_line = raw_line.strip()
                 if not raw_line:
                     continue
-                for wline in _wrap(raw_line, "Helvetica", 8.5, txt_w):
+                for wline in _wrap(raw_line, FONT_REG, 8.5, txt_w):
                     c.setFillColor(GRAY)
-                    _draw_spaced(wline, txt_x, ty, "Helvetica", 8.5, cs=0.5)
+                    _draw_spaced(wline, txt_x, ty, FONT_REG, 8.5, cs=0.5)
                     ty -= 12
 
         if item.condition_text:
-            for wline in _wrap(item.condition_text.strip(), "Helvetica", 8.5, txt_w):
+            for wline in _wrap(item.condition_text.strip(), FONT_REG, 8.5, txt_w):
                 c.setFillColor(GRAY)
-                _draw_spaced(wline, txt_x, ty, "Helvetica", 8.5, cs=0.5)
+                _draw_spaced(wline, txt_x, ty, FONT_REG, 8.5, cs=0.5)
                 ty -= 12
 
         price_y = y_top - ITEM_H + 26
@@ -1025,41 +1083,41 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
             price_amt   = item.unit_value
 
         c.setFillColor(GRAY)
-        _draw_spaced(price_label, txt_x, price_y + 13, "Helvetica", 7.5, cs=1.5)
+        _draw_spaced(price_label, txt_x, price_y + 13, FONT_REG, 7.5, cs=1.5)
         c.setFillColor(NAVY)
-        c.setFont("Helvetica-Bold", 13)
+        c.setFont(FONT_BOLD, 13)
         c.drawString(txt_x, price_y - 1, _fmt_brl(price_amt))
 
         bot_y = y_top - ITEM_H
-        c.setStrokeColor(LGRAY)
-        c.setLineWidth(0.5)
+        c.setStrokeColor(RULE)
+        c.setLineWidth(RULE_W)
         c.line(MX, bot_y + 3, MX + CW, bot_y + 3)
 
         return bot_y - 5
 
     def _draw_proposta_especial(y_top):
-        # ── Cabeçalho da seção: rótulo + filete dourado ──────────────────
-        c.setStrokeColor(GOLD)
-        c.setLineWidth(1.5)
+        # ── Cabeçalho da seção: rótulo + filete divisório ────────────────
+        c.setStrokeColor(RULE)
+        c.setLineWidth(RULE_W)
         c.line(MX, y_top, MX + CW, y_top)
 
         ty = y_top - 24
 
         c.setFillColor(NAVY)
-        _draw_spaced("PROPOSTA ESPECIAL", MX, ty, "Helvetica-Bold", 13, cs=3)
+        _draw_spaced("PROPOSTA ESPECIAL", MX, ty, FONT_BOLD, 13, cs=3)
         c.setFillColor(GRAY)
-        c.setFont("Helvetica-Oblique", 8)
+        c.setFont(FONT_ITALIC, 8)
         c.drawRightString(MX + CW, ty + 1, "Orçamento válido por 03 dias")
         ty -= 17
 
         if quote.freight_responsible == FreightResponsible.STORE:
             c.setFillColor(GRAY)
-            c.setFont("Helvetica", 8.5)
+            c.setFont(FONT_REG, 8.5)
             c.drawString(MX, ty, "Entrega e montagem grátis pela equipe Roselar Móveis.")
             ty -= 13
         elif quote.freight_responsible == FreightResponsible.CUSTOMER:
             c.setFillColor(GRAY)
-            c.setFont("Helvetica", 8.5)
+            c.setFont(FONT_REG, 8.5)
             c.drawString(MX, ty, "Frete por conta do cliente.")
             ty -= 13
 
@@ -1081,7 +1139,7 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
 
         # ── Helpers de linha ─────────────────────────────────────────────
         def _row(label, value, *, lbl_color=NAVY, val_color=NAVY,
-                 lbl_font=("Helvetica", 9.5), val_font=("Helvetica-Bold", 11),
+                 lbl_font=(FONT_REG, 9.5), val_font=(FONT_BOLD, 11),
                  strike=False):
             nonlocal ty
             c.setFillColor(lbl_color)
@@ -1100,19 +1158,19 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
         def _subnote(text):
             nonlocal ty
             c.setFillColor(GRAY)
-            c.setFont("Helvetica", 8)
+            c.setFont(FONT_REG, 8)
             c.drawString(MX + 12, ty, text)
             ty -= 13
 
         # rótulo "COMO PAGAR"
-        c.setFillColor(GOLD)
-        _draw_spaced("COMO PAGAR", MX, ty, "Helvetica-Bold", 7.5, cs=1.5)
+        c.setFillColor(GRAY)
+        _draw_spaced("COMO PAGAR", MX, ty, FONT_BOLD, 7.5, cs=1.5)
         ty -= 15
 
         if disc_pct > 0:
             _row("Valor sem desconto", _fmt_brl(list_price),
                  lbl_color=GRAY, val_color=GRAY,
-                 val_font=("Helvetica", 10), strike=True)
+                 val_font=(FONT_REG, 10), strike=True)
 
         split_active = bool(quote.payment_type_2) and quote.payment_split_amount is not None
 
@@ -1155,10 +1213,10 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
 
         total_lbl = "Valor do investimento com desconto" if disc_pct > 0 else "Valor do investimento"
         c.setFillColor(WHITE)
-        c.setFont("Helvetica", 9.5)
+        c.setFont(FONT_REG, 9.5)
         c.drawString(MX + 16, bar_y + bar_h / 2 - 3, total_lbl)
         c.setFillColor(WHITE)
-        c.setFont("Helvetica-Bold", 17)
+        c.setFont(FONT_BOLD, 17)
         c.drawRightString(MX + CW - 16, bar_y + bar_h / 2 - 6, _fmt_brl(avista))
 
     _items_page_bg()
