@@ -4,7 +4,7 @@ import io
 import logging
 import re
 from datetime import timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +50,23 @@ class FreightResponsible(models.TextChoices):
     STORE = "STORE", "Frete Próprio - Empresa"
     CARRIER = "CARRIER", "Transportadora"
     CUSTOMER = "CUSTOMER", "Cliente"
+
+
+class RoundingMode(models.TextChoices):
+    """Granularidade do arredondamento do total de venda ao cliente."""
+    NONE = "NONE", "Sem arredondamento"
+    R1 = "R1", "Real (R$ 1)"
+    R10 = "R10", "Dezena (R$ 10)"
+    R50 = "R50", "R$ 50"
+    R100 = "R100", "Centena (R$ 100)"
+
+
+ROUNDING_STEPS = {
+    RoundingMode.R1: Decimal("1"),
+    RoundingMode.R10: Decimal("10"),
+    RoundingMode.R50: Decimal("50"),
+    RoundingMode.R100: Decimal("100"),
+}
 
 
 class Quote(models.Model):
@@ -199,6 +216,25 @@ class Quote(models.Model):
         help_text="Quanto do total vai ao primeiro método; o restante vai ao segundo."
     )
 
+    # arredondamento do total de venda ao cliente
+    total_rounding_mode = models.CharField(
+        max_length=5,
+        choices=RoundingMode.choices,
+        default=RoundingMode.NONE,
+        verbose_name="Arredondamento do Total",
+        help_text="Arredonda o total de venda ao cliente para um número redondo.",
+    )
+    total_manual_adjustment = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        verbose_name="Ajuste Manual (R$)",
+        help_text="Valor somado (ou subtraído, se negativo) ao total após o arredondamento.",
+    )
+
+    # observações gerais do orçamento
+    notes = models.TextField(blank=True, verbose_name="Observações")
+
     # snapshots
     total_value_snapshot = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="Total (R$)")
 
@@ -275,6 +311,19 @@ class Quote(models.Model):
         base_total = self.calculate_total_with_freight_and_discount()
         fee_value = self.calculate_payment_fee_value()
         return base_total + fee_value
+
+    def calculate_rounded_total(self) -> Decimal:
+        """Total de venda ao cliente com arredondamento e ajuste manual.
+
+        Parte do total 'para o cliente' (subtotal ajustado + frete, sem taxa de
+        pagamento — igual ao snapshot), arredonda conforme o modo escolhido e
+        soma o ajuste manual (pode ser negativo).
+        """
+        base = self.calculate_total_with_freight_and_discount()
+        step = ROUNDING_STEPS.get(self.total_rounding_mode)
+        if step:
+            base = (base / step).quantize(Decimal("1"), rounding=ROUND_HALF_UP) * step
+        return base + (self.total_manual_adjustment or Decimal("0.00"))
 
 
 
@@ -526,7 +575,7 @@ def _refresh_quote_snapshot(quote_id: int) -> None:
     try:
         quote = Quote.objects.prefetch_related('items').get(pk=quote_id)
         Quote.objects.filter(pk=quote_id).update(
-            total_value_snapshot=quote.calculate_total_with_freight_and_discount()
+            total_value_snapshot=quote.calculate_rounded_total()
         )
     except Quote.DoesNotExist:
         pass
@@ -583,3 +632,73 @@ class QuoteCommissionSplit(models.Model):
         """Retorna lista de usuários que recebem comissão. Fallback para quote.seller."""
         users = list(self.users.all())
         return users if users else [self.quote.seller]
+
+
+# ── Documentos / Notas Fiscais da venda ───────────────────────────────────────
+class SaleDocumentType(models.TextChoices):
+    NF_COMPRA = "NF_COMPRA", "NF de Compra"
+    NF_CLIENTE = "NF_CLIENTE", "NF do Cliente"
+    OUTRO = "OUTRO", "Outro"
+
+
+def sale_document_path(instance: "SaleDocument", filename: str) -> str:
+    """Storage path para documentos anexados à venda."""
+    return f"quotes/{instance.quote.number}/documentos/{filename}"
+
+
+class SaleDocument(models.Model):
+    """Anexo (NF de compra, NF do cliente ou outro) vinculado a uma venda (Quote)."""
+    quote = models.ForeignKey(
+        Quote,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        verbose_name="Venda",
+    )
+    doc_type = models.CharField(
+        max_length=12,
+        choices=SaleDocumentType.choices,
+        default=SaleDocumentType.OUTRO,
+        verbose_name="Tipo",
+    )
+    supplier = models.ForeignKey(
+        "core.Supplier",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="sale_documents",
+        verbose_name="Fornecedor",
+        help_text="Fornecedor da NF de compra (opcional).",
+    )
+    file = models.FileField(upload_to=sale_document_path, verbose_name="Arquivo")
+    description = models.CharField(max_length=160, blank=True, verbose_name="Descrição")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="uploaded_sale_documents",
+        verbose_name="Enviado por",
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Enviado em")
+
+    class Meta:
+        verbose_name = "Documento da Venda"
+        verbose_name_plural = "Documentos da Venda"
+        ordering = ["-uploaded_at"]
+        indexes = [
+            models.Index(fields=["quote"]),
+            models.Index(fields=["doc_type"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_doc_type_display()} — {self.quote.number}"
+
+    @property
+    def filename(self) -> str:
+        import os
+        return os.path.basename(self.file.name) if self.file else ""
+
+    @property
+    def is_image(self) -> bool:
+        name = (self.file.name or "").lower()
+        return name.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif"))

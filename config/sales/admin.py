@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Quote, QuoteItem, Order, OrderItem, ProposalConfig
+from .models import Quote, QuoteItem, Order, OrderItem, ProposalConfig, SaleDocument
 from core.admin_helpers import AdminOnly, SellerAccess, _is_admin
 
 
@@ -22,7 +22,8 @@ class QuoteAdmin(SellerAccess, admin.ModelAdmin):
         "freight_value", "freight_responsible", "shipping_company", "shipping_payment_method",
         "discount_percent", "discount_authorized_by", "discount_authorized_at",
         "payment_type", "payment_installments", "payment_fee_percent",
-        "has_architect",
+        "total_rounding_mode", "total_manual_adjustment",
+        "has_architect", "notes",
     )
 
     def has_delete_permission(self, request, obj=None):
@@ -56,3 +57,11 @@ class ProposalConfigAdmin(AdminOnly, admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return not ProposalConfig.objects.exists()
+
+
+@admin.register(SaleDocument)
+class SaleDocumentAdmin(SellerAccess, admin.ModelAdmin):
+    list_display = ("quote", "doc_type", "supplier", "uploaded_by", "uploaded_at")
+    list_filter = ("doc_type",)
+    search_fields = ("quote__number", "supplier__name", "description")
+    readonly_fields = ("uploaded_at",)

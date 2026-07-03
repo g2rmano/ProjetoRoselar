@@ -76,6 +76,9 @@ def _build_value_breakdown(quote):
     discount_amount = subtotal * discount_pct / Decimal("100")
     freight = quote.freight_value or Decimal("0.00")
     payment_fee = quote.calculate_payment_fee_value()
+    total_with_discount = quote.calculate_total_with_freight_and_discount()
+    rounded_total = quote.calculate_rounded_total()
+    from .models import RoundingMode
     return {
         "subtotal": subtotal,
         "markup_pct": markup_pct,
@@ -85,10 +88,16 @@ def _build_value_breakdown(quote):
         "has_discount": discount_pct > 0,
         "has_markup": markup_pct > 0,
         "freight": freight,
-        "total_with_discount": quote.calculate_total_with_freight_and_discount(),
+        "total_with_discount": total_with_discount,
         "payment_fee": payment_fee,
         "payment_fee_pct": quote.payment_fee_percent or Decimal("0.00"),
         "final_total": quote.calculate_final_total(),
+        "rounded_total": rounded_total,
+        "rounding_diff": rounded_total - total_with_discount,
+        "has_rounding": (
+            quote.total_rounding_mode != RoundingMode.NONE
+            or (quote.total_manual_adjustment or Decimal("0.00")) != Decimal("0.00")
+        ),
     }
 
 def _get_quote_or_403(request, quote_id, **extra_filters):
@@ -140,7 +149,7 @@ def _persist_item_images_from_formset(formset) -> None:
 
         QuoteItemImage.objects.create(item=item, image=uploaded_image)
 
-from .forms import QuoteForm, QuoteItemFormSet
+from .forms import QuoteForm, QuoteItemFormSet, OrderForm, OrderItemFormSet
 from .models import (
     Quote,
     QuoteStatus,
@@ -151,6 +160,8 @@ from .models import (
     OrderStatus,
     FreightResponsible,
     ProposalConfig,
+    SaleDocument,
+    SaleDocumentType,
 )
 from calendar_app.models import (
     CalendarEvent,
@@ -1609,6 +1620,7 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         'can_generate_order_pdf': _can_generate_order_pdf(request.user),
         'can_set_delivery': _can_generate_order_pdf(request.user),
         'can_cancel_order': _can_finance_action,
+        'can_edit_order': _can_finance_action or order.quote.seller_id == request.user.id,
         'can_approve_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.PENDING,
         'can_conclude_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.ONGOING,
         'supplier_orders': (
@@ -1881,6 +1893,54 @@ def order_cancel(request: HttpRequest, order_id: int) -> HttpResponse:
 
     messages.success(request, f"Cancelamento realizado com sucesso: {removed_label}.")
     return redirect("sales:order_list")
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def order_edit(request: HttpRequest, order_id: int) -> HttpResponse:
+    """Edição completa do pedido de compra: dados + itens/custos.
+
+    Permissão: financeiro/admin ou o vendedor dono do orçamento.
+    """
+    order, forbidden = _get_order_or_403(
+        request,
+        order_id,
+    )
+    if forbidden:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:order_list")
+
+    if request.method == "POST":
+        form = OrderForm(request.POST, instance=order)
+        formset = OrderItemFormSet(request.POST, instance=order)
+
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                form.save()
+                formset.save()
+
+            from core.models import AuditLog, AuditAction
+            AuditLog.log(
+                request.user,
+                AuditAction.EDIT_VALUES,
+                f"Pedido {order.number} editado ({order.supplier.name if order.supplier else 'pedido total'}).",
+                obj=order.quote,
+                ip_address=request.META.get('REMOTE_ADDR'),
+            )
+
+            messages.success(request, f"Pedido {order.number} atualizado.")
+            return redirect("sales:order_detail", order_id=order.id)
+        else:
+            messages.error(request, "Corrija os campos inválidos.")
+    else:
+        form = OrderForm(instance=order)
+        formset = OrderItemFormSet(instance=order)
+
+    return render(
+        request,
+        "sales/order_form.html",
+        {"form": form, "formset": formset, "order": order},
+    )
 
 
 @login_required
@@ -3009,3 +3069,94 @@ def quotes_bulk_delete(request: HttpRequest) -> HttpResponse:
         messages.error(request, f"{error_count} orçamento(s) não puderam ser excluídos por dependências vinculadas.")
 
     return redirect("sales:quote_list")
+
+
+# ── Documentos / Notas Fiscais da venda ───────────────────────────────────────
+_ALLOWED_DOC_EXTS = (".pdf", ".png", ".jpg", ".jpeg", ".webp")
+_MAX_DOC_SIZE = 15 * 1024 * 1024  # 15 MB
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def quote_documents(request: HttpRequest, quote_id: int) -> HttpResponse:
+    """Lista e upload de documentos (NF compra/cliente/outro) da venda."""
+    quote, forbidden = _get_quote_or_403(request, quote_id)
+    if forbidden:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:quote_list")
+
+    if request.method == "POST":
+        doc_type = request.POST.get("doc_type", "").strip()
+        valid_types = {c[0] for c in SaleDocumentType.choices}
+        if doc_type not in valid_types:
+            messages.error(request, "Tipo de documento inválido.")
+            return redirect("sales:quote_documents", quote_id=quote.id)
+
+        files = request.FILES.getlist("files")
+        if not files:
+            messages.error(request, "Selecione ao menos um arquivo.")
+            return redirect("sales:quote_documents", quote_id=quote.id)
+
+        supplier_id = request.POST.get("supplier") or None
+        supplier = None
+        if supplier_id and doc_type == SaleDocumentType.NF_COMPRA:
+            from core.models import Supplier
+            supplier = Supplier.objects.filter(pk=supplier_id).first()
+
+        description = request.POST.get("description", "").strip()
+
+        created = 0
+        for f in files:
+            name = (f.name or "").lower()
+            if not name.endswith(_ALLOWED_DOC_EXTS):
+                messages.warning(request, f"Arquivo ignorado (formato não permitido): {f.name}")
+                continue
+            if f.size > _MAX_DOC_SIZE:
+                messages.warning(request, f"Arquivo ignorado (maior que 15 MB): {f.name}")
+                continue
+            SaleDocument.objects.create(
+                quote=quote,
+                doc_type=doc_type,
+                supplier=supplier,
+                file=f,
+                description=description,
+                uploaded_by=request.user,
+            )
+            created += 1
+
+        if created:
+            messages.success(request, f"{created} documento(s) anexado(s).")
+        return redirect("sales:quote_documents", quote_id=quote.id)
+
+    documents = quote.documents.select_related("supplier", "uploaded_by").all()
+    from core.models import Supplier
+    context = {
+        "quote": quote,
+        "nf_compra": [d for d in documents if d.doc_type == SaleDocumentType.NF_COMPRA],
+        "nf_cliente": [d for d in documents if d.doc_type == SaleDocumentType.NF_CLIENTE],
+        "outros": [d for d in documents if d.doc_type == SaleDocumentType.OUTRO],
+        "suppliers": Supplier.objects.order_by("name"),
+        "is_admin": _is_admin(request.user),
+    }
+    return render(request, "sales/quote_documents.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def quote_document_delete(request: HttpRequest, quote_id: int, doc_id: int) -> HttpResponse:
+    """Remove um documento da venda (arquivo físico + registro)."""
+    quote, forbidden = _get_quote_or_403(request, quote_id)
+    if forbidden:
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:quote_list")
+
+    document = get_object_or_404(SaleDocument, pk=doc_id, quote=quote)
+    if document.file:
+        try:
+            document.file.delete(save=False)
+        except Exception:
+            logger.warning("Falha ao remover arquivo do documento %s.", document.pk, exc_info=True)
+    document.delete()
+
+    messages.success(request, "Documento removido.")
+    return redirect("sales:quote_documents", quote_id=quote.id)

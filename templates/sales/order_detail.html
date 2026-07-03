@@ -275,6 +275,14 @@
               <a href="{% url 'sales:quote_detail' order.quote.id %}" class="btn-a info">
                 <i class="fa-solid fa-file-invoice"></i>Ver Orçamento
               </a>
+              {% if can_edit_order %}
+                <a href="{% url 'sales:order_edit' order.id %}" class="btn-a dark">
+                  <i class="fa-solid fa-pen-to-square"></i>Editar Pedido
+                </a>
+              {% endif %}
+              <a href="{% url 'sales:quote_documents' order.quote.id %}" class="btn-a secondary">
+                <i class="fa-solid fa-paperclip"></i>Documentos / NF
+              </a>
               {% if can_cancel_order %}
                 <form method="post" action="{% url 'sales:order_cancel' order.id %}" style="display:inline;"
                       onsubmit="return confirm('Cancelar este pedido? Esta ação remove o registro do pedido.')">

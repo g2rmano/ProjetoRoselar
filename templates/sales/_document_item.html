@@ -1,0 +1,22 @@
+<div class="doc-item">
+  <div class="doc-ico {% if doc.is_image %}img{% else %}pdf{% endif %}">
+    <i class="fa-solid {% if doc.is_image %}fa-image{% else %}fa-file-pdf{% endif %}"></i>
+  </div>
+  <div class="doc-meta">
+    <div class="doc-name">{{ doc.filename }}</div>
+    <div class="doc-sub">
+      {% if doc.supplier %}{{ doc.supplier.name }} · {% endif %}
+      {% if doc.description %}{{ doc.description }} · {% endif %}
+      {{ doc.uploaded_at|date:"d/m/Y H:i" }}{% if doc.uploaded_by %} · {{ doc.uploaded_by.get_full_name|default:doc.uploaded_by.username }}{% endif %}
+    </div>
+  </div>
+  <a href="{{ doc.file.url }}" class="btn-a secondary" style="padding:.35rem .7rem;font-size:.78rem;" target="_blank" rel="noopener">
+    <i class="fa-solid fa-download"></i>Baixar
+  </a>
+  <form method="post" action="{% url 'sales:quote_document_delete' quote.id doc.id %}" onsubmit="return confirm('Remover este documento?');" style="display:inline;">
+    {% csrf_token %}
+    <button type="submit" class="btn-a secondary" style="padding:.35rem .6rem;font-size:.78rem;color:var(--red);border-color:#f1aeb5;">
+      <i class="fa-solid fa-trash"></i>
+    </button>
+  </form>
+</div>

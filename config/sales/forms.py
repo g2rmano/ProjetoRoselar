@@ -1,8 +1,25 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import Quote, QuoteItem, QuoteItemImage
+from .models import Quote, QuoteItem, QuoteItemImage, Order, OrderItem
 from core.models import PaymentMethodType
+
+
+def parse_brl_decimal(raw, field_label="valor"):
+    """Converte string em formato BR ('1.234,56') ou JS ('1234.56') para Decimal.
+
+    Levanta forms.ValidationError se vazio ou inválido.
+    """
+    from decimal import Decimal, InvalidOperation
+    if raw is None or str(raw).strip() == "":
+        raise forms.ValidationError(f"Informe o {field_label}.")
+    raw = str(raw).strip()
+    if ',' in raw:
+        raw = raw.replace('.', '').replace(',', '.')
+    try:
+        return Decimal(raw)
+    except InvalidOperation:
+        raise forms.ValidationError(f"{field_label.capitalize()} inválido.")
 
 
 class QuoteForm(forms.ModelForm):
@@ -13,7 +30,21 @@ class QuoteForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control'}),
         label="Método de Pagamento"
     )
-    
+
+    # Aceita formato BR ("1.234,56") e negativos; vazio = 0.
+    total_manual_adjustment = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "inputmode": "numeric", "placeholder": "0,00"}),
+        label="Ajuste Manual (R$)",
+    )
+
+    def clean_total_manual_adjustment(self):
+        from decimal import Decimal
+        raw = self.cleaned_data.get('total_manual_adjustment', '')
+        if raw is None or str(raw).strip() == '':
+            return Decimal('0.00')
+        return parse_brl_decimal(raw, 'ajuste manual')
+
     class Meta:
         model = Quote
         fields = [
@@ -29,6 +60,9 @@ class QuoteForm(forms.ModelForm):
             "payment_type",
             "payment_installments",
             "payment_fee_percent",
+            "total_rounding_mode",
+            "total_manual_adjustment",
+            "notes",
         ]
         widgets = {
             "freight_value": forms.TextInput(attrs={"class": "form-control", "inputmode": "numeric", "placeholder": "0,00"}),
@@ -36,17 +70,23 @@ class QuoteForm(forms.ModelForm):
             "delivery_days_max": forms.NumberInput(attrs={"class": "form-control", "min": "1", "placeholder": "Ex: 20"}),
             "payment_installments": forms.Select(attrs={"class": "form-control"}),
             "payment_fee_percent": forms.HiddenInput(),
+            "total_rounding_mode": forms.Select(attrs={"class": "form-control"}),
+            "total_manual_adjustment": forms.TextInput(attrs={"class": "form-control", "inputmode": "numeric", "placeholder": "0,00"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Observações gerais do orçamento..."}),
         }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         # Pricing fields are optional in Step 1 (set in Step 2 – pricing page)
         self.fields['discount_percent'].required = False
         self.fields['has_architect'].required = False
         self.fields['architect'].required = False
         self.fields['payment_installments'].required = False
         self.fields['payment_fee_percent'].required = False
+        self.fields['total_rounding_mode'].required = False
+        self.fields['total_manual_adjustment'].required = False
+        self.fields['notes'].required = False
         
         # Freight fields are conditionally required (validated in clean)
         self.fields['freight_value'].required = False
@@ -138,6 +178,80 @@ QuoteItemFormSet = inlineformset_factory(
     Quote,
     QuoteItem,
     form=QuoteItemForm,
+    extra=1,
+    can_delete=True,
+)
+
+
+# ── Edição do Pedido de Compra (Order) ────────────────────────────────────────
+class OrderForm(forms.ModelForm):
+    class Meta:
+        model = Order
+        fields = [
+            "supplier",
+            "status",
+            "purchase_condition_text",
+            "transport_info",
+            "delivery_deadline",
+            "notes",
+        ]
+        widgets = {
+            "supplier": forms.Select(attrs={"class": "form-control"}),
+            "status": forms.Select(attrs={"class": "form-control"}),
+            "purchase_condition_text": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex: 30/60/90 dias"}),
+            "transport_info": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex: Transportadora X, retira na fábrica..."}),
+            "delivery_deadline": forms.DateInput(attrs={"class": "form-control", "type": "date"}, format="%Y-%m-%d"),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Observações do pedido..."}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["delivery_deadline"].input_formats = ["%Y-%m-%d"]
+        for name in ("supplier", "purchase_condition_text", "transport_info", "delivery_deadline", "notes"):
+            self.fields[name].required = False
+        # Pedido total não tem fornecedor: trava o campo.
+        if self.instance and self.instance.is_total_conference:
+            self.fields["supplier"].disabled = True
+            self.fields["supplier"].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        # Replica Order.clean(): normal exige fornecedor, total não pode ter.
+        if self.instance and self.instance.is_total_conference:
+            cleaned["supplier"] = None
+        else:
+            if not cleaned.get("supplier"):
+                self.add_error("supplier", "Pedido por fornecedor precisa de fornecedor.")
+        return cleaned
+
+
+class OrderItemForm(forms.ModelForm):
+    purchase_unit_cost = forms.CharField(
+        required=True,
+        widget=forms.TextInput(attrs={"class": "form-control", "inputmode": "numeric", "placeholder": "0,00"}),
+        label="Custo de Compra (R$)",
+    )
+
+    def clean_purchase_unit_cost(self):
+        val = parse_brl_decimal(self.cleaned_data.get("purchase_unit_cost", ""), "custo de compra")
+        if val < 0:
+            raise forms.ValidationError("O custo de compra não pode ser negativo.")
+        return val
+
+    class Meta:
+        model = OrderItem
+        fields = ["product_name", "description", "quantity", "purchase_unit_cost"]
+        widgets = {
+            "product_name": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 1}),
+            "quantity": forms.NumberInput(attrs={"class": "form-control", "min": "1"}),
+        }
+
+
+OrderItemFormSet = inlineformset_factory(
+    Order,
+    OrderItem,
+    form=OrderItemForm,
     extra=1,
     can_delete=True,
 )

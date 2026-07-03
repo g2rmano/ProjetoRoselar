@@ -330,6 +330,9 @@
                   <i class="fa-solid fa-edit"></i>Editar
                 </a>
               {% endif %}
+              <a href="{% url 'sales:quote_documents' quote.id %}" class="btn-a secondary">
+                <i class="fa-solid fa-paperclip"></i>Documentos / NF
+              </a>
               {% if is_admin %}
                 <button type="button" class="btn-a danger" data-bs-toggle="modal" data-bs-target="#deleteQuoteModal">
                   <i class="fa-solid fa-trash"></i>Excluir
@@ -398,6 +401,18 @@
               <span class="r-l">Subtotal com desconto + frete</span>
               <span style="font-weight:700;">R$ {{ value_breakdown.total_with_discount|floatformat:2 }}</span>
             </div>
+            {% if value_breakdown.has_rounding %}
+              <div class="r-line">
+                <span class="r-l">Arredondamento</span>
+                <span style="font-weight:700;color:{% if value_breakdown.rounding_diff < 0 %}var(--red){% else %}var(--blue){% endif %};">
+                  {% if value_breakdown.rounding_diff < 0 %}− R$ {{ value_breakdown.rounding_diff|floatformat:2|cut:"-" }}{% else %}+ R$ {{ value_breakdown.rounding_diff|floatformat:2 }}{% endif %}
+                </span>
+              </div>
+              <div class="r-line">
+                <span class="r-l" style="font-weight:700;">Total arredondado ao cliente</span>
+                <span style="font-weight:800;color:var(--brand);">R$ {{ value_breakdown.rounded_total|floatformat:2 }}</span>
+              </div>
+            {% endif %}
             {% if value_breakdown.payment_fee_pct > 0 %}
               <div class="r-line">
                 <span class="r-l">Taxa de pagamento ({{ value_breakdown.payment_fee_pct|floatformat:2 }}%) — custo da loja</span>
@@ -416,6 +431,17 @@
               </div>
             {% endif %}
           </div>
+        </div>
+        {% endif %}
+
+        {% if quote.notes %}
+        <!-- ═══ OBSERVAÇÕES ═══ -->
+        <div class="s-card fi fi-3">
+          <div class="s-hdr">
+            <div class="s-icon muted"><i class="fa-solid fa-note-sticky"></i></div>
+            Observações
+          </div>
+          <div class="s-body" style="white-space:pre-wrap;font-size:.86rem;color:var(--brand);">{{ quote.notes }}</div>
         </div>
         {% endif %}
 

@@ -1,0 +1,211 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentos · Venda {{ quote.number }} | Roselar</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
+  <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --brand:#0A2640; --brand-l:#163a5a; --bg:#f4f6f9; --surface:#fff;
+      --green:#198754; --red:#dc3545; --orange:#e67e22; --blue:#0d6efd;
+      --muted:#6c757d; --border:#dee2e6; --radius:10px;
+      --shadow:0 1px 4px rgba(0,0,0,.06); --shadow-h:0 4px 14px rgba(0,0,0,.09);
+    }
+    * { box-sizing:border-box; }
+    body { font-family:'Manrope',sans-serif; background:var(--bg); }
+    .s-card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow);
+      margin-bottom:1rem; overflow:hidden; border:1px solid rgba(0,0,0,.04); transition:box-shadow .2s; }
+    .s-card:hover { box-shadow:var(--shadow-h); }
+    .s-hdr { padding:.7rem 1.1rem; display:flex; align-items:center; gap:.55rem;
+      font-weight:700; font-size:.88rem; color:var(--brand); background:#fafbfc; border-bottom:1px solid var(--border); }
+    .s-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+      font-size:.78rem; color:#fff; flex-shrink:0; }
+    .s-icon.green{background:var(--green);} .s-icon.orange{background:var(--orange);}
+    .s-icon.blue{background:var(--blue);} .s-icon.muted{background:var(--muted);}
+    .s-body { padding:1.1rem; }
+    .form-control, .form-select, select, textarea, input:not([type="file"]) {
+      border:1.5px solid var(--border); border-radius:8px !important; font-size:.88rem; font-weight:500; color:var(--brand); }
+    .form-label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+      color:var(--muted); margin-bottom:.3rem; display:block; }
+    .btn-a { display:inline-flex; align-items:center; gap:.35rem; padding:.55rem 1.2rem; font-weight:700; font-size:.85rem;
+      border:none; border-radius:8px !important; cursor:pointer; text-decoration:none; transition:all .2s; }
+    .btn-a:hover { transform:translateY(-1px); box-shadow:var(--shadow-h); }
+    .btn-a.primary{background:var(--green);color:#fff;} .btn-a.primary:hover{background:#146c43;color:#fff;}
+    .btn-a.secondary{background:#fff;color:var(--brand);border:1.5px solid var(--border);}
+    .btn-a.secondary:hover{background:var(--bg);color:var(--brand);}
+    .doc-item { display:flex; align-items:center; gap:.7rem; padding:.6rem .8rem; border:1px solid var(--border);
+      border-radius:8px; margin-bottom:.5rem; background:#fafbfc; }
+    .doc-item .doc-ico { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+      color:#fff; font-size:.9rem; flex-shrink:0; }
+    .doc-item .doc-ico.pdf { background:var(--red); } .doc-item .doc-ico.img { background:var(--blue); }
+    .doc-meta { flex:1; min-width:0; }
+    .doc-meta .doc-name { font-weight:700; color:var(--brand); font-size:.84rem; word-break:break-all; }
+    .doc-meta .doc-sub { font-size:.74rem; color:var(--muted); }
+    .empty { font-size:.82rem; color:var(--muted); padding:.4rem 0; }
+    .s-alert { padding:.7rem 1rem; border-radius:8px; font-size:.84rem; display:flex; align-items:center; gap:.5rem; margin-bottom:.6rem; }
+    .s-alert.success { background:#e8f5e9; border:1px solid #a3cfbb; color:#0f5132; }
+    .s-alert.warning { background:#fff8e1; border:1px solid #ffe082; color:#6d5200; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .fi { animation:fadeIn .35s ease both; } .fi-1{animation-delay:.05s} .fi-2{animation-delay:.1s}
+  </style>
+</head>
+<body>
+  <main class="main" id="top">
+    <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
+      <div class="container">
+        <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;"></a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+          <i class="fa-solid fa-bars text-white fs-3"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Início</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <section class="py-5" style="min-height:100vh;">
+      <div style="position:absolute;top:0;left:0;right:0;height:30vh;
+                   background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
+
+      <div class="container" style="margin-top:80px;max-width:900px;">
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="s-alert {% if message.tags == 'warning' %}warning{% else %}success{% endif %} fi">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+
+        <!-- ═══ HEADER ═══ -->
+        <div class="s-card fi" style="border:none;box-shadow:var(--shadow-h);">
+          <div style="padding:1.3rem 1.4rem;">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:40px;height:40px;border-radius:10px;background:var(--brand);color:#fff;
+                            display:flex;align-items:center;justify-content:center;font-size:1.1rem;">
+                  <i class="fa-solid fa-paperclip"></i>
+                </div>
+                <div>
+                  <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">Documentos / Notas Fiscais</h4>
+                  <div style="font-size:.78rem;color:var(--muted);">Venda {{ quote.number }} · {{ quote.customer.name }}</div>
+                </div>
+              </div>
+              <a href="{% url 'sales:quote_detail' quote.id %}" class="btn-a secondary" style="flex-shrink:0;">
+                <i class="fa-solid fa-arrow-left"></i>Voltar
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ NF DE COMPRA ═══ -->
+        <div class="s-card fi fi-1">
+          <div class="s-hdr">
+            <div class="s-icon orange"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+            NF de Compra ({{ nf_compra|length }})
+          </div>
+          <div class="s-body">
+            {% for doc in nf_compra %}
+              {% include "sales/_document_item.html" with doc=doc quote=quote %}
+            {% empty %}
+              <div class="empty">Nenhuma NF de compra anexada.</div>
+            {% endfor %}
+
+            <form method="post" enctype="multipart/form-data" class="mt-3" style="border-top:1px dashed var(--border);padding-top:.9rem;">
+              {% csrf_token %}
+              <input type="hidden" name="doc_type" value="NF_COMPRA">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                  <label class="form-label">Fornecedor (opcional)</label>
+                  <select name="supplier" class="form-control">
+                    <option value="">— Selecione —</option>
+                    {% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-7">
+                  <label class="form-label">Arquivos (PDF ou imagem)</label>
+                  <input type="file" name="files" class="form-control" multiple accept=".pdf,.png,.jpg,.jpeg,.webp" required>
+                </div>
+              </div>
+              <button type="submit" class="btn-a primary mt-2"><i class="fa-solid fa-upload"></i>Anexar NF de Compra</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- ═══ NF DO CLIENTE ═══ -->
+        <div class="s-card fi fi-1">
+          <div class="s-hdr">
+            <div class="s-icon green"><i class="fa-solid fa-file-invoice"></i></div>
+            NF do Cliente ({{ nf_cliente|length }})
+          </div>
+          <div class="s-body">
+            {% for doc in nf_cliente %}
+              {% include "sales/_document_item.html" with doc=doc quote=quote %}
+            {% empty %}
+              <div class="empty">Nenhuma NF do cliente anexada.</div>
+            {% endfor %}
+
+            <form method="post" enctype="multipart/form-data" class="mt-3" style="border-top:1px dashed var(--border);padding-top:.9rem;">
+              {% csrf_token %}
+              <input type="hidden" name="doc_type" value="NF_CLIENTE">
+              <label class="form-label">Arquivos (PDF ou imagem)</label>
+              <input type="file" name="files" class="form-control" multiple accept=".pdf,.png,.jpg,.jpeg,.webp" required>
+              <button type="submit" class="btn-a primary mt-2"><i class="fa-solid fa-upload"></i>Anexar NF do Cliente</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- ═══ OUTROS ═══ -->
+        <div class="s-card fi fi-2">
+          <div class="s-hdr">
+            <div class="s-icon muted"><i class="fa-solid fa-folder-open"></i></div>
+            Outros Documentos ({{ outros|length }})
+          </div>
+          <div class="s-body">
+            {% for doc in outros %}
+              {% include "sales/_document_item.html" with doc=doc quote=quote %}
+            {% empty %}
+              <div class="empty">Nenhum outro documento.</div>
+            {% endfor %}
+
+            <form method="post" enctype="multipart/form-data" class="mt-3" style="border-top:1px dashed var(--border);padding-top:.9rem;">
+              {% csrf_token %}
+              <input type="hidden" name="doc_type" value="OUTRO">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                  <label class="form-label">Descrição (opcional)</label>
+                  <input type="text" name="description" class="form-control" maxlength="160" placeholder="Ex: comprovante, contrato...">
+                </div>
+                <div class="col-md-7">
+                  <label class="form-label">Arquivos (PDF ou imagem)</label>
+                  <input type="file" name="files" class="form-control" multiple accept=".pdf,.png,.jpg,.jpeg,.webp" required>
+                </div>
+              </div>
+              <button type="submit" class="btn-a primary mt-2"><i class="fa-solid fa-upload"></i>Anexar</button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+  <script src="{% static 'assets/js/theme.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+</body>
+</html>

@@ -18,6 +18,10 @@ urlpatterns = [
     path("quotes/<int:quote_id>/duplicate/", views.quote_duplicate, name="quote_duplicate"),
     path("quotes/<int:quote_id>/delete/", views.quote_delete, name="quote_delete"),
     path("quotes/bulk-delete/", views.quotes_bulk_delete, name="quotes_bulk_delete"),
+
+    # Documentos / Notas Fiscais da venda
+    path("quotes/<int:quote_id>/documentos/", views.quote_documents, name="quote_documents"),
+    path("quotes/<int:quote_id>/documentos/<int:doc_id>/delete/", views.quote_document_delete, name="quote_document_delete"),
     
     # Standalone simulator
     path("simulador/", views.standalone_simulation, name="standalone_simulation"),
@@ -30,6 +34,7 @@ urlpatterns = [
     # Order URLs
     path("orders/", views.order_list, name="order_list"),
     path("orders/<int:order_id>/", views.order_detail, name="order_detail"),
+    path("orders/<int:order_id>/edit/", views.order_edit, name="order_edit"),
     path("orders/<int:order_id>/set-delivery/", views.order_set_delivery, name="order_set_delivery"),
     path("orders/<int:order_id>/approve/", views.order_approve, name="order_approve"),
     path("orders/<int:order_id>/conclude/", views.order_conclude, name="order_conclude"),
