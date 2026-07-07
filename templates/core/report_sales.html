@@ -59,7 +59,7 @@
                 {% for q in quotes %}
                 <tr>
                   <td>{{ q.number }}</td>
-                  <td>{{ q.quote_date|date:"d/m/Y" }}</td>
+                  <td>{{ q.sold_on|date:"d/m/Y" }}</td>
                   <td>{{ q.customer.name|truncatechars:35 }}</td>
                   <td>{{ q.seller.username }}</td>
                   <td>{{ q.discount_percent }}%</td>
