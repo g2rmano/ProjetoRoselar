@@ -843,7 +843,8 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
             ])
 
             quote.status = QuoteStatus.CONVERTED
-            quote.save(update_fields=["status"])
+            quote.sale_date = timezone.localdate()
+            quote.save(update_fields=["status", "sale_date"])
 
             if quote.has_architect:
                 reminder_date = timezone.localdate() + timedelta(days=30)
@@ -1989,14 +1990,16 @@ def order_cancel(request: HttpRequest, order_id: int) -> HttpResponse:
             deleted_count, _ = Order.objects.filter(quote=quote).delete()
             if quote.status == QuoteStatus.CONVERTED:
                 quote.status = QuoteStatus.APPROVED
-                quote.save(update_fields=["status"])
+                quote.sale_date = None
+                quote.save(update_fields=["status", "sale_date"])
             removed_label = f"todos os pedidos do orçamento {quote.number}"
         else:
             order.delete()
             deleted_count = 1
             if not Order.objects.filter(quote=quote).exists() and quote.status == QuoteStatus.CONVERTED:
                 quote.status = QuoteStatus.APPROVED
-                quote.save(update_fields=["status"])
+                quote.sale_date = None
+                quote.save(update_fields=["status", "sale_date"])
             removed_label = f"pedido {order_number} ({supplier_name})"
 
     from core.models import AuditLog, AuditAction, Notification, NotificationType

@@ -13,7 +13,7 @@ from django.db.models import Sum, Count, Q, F, Avg
 
 def health_check(request):
     return HttpResponse("ok", content_type="text/plain")
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncMonth, Coalesce
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
@@ -28,7 +28,7 @@ from .models import (
     CommunicationHistory,
     QuoteTemplate, QuoteTemplateItem,
 )
-from sales.models import Quote, QuoteStatus, Order, OrderStatus, QuoteItem
+from sales.models import Quote, QuoteStatus, SOLD_STATUSES, Order, OrderStatus, QuoteItem
 from accounts.models import User, Role
 from calendar_app.models import CalendarEvent, EventStatus
 
@@ -127,10 +127,12 @@ def _sum_net_quote_values(quotes) -> Decimal:
 
 
 def _build_net_month_series_from_quotes(quotes, month_starts: list[date_type]) -> tuple:
+    """Série mensal de vendas. `quotes` deve vir de Quote.objects.sold(),
+    que anota `sold_on` (data da venda; fallback: data do orçamento)."""
     totals = {m: Decimal("0") for m in month_starts}
     counts = {m: 0 for m in month_starts}
     for q in quotes:
-        m = _sales_month_start(q.quote_date)
+        m = _sales_month_start(getattr(q, "sold_on", None) or q.quote_date)
         if m in totals:
             totals[m] += _net_quote_value(q)
             counts[m] += 1
@@ -156,16 +158,18 @@ def home(request):
 
         my_quotes = Quote.objects.filter(seller=user)
         my_quotes_month = my_quotes.filter(quote_date__gte=month_start, quote_date__lte=month_end)
-        my_converted = my_quotes.filter(status=QuoteStatus.CONVERTED)
-        my_converted_month = my_converted.filter(quote_date__gte=month_start, quote_date__lte=month_end)
+        my_converted = my_quotes.sold()
+        my_converted_month = my_converted.filter(sold_on__gte=month_start, sold_on__lte=month_end)
 
         my_total_sold_month = _sum_net_quote_values(
             my_converted_month.only("total_value_snapshot")
         )
         my_quotes_count_month = my_quotes_month.count()
         my_converted_count_month = my_converted_month.count()
+        # Conversão por coorte: dos orçamentos criados no ciclo, quantos viraram venda
+        my_cohort_converted_month = my_quotes_month.filter(status__in=SOLD_STATUSES).count()
         my_conversion_rate = (
-            round(my_converted_count_month / my_quotes_count_month * 100, 1)
+            round(my_cohort_converted_month / my_quotes_count_month * 100, 1)
             if my_quotes_count_month > 0 else 0
         )
         my_avg_ticket = (
@@ -176,10 +180,9 @@ def home(request):
         # Previous month
         prev_month_start, prev_month_end = _prev_month_bounds(month_start)
         prev_total = _sum_net_quote_values(
-            my_quotes.filter(
-                status=QuoteStatus.CONVERTED,
-                quote_date__gte=prev_month_start,
-                quote_date__lte=prev_month_end,
+            my_quotes.sold().filter(
+                sold_on__gte=prev_month_start,
+                sold_on__lte=prev_month_end,
             ).only("total_value_snapshot")
         )
 
@@ -236,12 +239,11 @@ def home(request):
         # Monthly chart (6 months) — net values
         month_starts = _last_n_month_starts(today, n=6)
         series_start = month_starts[0]
-        personal_month_quotes = Quote.objects.filter(
-            status=QuoteStatus.CONVERTED,
+        personal_month_quotes = Quote.objects.sold().filter(
             seller=user,
-            quote_date__gte=series_start,
-            quote_date__lte=today,
-        ).only("quote_date", "total_value_snapshot")
+            sold_on__gte=series_start,
+            sold_on__lte=today,
+        ).only("quote_date", "sale_date", "total_value_snapshot")
         chart_labels, chart_values, _ = _build_net_month_series_from_quotes(personal_month_quotes, month_starts)
 
         # Personal status breakdown (for hero pie)
@@ -270,16 +272,21 @@ def home(request):
                 quote_date__lte=month_end,
             ).count()
             _team_conv_qs = list(
-                Quote.objects.filter(
-                    status=QuoteStatus.CONVERTED,
-                    quote_date__gte=month_start,
-                    quote_date__lte=month_end,
+                Quote.objects.sold().filter(
+                    sold_on__gte=month_start,
+                    sold_on__lte=month_end,
                 ).only("seller_id", "total_value_snapshot")
                 .select_related("seller")
             )
             team_converted_month = len(_team_conv_qs)
+            # Conversão por coorte: dos orçamentos criados no ciclo, quantos viraram venda
+            team_cohort_converted_month = Quote.objects.filter(
+                quote_date__gte=month_start,
+                quote_date__lte=month_end,
+                status__in=SOLD_STATUSES,
+            ).count()
             team_conversion_rate = (
-                round(team_converted_month / team_quotes_month * 100, 1)
+                round(team_cohort_converted_month / team_quotes_month * 100, 1)
                 if team_quotes_month > 0 else 0
             )
             _buckets: dict = defaultdict(lambda: {"total": Decimal("0"), "count": 0, "username": ""})
@@ -293,12 +300,25 @@ def home(request):
                  for _b in _buckets.values()],
                 key=lambda x: x["total"], reverse=True,
             )[:10]
-            _collective_goal_sum = SalesGoal.objects.filter(
-                goal_type=GoalType.INDIVIDUAL,
-                period_start__lte=today,
-                period_end__gte=today,
-                seller__role=Role.SELLER,
-            ).aggregate(total=Sum("target_value"))["total"] or Decimal("0")
+            # Meta coletiva cadastrada tem prioridade; sem ela, soma das metas individuais
+            _collective_goal_obj = (
+                SalesGoal.objects.filter(
+                    goal_type=GoalType.COLLECTIVE,
+                    period_start__lte=today,
+                    period_end__gte=today,
+                )
+                .order_by("-period_start", "-id")
+                .first()
+            )
+            if _collective_goal_obj and _collective_goal_obj.target_value > 0:
+                _collective_goal_sum = _collective_goal_obj.target_value
+            else:
+                _collective_goal_sum = SalesGoal.objects.filter(
+                    goal_type=GoalType.INDIVIDUAL,
+                    period_start__lte=today,
+                    period_end__gte=today,
+                    seller__role=Role.SELLER,
+                ).aggregate(total=Sum("target_value"))["total"] or Decimal("0")
             collective_goal = _collective_goal_sum if _collective_goal_sum > 0 else None
             if collective_goal:
                 collective_goal_pct = round(
@@ -306,11 +326,10 @@ def home(request):
                 )
 
             # ── BI: Team monthly evolution (last 6 months) — net values ──
-            bi_team_all_quotes = Quote.objects.filter(
-                status=QuoteStatus.CONVERTED,
-                quote_date__gte=series_start,
-                quote_date__lte=today,
-            ).only("quote_date", "total_value_snapshot")
+            bi_team_all_quotes = Quote.objects.sold().filter(
+                sold_on__gte=series_start,
+                sold_on__lte=today,
+            ).only("quote_date", "sale_date", "total_value_snapshot")
             bi_team_chart_labels, bi_team_chart_values, bi_team_chart_counts = _build_net_month_series_from_quotes(
                 bi_team_all_quotes, month_starts,
             )
@@ -326,10 +345,9 @@ def home(request):
 
             # ── BI: Top 10 products by revenue ──
             bi_top_products = list(
-                QuoteItem.objects.filter(
-                    quote__status=QuoteStatus.CONVERTED,
-                    quote__quote_date__gte=month_start,
-                )
+                QuoteItem.objects.filter(quote__status__in=SOLD_STATUSES)
+                .annotate(sold_on=Coalesce("quote__sale_date", "quote__quote_date"))
+                .filter(sold_on__gte=month_start)
                 .values("product_name")
                 .annotate(
                     total_revenue=Sum(F("quantity") * F("unit_value")),
@@ -347,10 +365,9 @@ def home(request):
 
             # ── BI: Avg discount per seller ──
             bi_discount_data = list(
-                Quote.objects.filter(
-                    status=QuoteStatus.CONVERTED,
-                    quote_date__gte=month_start,
-                    quote_date__lte=month_end,
+                Quote.objects.sold().filter(
+                    sold_on__gte=month_start,
+                    sold_on__lte=month_end,
                     discount_percent__gt=0,
                 )
                 .values("seller__username")
@@ -421,16 +438,18 @@ def dashboard(request):
     # ── Personal Stats ──
     my_quotes = Quote.objects.filter(seller=user)
     my_quotes_month = my_quotes.filter(quote_date__gte=month_start, quote_date__lte=month_end)
-    my_converted = my_quotes.filter(status=QuoteStatus.CONVERTED)
-    my_converted_month = my_converted.filter(quote_date__gte=month_start, quote_date__lte=month_end)
+    my_converted = my_quotes.sold()
+    my_converted_month = my_converted.filter(sold_on__gte=month_start, sold_on__lte=month_end)
 
     my_total_sold_month = _sum_net_quote_values(
         my_converted_month.only("total_value_snapshot")
     )
     my_quotes_count_month = my_quotes_month.count()
     my_converted_count_month = my_converted_month.count()
+    # Conversão por coorte: dos orçamentos criados no ciclo, quantos viraram venda
+    my_cohort_converted_month = my_quotes_month.filter(status__in=SOLD_STATUSES).count()
     my_conversion_rate = (
-        round(my_converted_count_month / my_quotes_count_month * 100, 1)
+        round(my_cohort_converted_month / my_quotes_count_month * 100, 1)
         if my_quotes_count_month > 0 else 0
     )
     my_avg_ticket = (
@@ -440,10 +459,9 @@ def dashboard(request):
 
     # ── Previous month comparison ──
     prev_month_start, prev_month_end = _prev_month_bounds(month_start)
-    prev_converted = my_quotes.filter(
-        status=QuoteStatus.CONVERTED,
-        quote_date__gte=prev_month_start,
-        quote_date__lte=prev_month_end,
+    prev_converted = my_quotes.sold().filter(
+        sold_on__gte=prev_month_start,
+        sold_on__lte=prev_month_end,
     )
     prev_total = _sum_net_quote_values(
         prev_converted.only("total_value_snapshot")
@@ -468,16 +486,21 @@ def dashboard(request):
             quote_date__lte=month_end,
         ).count()
         _team_conv_qs = list(
-            Quote.objects.filter(
-                status=QuoteStatus.CONVERTED,
-                quote_date__gte=month_start,
-                quote_date__lte=month_end,
+            Quote.objects.sold().filter(
+                sold_on__gte=month_start,
+                sold_on__lte=month_end,
             ).only("seller_id", "total_value_snapshot")
             .select_related("seller")
         )
         team_converted_month = len(_team_conv_qs)
+        # Conversão por coorte: dos orçamentos criados no ciclo, quantos viraram venda
+        team_cohort_converted_month = Quote.objects.filter(
+            quote_date__gte=month_start,
+            quote_date__lte=month_end,
+            status__in=SOLD_STATUSES,
+        ).count()
         team_conversion_rate = (
-            round(team_converted_month / team_quotes_month * 100, 1)
+            round(team_cohort_converted_month / team_quotes_month * 100, 1)
             if team_quotes_month > 0 else 0
         )
         _buckets: dict = defaultdict(lambda: {"total": Decimal("0"), "count": 0, "username": ""})
@@ -494,13 +517,25 @@ def dashboard(request):
             key=lambda x: x["total"], reverse=True,
         )[:10]
 
-        # Collective goal = sum of individual seller goals
-        _collective_goal_sum = SalesGoal.objects.filter(
-            goal_type=GoalType.INDIVIDUAL,
-            period_start__lte=today,
-            period_end__gte=today,
-            seller__role=Role.SELLER,
-        ).aggregate(total=Sum("target_value"))["total"] or Decimal("0")
+        # Meta coletiva cadastrada tem prioridade; sem ela, soma das metas individuais
+        _collective_goal_obj = (
+            SalesGoal.objects.filter(
+                goal_type=GoalType.COLLECTIVE,
+                period_start__lte=today,
+                period_end__gte=today,
+            )
+            .order_by("-period_start", "-id")
+            .first()
+        )
+        if _collective_goal_obj and _collective_goal_obj.target_value > 0:
+            _collective_goal_sum = _collective_goal_obj.target_value
+        else:
+            _collective_goal_sum = SalesGoal.objects.filter(
+                goal_type=GoalType.INDIVIDUAL,
+                period_start__lte=today,
+                period_end__gte=today,
+                seller__role=Role.SELLER,
+            ).aggregate(total=Sum("target_value"))["total"] or Decimal("0")
         collective_goal = _collective_goal_sum if _collective_goal_sum > 0 else None
         if collective_goal:
             collective_goal_pct = round(
@@ -510,12 +545,11 @@ def dashboard(request):
     # ── Monthly evolution (last 6 months) — net values ──
     month_starts = _last_n_month_starts(today, n=6)
     series_start = month_starts[0]
-    personal_month_quotes = Quote.objects.filter(
-        status=QuoteStatus.CONVERTED,
+    personal_month_quotes = Quote.objects.sold().filter(
         seller=user,
-        quote_date__gte=series_start,
-        quote_date__lte=today,
-    ).only("quote_date", "total_value_snapshot")
+        sold_on__gte=series_start,
+        sold_on__lte=today,
+    ).only("quote_date", "sale_date", "total_value_snapshot")
     chart_labels, chart_values, _ = _build_net_month_series_from_quotes(personal_month_quotes, month_starts)
 
     # ── Pending quotes ──
@@ -939,10 +973,9 @@ def report_sales(request):
     date_to = _parse_date_param(request.GET.get("date_to"), today).isoformat()
     seller_id = request.GET.get("seller", "")
 
-    qs = Quote.objects.filter(
-        status=QuoteStatus.CONVERTED,
-        quote_date__gte=date_from,
-        quote_date__lte=date_to,
+    qs = Quote.objects.sold().filter(
+        sold_on__gte=date_from,
+        sold_on__lte=date_to,
     ).select_related("customer", "seller")
 
     if seller_id:
@@ -955,7 +988,7 @@ def report_sales(request):
     sellers = User.objects.filter(is_active=True).order_by("username")
 
     return render(request, "core/report_sales.html", {
-        "quotes": qs.order_by("-quote_date"),
+        "quotes": qs.order_by("-sold_on"),
         "total": total,
         "count": count,
         "avg_value": avg_value,
@@ -978,10 +1011,9 @@ def report_commissions(request):
     from core.models import SalesMarginConfig
     TOTAL_MARGIN, MIN_COMM, MAX_COMM = SalesMarginConfig.get_config()
 
-    qs = Quote.objects.filter(
-        status=QuoteStatus.CONVERTED,
-        quote_date__gte=date_from,
-        quote_date__lte=date_to,
+    qs = Quote.objects.sold().filter(
+        sold_on__gte=date_from,
+        sold_on__lte=date_to,
     ).select_related("seller")
 
     MAX_DISC = 30.0
@@ -1112,11 +1144,9 @@ def report_products(request):
     date_to = _parse_date_param(request.GET.get("date_to"), today).isoformat()
 
     items = (
-        QuoteItem.objects.filter(
-            quote__status=QuoteStatus.CONVERTED,
-            quote__quote_date__gte=date_from,
-            quote__quote_date__lte=date_to,
-        )
+        QuoteItem.objects.filter(quote__status__in=SOLD_STATUSES)
+        .annotate(sold_on=Coalesce("quote__sale_date", "quote__quote_date"))
+        .filter(sold_on__gte=date_from, sold_on__lte=date_to)
         .values("product_name")
         .annotate(
             qty=Sum("quantity"),
@@ -1142,11 +1172,10 @@ def report_csv_export(request):
     date_from = _parse_date_param(request.GET.get("date_from"), _month_bounds(today)[0]).isoformat()
     date_to = _parse_date_param(request.GET.get("date_to"), today).isoformat()
 
-    qs = Quote.objects.filter(
-        status=QuoteStatus.CONVERTED,
-        quote_date__gte=date_from,
-        quote_date__lte=date_to,
-    ).select_related("customer", "seller").order_by("-quote_date")
+    qs = Quote.objects.sold().filter(
+        sold_on__gte=date_from,
+        sold_on__lte=date_to,
+    ).select_related("customer", "seller").order_by("-sold_on")
 
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="vendas_{date_from}_{date_to}.csv"'
@@ -1165,7 +1194,7 @@ def report_csv_export(request):
     for q in qs:
         writer.writerow([
             _csv_safe(q.number),
-            q.quote_date.strftime("%d/%m/%Y"),
+            (q.sold_on or q.quote_date).strftime("%d/%m/%Y"),
             _csv_safe(q.customer.name),
             _csv_safe(q.seller.username),
             _csv_safe(f"{q.discount_percent}"),
@@ -1276,14 +1305,20 @@ def goal_create(request):
         messages.success(request, "Meta individual mensal salva.")
         return redirect("core:goals_list")
 
-    SalesGoal.objects.create(
+    period = request.POST.get("period", GoalPeriod.MONTHLY)
+    if period == GoalPeriod.MONTHLY:
+        # Metas mensais seguem o ciclo de vendas 25→24
+        requested_start, requested_end = _month_bounds(requested_start)
+    SalesGoal.objects.update_or_create(
         goal_type=GoalType.COLLECTIVE,
         seller=None,
-        period=request.POST.get("period", GoalPeriod.MONTHLY),
+        period=period,
         period_start=requested_start,
         period_end=requested_end,
-        target_value=target_value,
-        target_quantity=target_quantity,
+        defaults={
+            "target_value": target_value,
+            "target_quantity": target_quantity,
+        },
     )
     messages.success(request, "Meta criada.")
     return redirect("core:goals_list")

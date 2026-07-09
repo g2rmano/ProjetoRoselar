@@ -45,6 +45,12 @@ class QuoteStatus(models.TextChoices):
     CANCELED = "CANCELED", "Cancelado"
 
 
+# Status que contam como venda em métricas e relatórios. Um orçamento
+# convertido continua sendo venda depois que o pedido é concluído e ele
+# avança para Pós-Venda — sem isso, a venda "sumiria" dos painéis.
+SOLD_STATUSES = (QuoteStatus.CONVERTED, QuoteStatus.POS_VENDA)
+
+
 class FreightResponsible(models.TextChoices):
     """Responsável pelo pagamento do frete."""
     STORE = "STORE", "Frete Próprio - Empresa"
@@ -69,6 +75,21 @@ ROUNDING_STEPS = {
 }
 
 
+class QuoteQuerySet(models.QuerySet):
+    def sold(self):
+        """Orçamentos que contam como venda (convertidos, inclusive em Pós-Venda).
+
+        Anota `sold_on` com a data efetiva da venda: a data da conversão
+        (sale_date) quando registrada, senão a data do orçamento — fallback
+        para registros anteriores à existência do campo.
+        """
+        from django.db.models.functions import Coalesce
+
+        return self.filter(status__in=SOLD_STATUSES).annotate(
+            sold_on=Coalesce("sale_date", "quote_date")
+        )
+
+
 class Quote(models.Model):
     number = models.CharField(max_length=20, unique=True, verbose_name="Número")
 
@@ -88,6 +109,15 @@ class Quote(models.Model):
     status = models.CharField(max_length=12, choices=QuoteStatus.choices, default=QuoteStatus.DRAFT, verbose_name="Status")
 
     quote_date = models.DateField(default=timezone.localdate, verbose_name="Data")
+
+    # data em que o orçamento virou venda (conversão em pedido). É esta data
+    # que contabiliza a venda nos painéis/relatórios — não a data do orçamento.
+    sale_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Data da Venda",
+        help_text="Data em que o orçamento foi convertido em pedido.",
+    )
     
     # prazo de entrega estimado em dias (no orçamento)
     delivery_days_min = models.PositiveSmallIntegerField(
@@ -251,12 +281,15 @@ class Quote(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
 
+    objects = QuoteQuerySet.as_manager()
+
     class Meta:
         verbose_name = "Orçamento"
         verbose_name_plural = "Orçamentos"
         indexes = [
             models.Index(fields=["number"]),
             models.Index(fields=["quote_date"]),
+            models.Index(fields=["sale_date"], name="sales_quote_sale_date_idx"),
             models.Index(fields=["status"]),
         ]
 
