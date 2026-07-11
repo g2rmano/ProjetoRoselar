@@ -111,7 +111,10 @@ def _get_quote_or_403(request, quote_id, **extra_filters):
 def _get_order_or_403(request, order_id, **extra_filters):
     from django.http import HttpResponseForbidden
     order = get_object_or_404(Order, pk=order_id, **extra_filters)
-    if not _can_view_all_orders(request.user) and order.quote.seller_id != request.user.id:
+    # Pedido avulso (sem orçamento) só é visível a quem vê todos os pedidos.
+    if not _can_view_all_orders(request.user) and (
+        order.quote is None or order.quote.seller_id != request.user.id
+    ):
         return None, HttpResponseForbidden("Acesso negado.")
     return order, None
 
@@ -288,6 +291,7 @@ from .models import (
     ProposalConfig,
     SaleDocument,
     SaleDocumentType,
+    SOLD_STATUSES,
 )
 from calendar_app.models import (
     CalendarEvent,
@@ -1720,8 +1724,9 @@ def order_list(request: HttpRequest) -> HttpResponse:
         'supplier_filter': supplier_filter,
         'is_seller': _is_seller(request.user),
         'can_generate_order_pdf': _can_generate_order_pdf(request.user),
+        'can_create_standalone': _is_finance(request.user) or _is_admin(request.user),
     }
-    
+
     return render(request, 'sales/order_list.html', context)
 
 @login_required
@@ -1730,26 +1735,28 @@ def order_detail(request: HttpRequest, order_id: int) -> HttpResponse:
         Order.objects.select_related('quote', 'supplier', 'quote__customer', 'quote__seller'),
         pk=order_id
     )
-    if not _can_view_all_orders(request.user) and order.quote.seller_id != request.user.id:
+    if not _can_view_all_orders(request.user) and (
+        order.quote is None or order.quote.seller_id != request.user.id
+    ):
         messages.error(request, "Acesso negado.")
         return redirect("sales:order_list")
-    
+
     items = order.items.select_related('quote_item').all()
-    
+
     total = sum(item.line_total for item in items)
-    
+
     _can_finance_action = (_is_finance(request.user) or _is_admin(request.user))
     context = {
         'order': order,
         'items': items,
         'total': total,
         'show_sale_values': _can_finance_action,
-        'value_breakdown': _build_value_breakdown(order.quote) if _can_finance_action else None,
+        'value_breakdown': _build_value_breakdown(order.quote) if (_can_finance_action and order.quote) else None,
         'is_seller': _is_seller(request.user),
         'can_generate_order_pdf': _can_generate_order_pdf(request.user),
         'can_set_delivery': _can_generate_order_pdf(request.user),
         'can_cancel_order': _can_finance_action,
-        'can_edit_order': _can_finance_action or order.quote.seller_id == request.user.id,
+        'can_edit_order': _can_finance_action or (order.quote and order.quote.seller_id == request.user.id),
         'can_approve_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.PENDING,
         'can_conclude_order': _can_finance_action and order.is_total_conference and order.status == OrderStatus.ONGOING,
         'supplier_orders': (
@@ -1985,6 +1992,20 @@ def order_cancel(request: HttpRequest, order_id: int) -> HttpResponse:
     is_total = order.is_total_conference
     supplier_name = order.supplier.name if order.supplier else "pedido total"
 
+    # Pedido avulso da loja: sem orçamento vinculado — apenas remove.
+    if quote is None:
+        with transaction.atomic():
+            order.delete()
+        from core.models import AuditLog, AuditAction
+        AuditLog.log(
+            request.user,
+            AuditAction.CONVERT_ORDER,
+            f"Cancelamento de pedido avulso: {order_number} ({supplier_name}).",
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        messages.success(request, f"Pedido avulso {order_number} cancelado.")
+        return redirect("sales:order_list")
+
     with transaction.atomic():
         if is_total:
             deleted_count, _ = Order.objects.filter(quote=quote).delete()
@@ -2026,6 +2047,80 @@ def order_cancel(request: HttpRequest, order_id: int) -> HttpResponse:
     return redirect("sales:order_list")
 
 
+def generate_next_store_order_number() -> str:
+    """Número sequencial para pedidos avulsos da loja (sem orçamento)."""
+    with transaction.atomic():
+        last = (
+            Order.objects.select_for_update()
+            .filter(number__startswith="LOJA-")
+            .order_by("-id")
+            .first()
+        )
+        try:
+            candidate = int(last.number.split("-")[1]) + 1 if last else 1
+        except (ValueError, IndexError):
+            candidate = Order.objects.filter(number__startswith="LOJA-").count() + 1
+
+        while Order.objects.filter(number=f"LOJA-{candidate:04d}").exists():
+            candidate += 1
+
+        return f"LOJA-{candidate:04d}"
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def order_create_standalone(request: HttpRequest) -> HttpResponse:
+    """Pedido de compra avulso da loja: compra de estoque ao fornecedor,
+    sem orçamento/venda/vendedor vinculado. Não entra em comissões nem
+    métricas de venda (que são baseadas em Quote)."""
+    if not (_is_finance(request.user) or _is_admin(request.user)):
+        messages.error(request, "Acesso negado.")
+        return redirect("sales:order_list")
+
+    if request.method == "POST":
+        form = OrderForm(request.POST)
+        formset = OrderItemFormSet(request.POST)
+
+        if form.is_valid() and formset.is_valid():
+            has_items = any(
+                f.cleaned_data and not f.cleaned_data.get("DELETE")
+                for f in formset.forms
+            )
+            if not has_items:
+                messages.error(request, "Adicione pelo menos um item ao pedido.")
+            else:
+                with transaction.atomic():
+                    order = form.save(commit=False)
+                    order.quote = None
+                    order.is_total_conference = False
+                    order.number = generate_next_store_order_number()
+                    order.save()
+                    formset.instance = order
+                    formset.save()
+
+                from core.models import AuditLog, AuditAction
+                AuditLog.log(
+                    request.user,
+                    AuditAction.CONVERT_ORDER,
+                    f"Pedido avulso da loja {order.number} criado "
+                    f"({order.supplier.name if order.supplier else 'sem fornecedor'}).",
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                )
+                messages.success(request, f"Pedido avulso {order.number} criado.")
+                return redirect("sales:order_detail", order_id=order.id)
+        else:
+            messages.error(request, "Corrija os campos inválidos.")
+    else:
+        form = OrderForm()
+        formset = OrderItemFormSet()
+
+    return render(
+        request,
+        "sales/order_form.html",
+        {"form": form, "formset": formset, "order": None, "is_standalone": True},
+    )
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def order_edit(request: HttpRequest, order_id: int) -> HttpResponse:
@@ -2049,6 +2144,28 @@ def order_edit(request: HttpRequest, order_id: int) -> HttpResponse:
             with transaction.atomic():
                 form.save()
                 formset.save()
+
+                # A data do pedido define o mês da venda nos painéis/comissões.
+                # Ao editá-la, realinha Quote.sale_date com o pedido mais antigo
+                # do orçamento — senão a venda continua contando no mês errado.
+                if (
+                    "created_at" in form.changed_data
+                    and order.quote is not None
+                    and order.quote.status in SOLD_STATUSES
+                ):
+                    first_order_at = order.quote.orders.aggregate(
+                        first=models.Min("created_at")
+                    )["first"]
+                    if first_order_at is not None:
+                        new_sale_date = timezone.localtime(first_order_at).date()
+                        if order.quote.sale_date != new_sale_date:
+                            order.quote.sale_date = new_sale_date
+                            order.quote.save(update_fields=["sale_date"])
+                            messages.info(
+                                request,
+                                f"Data da venda do orçamento {order.quote.number} "
+                                f"atualizada para {new_sale_date.strftime('%d/%m/%Y')}.",
+                            )
 
             from core.models import AuditLog, AuditAction
             AuditLog.log(
@@ -2083,7 +2200,9 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
     if not _can_generate_order_pdf(request.user):
         messages.error(request, "Seu perfil não pode baixar PDFs de pedidos.")
         return redirect("sales:order_list")
-    if not _can_view_all_orders(request.user) and order.quote.seller_id != request.user.id:
+    if not _can_view_all_orders(request.user) and (
+        order.quote is None or order.quote.seller_id != request.user.id
+    ):
         messages.error(request, "Acesso negado.")
         return redirect("sales:order_list")
 
@@ -2161,7 +2280,10 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
     elements.append(HRFlowable(width="100%", thickness=2, color=NAVY))
     elements.append(Spacer(1, 0.4*cm))
 
-    seller_name = order.quote.seller.get_full_name() or order.quote.seller.username
+    if order.quote:
+        seller_name = order.quote.seller.get_full_name() or order.quote.seller.username
+    else:
+        seller_name = "Compra da Loja"
     prazo = order.delivery_deadline.strftime('%d/%m/%Y') if order.delivery_deadline else '—'
     meta_data = [
         [
@@ -2200,7 +2322,7 @@ def order_pdf(request: HttpRequest, order_id: int) -> HttpResponse:
 
     client_cell = [
         Paragraph("<b>Cliente</b>", st_section),
-        Paragraph(order.quote.customer.name, st_normal),
+        Paragraph(order.quote.customer.name if order.quote else "Estoque da Loja", st_normal),
     ]
 
     party_tbl = Table([[supplier_cell, client_cell]], colWidths=[8.5*cm, 8.5*cm])

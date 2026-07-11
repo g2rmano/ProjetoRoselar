@@ -488,7 +488,8 @@ class OrderStatus(models.TextChoices):
 
 class Order(models.Model):
     number = models.CharField(max_length=20, verbose_name="Número")  # igual ao Quote.number (não unique por permitir vários pedidos)
-    quote = models.ForeignKey(Quote, on_delete=models.PROTECT, related_name="orders", verbose_name="Orçamento")
+    # null = pedido avulso da loja (compra de estoque, sem venda/vendedor)
+    quote = models.ForeignKey(Quote, null=True, blank=True, on_delete=models.PROTECT, related_name="orders", verbose_name="Orçamento")
 
     supplier = models.ForeignKey(
         "core.Supplier",

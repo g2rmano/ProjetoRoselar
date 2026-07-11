@@ -249,8 +249,12 @@
                       {% endif %}
                     </div>
                     <div class="q-info" style="padding-top:.3rem;">
-                      <span><i class="fa-solid fa-link"></i>Orç. {{ order.quote.number }}</span>
-                      <span><i class="fa-solid fa-user"></i>{{ order.quote.customer.name }}</span>
+                      {% if order.quote %}
+                        <span><i class="fa-solid fa-link"></i>Orç. {{ order.quote.number }}</span>
+                        <span><i class="fa-solid fa-user"></i>{{ order.quote.customer.name }}</span>
+                      {% else %}
+                        <span><i class="fa-solid fa-store"></i>Compra da Loja (pedido avulso)</span>
+                      {% endif %}
                       <span><i class="fa-solid fa-calendar"></i>{{ order.created_at|date:"d/m/Y H:i" }}</span>
                     </div>
                   </div>
@@ -272,17 +276,21 @@
                   <i class="fa-solid fa-file-pdf"></i>Baixar PDF
                 </a>
               {% endif %}
+              {% if order.quote %}
               <a href="{% url 'sales:quote_detail' order.quote.id %}" class="btn-a info">
                 <i class="fa-solid fa-file-invoice"></i>Ver Orçamento
               </a>
+              {% endif %}
               {% if can_edit_order %}
                 <a href="{% url 'sales:order_edit' order.id %}" class="btn-a dark">
                   <i class="fa-solid fa-pen-to-square"></i>Editar Pedido
                 </a>
               {% endif %}
+              {% if order.quote %}
               <a href="{% url 'sales:quote_documents' order.quote.id %}" class="btn-a secondary">
                 <i class="fa-solid fa-paperclip"></i>Documentos / NF
               </a>
+              {% endif %}
               {% if can_cancel_order %}
                 <form method="post" action="{% url 'sales:order_cancel' order.id %}" style="display:inline;"
                       onsubmit="return confirm('Cancelar este pedido? Esta ação remove o registro do pedido.')">
@@ -442,6 +450,7 @@
         {% endif %}
 
         <!-- ═══ INFO CARDS ═══ -->
+        {% if order.quote %}
         <div class="row g-3">
           <div class="col-md-6">
             <div class="s-card fi fi-2">
@@ -478,6 +487,7 @@
             </div>
           </div>
         </div>
+        {% endif %}
 
         <div class="row g-3">
           {% if order.supplier %}
@@ -513,7 +523,7 @@
               </div>
               <div class="s-body">
                 <div style="font-weight:700;color:var(--brand);font-size:.95rem;margin-bottom:.3rem;">
-                  {{ order.quote.seller.get_full_name|default:order.quote.seller.username }}
+                  {% if order.quote %}{{ order.quote.seller.get_full_name|default:order.quote.seller.username }}{% else %}Compra da Loja{% endif %}
                 </div>
                 <div style="font-size:.82rem;color:var(--muted);">
                   <i class="fa-solid fa-calendar me-1" style="font-size:.72rem;"></i>{{ order.created_at|date:"d/m/Y H:i" }}

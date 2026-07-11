@@ -104,15 +104,33 @@
                 </div>
                 <div>
                   <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">
-                    Editar Pedido #{{ order.number }}
-                    {% if order.is_total_conference %}<span style="font-size:.75rem;color:var(--blue);font-weight:700;">(Pedido Total)</span>{% endif %}
+                    {% if is_standalone %}
+                      Novo Pedido Avulso (Compra da Loja)
+                    {% else %}
+                      Editar Pedido #{{ order.number }}
+                      {% if order.is_total_conference %}<span style="font-size:.75rem;color:var(--blue);font-weight:700;">(Pedido Total)</span>{% endif %}
+                    {% endif %}
                   </h4>
-                  <div style="font-size:.78rem;color:var(--muted);">{{ order.quote.customer.name }} · Orç. {{ order.quote.number }}</div>
+                  <div style="font-size:.78rem;color:var(--muted);">
+                    {% if is_standalone %}
+                      Compra de estoque ao fornecedor — sem venda/vendedor vinculado
+                    {% elif order.quote %}
+                      {{ order.quote.customer.name }} · Orç. {{ order.quote.number }}
+                    {% else %}
+                      Compra da Loja
+                    {% endif %}
+                  </div>
                 </div>
               </div>
+              {% if is_standalone %}
+              <a href="{% url 'sales:order_list' %}" class="btn-a secondary" style="flex-shrink:0;">
+                <i class="fa-solid fa-arrow-left"></i>Voltar
+              </a>
+              {% else %}
               <a href="{% url 'sales:order_detail' order.id %}" class="btn-a secondary" style="flex-shrink:0;">
                 <i class="fa-solid fa-arrow-left"></i>Voltar
               </a>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -254,7 +272,11 @@
           <div class="s-card fi fi-3" style="border:none;box-shadow:var(--shadow-h);">
             <div style="padding:1rem 1.3rem;">
               <div class="d-flex justify-content-end gap-3 flex-wrap">
-                <a href="{% url 'sales:order_detail' order.id %}" class="btn-a secondary">Cancelar</a>
+                {% if is_standalone %}
+                  <a href="{% url 'sales:order_list' %}" class="btn-a secondary">Cancelar</a>
+                {% else %}
+                  <a href="{% url 'sales:order_detail' order.id %}" class="btn-a secondary">Cancelar</a>
+                {% endif %}
                 <button type="submit" class="btn-a primary"><i class="fa-solid fa-save"></i>Salvar Pedido</button>
               </div>
             </div>

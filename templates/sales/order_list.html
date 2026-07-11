@@ -219,9 +219,16 @@
                   <div style="font-size:.78rem;color:var(--muted);">Gerencie todos os pedidos de compra</div>
                 </div>
               </div>
-              <a href="{% url 'core:dashboard' %}" class="btn-a secondary hdr-btns">
-                <i class="fa-solid fa-arrow-left"></i>Voltar
-              </a>
+              <div class="d-flex gap-2 hdr-btns">
+                {% if can_create_standalone %}
+                <a href="{% url 'sales:order_create_standalone' %}" class="btn-a primary">
+                  <i class="fa-solid fa-plus"></i>Pedido Avulso (Loja)
+                </a>
+                {% endif %}
+                <a href="{% url 'core:dashboard' %}" class="btn-a secondary">
+                  <i class="fa-solid fa-arrow-left"></i>Voltar
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -283,8 +290,12 @@
                   <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
                 </div>
                 <div class="q-meta">
-                  <span><i class="fa-solid fa-link"></i>Orç. {{ order.quote.number }}</span>
-                  <span><i class="fa-solid fa-user"></i>{{ order.quote.customer.name }}</span>
+                  {% if order.quote %}
+                    <span><i class="fa-solid fa-link"></i>Orç. {{ order.quote.number }}</span>
+                    <span><i class="fa-solid fa-user"></i>{{ order.quote.customer.name }}</span>
+                  {% else %}
+                    <span><i class="fa-solid fa-store"></i>Compra da Loja</span>
+                  {% endif %}
                   {% if order.supplier %}
                     <span><i class="fa-solid fa-truck"></i>{{ order.supplier.name }}</span>
                   {% else %}

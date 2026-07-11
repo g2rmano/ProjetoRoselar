@@ -1,4 +1,5 @@
 ﻿{% load static %}
+{% load l10n %}
 <!DOCTYPE html>
 <html lang="pt-BR" dir="ltr">
 <head>
@@ -113,7 +114,7 @@
         <div class="section-header"><i class="fa-solid fa-bullseye me-2"></i>Minha Meta</div>
         <div class="section-body">
           <div class="d-flex justify-content-between mb-1"><span class="fw-bold" style="color:var(--brand);">R$ {{ my_total_sold_month|floatformat:2 }} / R$ {{ goal_target|floatformat:2 }}</span><span style="color:var(--gray);font-size:.85rem;">{{ goal_pct_raw }}%</span></div>
-          <div class="goal-bar"><div class="fill" style="width: {{ goal_pct }}%;"></div></div>
+          <div class="goal-bar"><div class="fill" style="width: {{ goal_pct|unlocalize }}%;"></div></div>
         </div>
 
         <div class="row">
@@ -148,7 +149,7 @@
                 <div class="col-4"><div class="metric-card py-2 px-2 text-center"><div class="label">Orcamentos</div><div class="value" style="font-size:1.1rem;">{{ team_quotes_month }}</div></div></div>
                 <div class="col-4"><div class="metric-card py-2 px-2 text-center"><div class="label">Conversao</div><div class="value" style="font-size:1.1rem;">{{ team_conversion_rate }}%</div></div></div>
               </div>
-              {% if collective_goal %}<div class="d-flex justify-content-between mb-1"><span class="fw-bold small" style="color:var(--brand);">Meta Coletiva: R$ {{ collective_goal|floatformat:0 }}</span><span style="color:var(--gray);font-size:.8rem;">{{ collective_goal_pct }}%</span></div><div class="goal-bar"><div class="fill" style="width:{{ collective_goal_pct }}%;"></div></div>{% endif %}
+              {% if collective_goal %}<div class="d-flex justify-content-between mb-1"><span class="fw-bold small" style="color:var(--brand);">Meta Coletiva: R$ {{ collective_goal|floatformat:0 }}</span><span style="color:var(--gray);font-size:.8rem;">{{ collective_goal_pct }}%</span></div><div class="goal-bar"><div class="fill" style="width:{{ collective_goal_pct|unlocalize }}%;"></div></div>{% endif %}
             </div>
           </div>
           <div class="col-lg-6">

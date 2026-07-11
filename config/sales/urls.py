@@ -33,6 +33,7 @@ urlpatterns = [
     
     # Order URLs
     path("orders/", views.order_list, name="order_list"),
+    path("orders/new/", views.order_create_standalone, name="order_create_standalone"),
     path("orders/<int:order_id>/", views.order_detail, name="order_detail"),
     path("orders/<int:order_id>/edit/", views.order_edit, name="order_edit"),
     path("orders/<int:order_id>/set-delivery/", views.order_set_delivery, name="order_set_delivery"),

@@ -1,4 +1,5 @@
 {% load static %}
+{% load l10n %}
 <!DOCTYPE html>
 <html lang="pt-BR" dir="ltr">
 
@@ -401,7 +402,7 @@
                 {% if collective_goal %}
                 <div class="kpi-label"><i class="fa-solid fa-bullseye me-1"></i>Meta Coletiva</div>
                 <div class="kpi-val {% if collective_goal_pct >= 100 %}green{% endif %}">{{ collective_goal_pct }}%</div>
-                <div class="kpi-goal-bar mt-1"><div class="fill" style="width:{{ collective_goal_pct }}%;"></div></div>
+                <div class="kpi-goal-bar mt-1"><div class="fill" style="width:{{ collective_goal_pct|unlocalize }}%;"></div></div>
                 <div class="kpi-sub mt-1">R$ {{ team_total_sold_month|floatformat:0 }} / R$ {{ collective_goal|floatformat:0 }}</div>
                 {% else %}
                 <div class="kpi-label"><i class="fa-solid fa-bullseye me-1"></i>Meta Coletiva</div>
@@ -612,7 +613,7 @@
       // ── Hero Doughnut: Goal Progress ──
       var goalEl = document.getElementById('heroGoalPie');
       if (goalEl) {
-        var goalPct = {{ goal_pct_raw }};
+        var goalPct = {{ goal_pct_raw|unlocalize }};
         var remaining = Math.max(100 - goalPct, 0);
         safeChart(goalEl.getContext('2d'), {
           type: 'doughnut',
@@ -627,7 +628,7 @@
       // ── Hero Doughnut: Conversion Rate ──
       var convEl = document.getElementById('heroConvPie');
       if (convEl) {
-        var convRate = {{ my_conversion_rate }};
+        var convRate = {{ my_conversion_rate|unlocalize }};
         var convRem = Math.max(100 - convRate, 0);
         safeChart(convEl.getContext('2d'), {
           type: 'doughnut',

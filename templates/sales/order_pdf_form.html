@@ -151,7 +151,7 @@
               {% if order.supplier %}
                 <span class="info-chip"><i class="fa-solid fa-industry"></i>{{ order.supplier.name }}</span>
               {% endif %}
-              <span class="info-chip"><i class="fa-solid fa-user"></i>{{ order.quote.customer.name }}</span>
+              <span class="info-chip"><i class="fa-solid fa-user"></i>{% if order.quote %}{{ order.quote.customer.name }}{% else %}Compra da Loja{% endif %}</span>
               <span class="info-chip"><i class="fa-solid fa-calendar"></i>{{ order.created_at|date:"d/m/Y" }}</span>
             </div>
           </div>
