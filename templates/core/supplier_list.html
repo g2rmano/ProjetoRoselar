@@ -7,17 +7,17 @@
   <title>Fornecedores | Roselar</title>
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/theme.min.css' %}" rel="stylesheet">
   <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>:root{--brand:#0A2640;}body{font-family:'Manrope',sans-serif;}</style>
+  <style>:root{--brand:#111418;}body{font-variant-numeric:tabular-nums;font-family:'Manrope',sans-serif;}input::placeholder,textarea::placeholder{color:#565C66;opacity:1;}@media (pointer: coarse){ .btn, .btn-sm { min-height: 44px; display: inline-flex; align-items: center; } }</style>
 </head>
 <body>
   <main class="main" id="top">
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
       <div class="container">
-        <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;"></a>
+        <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="Roselar — Início" style="height:40px;"></a>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav ms-auto align-items-center">
             <li class="nav-item"><a class="nav-link" href="{% url 'core:dashboard' %}">Dashboard</a></li>
@@ -35,7 +35,7 @@
 
         <div class="bg-white shadow-sm p-4 mb-4" style="border-radius:8px;">
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h4 class="fw-bold mb-0" style="color:var(--brand);"><i class="fa-solid fa-truck-field me-2"></i>Fornecedores</h4>
+            <h1 class="h4 fw-bold mb-0" style="color:var(--brand);"><i class="fa-solid fa-truck-field me-2"></i>Fornecedores</h1>
             <div class="d-flex gap-2 flex-wrap">
               <form method="get" class="d-flex gap-2">
                 <input type="text" name="q" value="{{ query }}" class="form-control form-control-sm" placeholder="Buscar por nome..." style="min-width:200px;">
@@ -48,7 +48,7 @@
 
         <div class="bg-white shadow-sm" style="border-radius:8px;overflow:hidden;">
           <div style="overflow-x:auto;">
-            <table class="table mb-0 align-middle">
+            <div class="table-responsive"><table class="table mb-0 align-middle">
               <thead style="background:#f4f6f9;">
                 <tr>
                   <th class="text-muted small text-uppercase">Código</th>
@@ -74,7 +74,7 @@
                 <tr><td colspan="5" class="text-center text-muted py-5"><i class="fa-solid fa-box-open d-block mb-2" style="font-size:1.5rem;opacity:.4;"></i>Nenhum fornecedor cadastrado.</td></tr>
                 {% endfor %}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       </div>
@@ -162,7 +162,7 @@
       <div class="modal-content">
         <form method="post" action="{% url 'core:supplier_delete' supplier.id %}">
           {% csrf_token %}
-          <div class="modal-header" style="background:#dc3545;color:#fff;">
+          <div class="modal-header" style="background:#D32F2F;color:#fff;">
             <h5 class="modal-title"><i class="fa-solid fa-triangle-exclamation me-2"></i>Excluir Fornecedor</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>

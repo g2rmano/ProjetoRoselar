@@ -10,17 +10,17 @@
   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#111418">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/theme.min.css' %}" rel="stylesheet">
   <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     :root {
-      --brand:#0A2640; --brand-l:#163a5a; --bg:#f4f6f9; --surface:#fff;
-      --green:#198754; --red:#dc3545; --orange:#e67e22; --blue:#0d6efd;
+      --brand:#111418; --brand-l:#23272E; --bg:#f4f6f9; --surface:#fff;
+      --green:#198754; --red:#D32F2F; --orange:#e67e22; --blue:#0d6efd;
       --muted:#6c757d; --border:#dee2e6; --radius:10px;
       --shadow:0 1px 4px rgba(0,0,0,.06); --shadow-h:0 4px 14px rgba(0,0,0,.09);
     }
@@ -40,7 +40,7 @@
       border:1.5px solid var(--border); border-radius:8px !important; font-size:.88rem; font-weight:500; color:var(--brand);
       transition:border-color .2s, box-shadow .2s; }
     .form-control:focus, .form-select:focus, select:focus, textarea:focus {
-      border-color:var(--brand) !important; box-shadow:0 0 0 3px rgba(10,38,64,.1) !important; }
+      border-color:var(--brand) !important; box-shadow:0 0 0 3px rgba(17,20,24,.1) !important; }
     .form-label { font-size:.72rem !important; font-weight:700 !important; text-transform:uppercase; letter-spacing:.04em;
       color:var(--muted) !important; margin-bottom:.3rem !important; }
     textarea.form-control { min-height:38px; max-height:200px; resize:none; overflow-y:auto; line-height:1.5; }
@@ -48,7 +48,7 @@
       margin-bottom:.8rem; background:var(--bg); position:relative; transition:border-color .2s, box-shadow .2s; }
     .formset-row:hover { border-color:#c0c7ce; box-shadow:var(--shadow); }
     .formset-row .item-number { position:absolute; top:-10px; left:14px; background:var(--brand); color:#fff;
-      font-size:.68rem; font-weight:800; padding:1px 10px; border-radius:6px; letter-spacing:.03em; }
+      font-size:.72rem; font-weight:800; padding:1px 10px; border-radius:6px; letter-spacing:.03em; }
     .delete-row-btn { position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:8px !important;
       display:flex; align-items:center; justify-content:center; background:#fce4ec; color:var(--red);
       border:1px solid #f1aeb5; font-size:.72rem; z-index:10; cursor:pointer; transition:.2s; }
@@ -56,6 +56,7 @@
     .btn-a { display:inline-flex; align-items:center; gap:.35rem; padding:.55rem 1.2rem; font-weight:700; font-size:.85rem;
       border:none; border-radius:8px !important; cursor:pointer; text-decoration:none; transition:all .2s; }
     .btn-a:hover { transform:translateY(-1px); box-shadow:var(--shadow-h); }
+    .btn-a:focus-visible { outline: 3px solid rgba(17,20,24,.35); outline-offset: 2px; }
     .btn-a.primary{background:var(--green);color:#fff;} .btn-a.primary:hover{background:#146c43;color:#fff;}
     .btn-a.secondary{background:#fff;color:var(--brand);border:1.5px solid var(--border);}
     .btn-a.secondary:hover{background:var(--bg);color:var(--brand);}
@@ -66,6 +67,7 @@
     .alert-danger { background:#fce4ec; border:1px solid #f1aeb5; color:#842029; }
     @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
     .fi { animation:fadeIn .35s ease both; } .fi-1{animation-delay:.05s} .fi-2{animation-delay:.1s} .fi-3{animation-delay:.15s}
+    @media (prefers-reduced-motion: reduce) { .fi, [class^="fi-"], [class*=" fi-"] { animation: none !important; } }
     @media (max-width:768px){ .s-body{padding:.8rem;} .formset-row{padding:.9rem .9rem .3rem;}
       .hdr-wrap{flex-direction:column;} .hdr-wrap .btn-a{width:100%;justify-content:center;} }
   </style>
@@ -74,7 +76,7 @@
   <main class="main" id="top">
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
       <div class="container">
-        <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;"></a>
+        <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="Roselar — Início" style="height:40px;"></a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
           <i class="fa-solid fa-bars text-white fs-3"></i>
         </button>
@@ -89,7 +91,7 @@
 
     <section class="py-5" style="min-height:100vh;">
       <div style="position:absolute;top:0;left:0;right:0;height:30vh;
-                   background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
+                   background:var(--brand);z-index:-1;"></div>
 
       <div class="container" style="margin-top:80px;max-width:900px;">
 
@@ -103,14 +105,14 @@
                   <i class="fa-solid fa-pen-to-square"></i>
                 </div>
                 <div>
-                  <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">
+                  <h1 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">
                     {% if is_standalone %}
                       Novo Pedido Avulso (Compra da Loja)
                     {% else %}
                       Editar Pedido #{{ order.number }}
                       {% if order.is_total_conference %}<span style="font-size:.75rem;color:var(--blue);font-weight:700;">(Pedido Total)</span>{% endif %}
                     {% endif %}
-                  </h4>
+                  </h1>
                   <div style="font-size:.78rem;color:var(--muted);">
                     {% if is_standalone %}
                       Compra de estoque ao fornecedor — sem venda/vendedor vinculado

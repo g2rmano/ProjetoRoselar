@@ -15,19 +15,19 @@
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
     <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
     <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#111418">
 
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" rel="stylesheet">
-    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'assets/css/theme.min.css' %}" rel="stylesheet" />
     <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-      :root{--brand:#0A2640;--brand-l:#163a5a;--bg:#f4f6f9;--surface:#fff;--green:#198754;--red:#dc3545;--orange:#e67e22;--blue:#0d6efd;--cyan:#0dcaf0;--muted:#6c757d;--border:#dee2e6;--radius:10px;--shadow:0 1px 4px rgba(0,0,0,.06);--shadow-h:0 4px 14px rgba(0,0,0,.09);}
+      :root{--brand:#111418;--brand-l:#23272E;--bg:#f4f6f9;--surface:#fff;--green:#198754;--red:#D32F2F;--orange:#e67e22;--blue:#0d6efd;--cyan:#0dcaf0;--muted:#6c757d;--border:#dee2e6;--radius:10px;--shadow:0 1px 4px rgba(0,0,0,.06);--shadow-h:0 4px 14px rgba(0,0,0,.09);}
       *{box-sizing:border-box;}
-      body{font-family:'Manrope',sans-serif;background:var(--bg);margin:0;}
+      body{font-variant-numeric:tabular-nums;font-family:'Manrope',sans-serif;background:var(--bg);margin:0;}
+    input::placeholder, textarea::placeholder { color: #565C66; opacity: 1; }
 
       /* s-card design system */
       .s-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:1rem;overflow:hidden;border:1px solid rgba(0,0,0,.04);transition:box-shadow .2s;}
@@ -40,49 +40,50 @@
       /* buttons */
       .btn-a{display:inline-flex;align-items:center;gap:.35rem;padding:.55rem 1.2rem;font-weight:700;font-size:.85rem;border:none;border-radius:8px;cursor:pointer;text-decoration:none;transition:all .2s;}
       .btn-a:hover{transform:translateY(-1px);box-shadow:var(--shadow-h);}
+      .btn-a:focus-visible{outline:3px solid rgba(17,20,24,.35);outline-offset:2px;}
       .btn-a.primary{background:var(--green);color:#fff;}.btn-a.primary:hover{background:#146c43;color:#fff;}
       .btn-a.secondary{background:#fff;color:var(--brand);border:1.5px solid var(--border);}.btn-a.secondary:hover{background:var(--bg);color:var(--brand);}
       .btn-a.dark{background:var(--brand);color:#fff;}.btn-a.dark:hover{background:var(--brand-l);color:#fff;}
       .btn-a.outline{background:transparent;color:var(--brand);border:1.5px solid var(--border);}.btn-a.outline:hover{background:var(--bg);}
 
       /* hero gradient */
-      .idx-hero{background:linear-gradient(135deg,var(--brand),var(--brand-l));padding-top:130px;padding-bottom:3rem;position:relative;overflow:hidden;}
+      .idx-hero{background:var(--brand);padding-top:130px;padding-bottom:3rem;position:relative;overflow:hidden;}
       .idx-hero::after{content:'';position:absolute;top:-30%;right:-10%;width:50%;height:160%;background:radial-gradient(circle,rgba(255,255,255,.04) 0%,transparent 70%);pointer-events:none;}
       .idx-greeting h1{font-size:1.6rem;font-weight:800;color:#fff;margin:0 0 .3rem;}
       .idx-greeting p{color:rgba(255,255,255,.7);font-size:.92rem;margin:0 0 1rem;}
-      .idx-greeting .btn-a.primary{background:#22c55e;color:#fff;}.idx-greeting .btn-a.primary:hover{background:#16a34a;color:#fff;}
+      .idx-greeting .btn-a.primary{background:var(--green);color:#fff;}.idx-greeting .btn-a.primary:hover{background:#146c43;color:#fff;}
       .idx-greeting .btn-a.g-outline{color:#fff;border-color:rgba(255,255,255,.3);background:transparent;}.idx-greeting .btn-a.g-outline:hover{background:rgba(255,255,255,.1);color:#fff;}
 
       /* hero glass cards */
-      .h-metric{background:rgba(255,255,255,.07);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:.8rem 1rem;text-align:center;}
-      .h-metric .hm-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.55);font-weight:600;margin-bottom:2px;}
+      .h-metric{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:.8rem 1rem;text-align:center;}
+      .h-metric .hm-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.7);font-weight:600;margin-bottom:2px;}
       .h-metric .hm-value{font-size:1.3rem;font-weight:700;color:#fff;}
-      .h-metric .hm-value.green{color:#4ade80;}
-      .h-metric .hm-sub{font-size:.68rem;color:rgba(255,255,255,.45);}
-      .h-chart-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);font-weight:600;margin-bottom:.3rem;text-align:center;}
+      .h-metric .hm-value.green{color:#5CBE8F;}
+      .h-metric .hm-sub{font-size:.72rem;color:rgba(255,255,255,.65);}
+      .h-chart-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.7);font-weight:600;margin-bottom:.3rem;text-align:center;}
       .h-mini-table{width:100%;font-size:.78rem;border-collapse:collapse;}
-      .h-mini-table th{color:rgba(255,255,255,.5);font-size:.65rem;text-transform:uppercase;font-weight:600;padding:.25rem .4rem;border-bottom:1px solid rgba(255,255,255,.1);}
+      .h-mini-table th{color:rgba(255,255,255,.7);font-size:.72rem;text-transform:uppercase;font-weight:600;padding:.25rem .4rem;border-bottom:1px solid rgba(255,255,255,.1);}
       .h-mini-table td{color:rgba(255,255,255,.85);padding:.25rem .4rem;border-bottom:1px solid rgba(255,255,255,.06);}
-      .h-section-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5);font-weight:600;margin-bottom:.4rem;}
+      .h-section-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.7);font-weight:600;margin-bottom:.4rem;}
 
       /* KPI */
       .kpi-val{font-size:1.5rem;font-weight:700;color:var(--brand);}
       .kpi-val.green{color:var(--green);}.kpi-val.red{color:var(--red);}
-      .kpi-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;margin-bottom:4px;}
-      .kpi-sub{font-size:.7rem;color:#9ca3af;}
-      .kpi-goal-bar{height:10px;background:#e5e7eb;border-radius:99px;overflow:hidden;}
-      .kpi-goal-bar .fill{height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:99px;}
+      .kpi-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;margin-bottom:4px;}
+      .kpi-sub{font-size:.72rem;color:var(--muted);}
+      .kpi-goal-bar{height:10px;background:#DEE2E6;border-radius:99px;overflow:hidden;}
+      .kpi-goal-bar .fill{height:100%;background:#198754;border-radius:99px;}
 
       /* product rows */
       .prod-row{display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.82rem;}
       .prod-row:last-child{border-bottom:none;}
-      .prod-rank{width:24px;height:24px;border-radius:50%;background:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:var(--brand);margin-right:.5rem;}
+      .prod-rank{width:24px;height:24px;border-radius:50%;background:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:var(--brand);margin-right:.5rem;}
       .prod-rank.top3{background:var(--brand);color:#fff;}
-      .prod-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.65rem;font-weight:600;background:#ecfdf5;color:#16a34a;margin-left:6px;}
+      .prod-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.72rem;font-weight:600;background:#ecfdf5;color:#0f5132;margin-left:6px;}
 
       /* items table */
       .items-table{width:100%;border-collapse:collapse;font-size:.85rem;}
-      .items-table th{color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.03em;padding:.5rem .6rem;border-bottom:2px solid var(--border);text-align:left;}
+      .items-table th{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;padding:.5rem .6rem;border-bottom:2px solid var(--border);text-align:left;}
       .items-table td{padding:.55rem .6rem;border-bottom:1px solid var(--border);vertical-align:middle;}
       .items-table tbody tr:hover{background:var(--bg);}
 
@@ -116,7 +117,7 @@
         .s-body{padding:.8rem;}
         .kpi-val{font-size:1.2rem;}
         .kpi-label{font-size:.6rem;}
-        .kpi-sub{font-size:.62rem;}
+        .kpi-sub{font-size:.72rem;}
         /* shrink chart containers on mobile */
         .s-card .s-body[style*="height:280px"]{height:200px !important;}
         .s-card .s-body[style*="height:260px"]{height:200px !important;}
@@ -150,7 +151,7 @@
       {% if user.is_authenticated %}
       .navbar-nav .nav-item.dropdown:hover>.dropdown-menu{display:block;}
       .dropdown-menu .dropdown-item{color:#333;padding:0.5rem 1.5rem;}
-      .dropdown-menu .dropdown-item:hover{background-color:#f8f9fa;color:#0A2640;}
+      .dropdown-menu .dropdown-item:hover{background-color:#f8f9fa;color:#111418;}
       {% endif %}
     </style>
 
@@ -160,7 +161,7 @@
   <body>
     <main class="main" id="top">
       <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
-        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 80px;" /></a>
+        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="Roselar — Início" style="height: 80px;" /></a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars text-white fs-3"></i></button>
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ms-auto nav-pills-custom">
@@ -180,7 +181,7 @@
 				>
 					<span
 					class="d-inline-flex align-items-center justify-content-center fw-bold"
-					style="width:28px;height:28px;border-radius:999px;background:#e9ecef;color:#0A2640;"
+					style="width:28px;height:28px;border-radius:999px;background:#e9ecef;color:#111418;"
 					>
 					{{ user.username|slice:":1"|upper }}
 					</span>
@@ -297,8 +298,8 @@
                 {% endif %}
                 {% if overdue_events %}
                 <div class="{% if pending_quotes %}col-6{% else %}col-12{% endif %}">
-                  <div class="h-section-label" style="color:#f87171;"><i class="fa-solid fa-exclamation-triangle me-1"></i>Atrasados</div>
-                  <table class="h-mini-table">{% for ev in overdue_events %}<tr><td style="color:#f87171;">{{ ev.event_date|date:"d/m" }}</td><td>{{ ev.title|truncatechars:18 }}</td></tr>{% endfor %}</table>
+                  <div class="h-section-label" style="color:#EF9A9A;"><i class="fa-solid fa-exclamation-triangle me-1"></i>Atrasados</div>
+                  <table class="h-mini-table">{% for ev in overdue_events %}<tr><td style="color:#EF9A9A;">{{ ev.event_date|date:"d/m" }}</td><td>{{ ev.title|truncatechars:18 }}</td></tr>{% endfor %}</table>
                 </div>
                 {% endif %}
               </div>
@@ -337,10 +338,10 @@
 
       <!-- Finance pending-orders alert banner -->
       {% if user.is_authenticated and pending_orders_count %}
-      <div style="background:#fff8e1;border-bottom:3px solid #f59e0b;padding:.75rem 0;">
+      <div style="background:#fff8e1;border-bottom:3px solid #E67E22;padding:.75rem 0;">
         <div class="container d-flex align-items-center justify-content-between gap-3 flex-wrap">
           <div style="display:flex;align-items:center;gap:.65rem;">
-            <span style="background:#f59e0b;color:#fff;width:34px;height:34px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.95rem;">
+            <span style="background:#E67E22;color:#fff;width:34px;height:34px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.95rem;">
               <i class="fa-solid fa-bell"></i>
             </span>
             <div>
@@ -353,7 +354,7 @@
             </div>
           </div>
           <a href="{% url 'sales:order_list' %}?status=PENDING"
-             style="background:#f59e0b;color:#fff;padding:.45rem 1.1rem;border-radius:8px;font-weight:700;font-size:.82rem;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;flex-shrink:0;">
+             style="background:#E67E22;color:#fff;padding:.45rem 1.1rem;border-radius:8px;font-weight:700;font-size:.82rem;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;flex-shrink:0;">
             <i class="fa-solid fa-arrow-right"></i>Ver Pedidos
           </a>
         </div>
@@ -406,7 +407,7 @@
                 <div class="kpi-sub mt-1">R$ {{ team_total_sold_month|floatformat:0 }} / R$ {{ collective_goal|floatformat:0 }}</div>
                 {% else %}
                 <div class="kpi-label"><i class="fa-solid fa-bullseye me-1"></i>Meta Coletiva</div>
-                <div class="kpi-val" style="font-size:1rem;color:#9ca3af;">Não definida</div>
+                <div class="kpi-val" style="font-size:1rem;color:var(--muted);">Não definida</div>
                 {% endif %}
               </div></div>
             </div>
@@ -416,7 +417,7 @@
           <div class="row g-3 mb-4">
             <div class="col-lg-8">
               <div class="s-card">
-                <div class="s-hdr"><span class="s-icon brand"><i class="fa-solid fa-chart-line"></i></span><span>Evolução de Vendas da Equipe</span><span class="ms-auto" style="font-weight:400;font-size:.7rem;color:var(--muted);">Últimos 6 meses</span></div>
+                <div class="s-hdr"><span class="s-icon brand"><i class="fa-solid fa-chart-line"></i></span><span>Evolução de Vendas da Equipe</span><span class="ms-auto" style="font-weight:400;font-size:.72rem;color:var(--muted);">Últimos 6 meses</span></div>
                 <div class="s-body" style="height:280px;"><canvas id="biTeamEvolution"></canvas></div>
               </div>
             </div>
@@ -432,7 +433,7 @@
           <div class="row g-3 mb-4">
             <div class="col-lg-12">
               <div class="s-card">
-                <div class="s-hdr"><span class="s-icon orange"><i class="fa-solid fa-ranking-star"></i></span><span>Vendas por Vendedor</span><span class="ms-auto" style="font-weight:400;font-size:.7rem;color:var(--muted);">Mês atual</span></div>
+                <div class="s-hdr"><span class="s-icon orange"><i class="fa-solid fa-ranking-star"></i></span><span>Vendas por Vendedor</span><span class="ms-auto" style="font-weight:400;font-size:.72rem;color:var(--muted);">Mês atual</span></div>
                 <div class="s-body" style="height:260px;"><canvas id="biSellerBar"></canvas></div>
               </div>
             </div>
@@ -493,7 +494,7 @@
                     <tr>
                       <td>
                         {% if forloop.counter == 1 %}<span style="color:#eab308;"><i class="fa-solid fa-trophy"></i></span>
-                        {% elif forloop.counter == 2 %}<span style="color:#9ca3af;"><i class="fa-solid fa-medal"></i></span>
+                        {% elif forloop.counter == 2 %}<span style="color:var(--muted);"><i class="fa-solid fa-medal"></i></span>
                         {% elif forloop.counter == 3 %}<span style="color:#b45309;"><i class="fa-solid fa-award"></i></span>
                         {% else %}{{ forloop.counter }}{% endif %}
                       </td>
@@ -595,7 +596,6 @@
     <script src="https://cdn.jsdelivr.net/npm/is_js@0.9.0/is.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="{% static 'assets/js/theme.js' %}"></script>
     {% if user.is_authenticated %}
@@ -619,7 +619,7 @@
           type: 'doughnut',
           data: {
             labels: ['Atingido', 'Restante'],
-            datasets: [{ data: [Math.min(goalPct, 100), remaining], backgroundColor: ['#4ade80', 'rgba(255,255,255,0.12)'], borderWidth: 0 }]
+            datasets: [{ data: [Math.min(goalPct, 100), remaining], backgroundColor: ['#5CBE8F', 'rgba(255,255,255,0.12)'], borderWidth: 0 }]
           },
           options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return c.label + ': ' + c.raw + '%'; } } } } }
         });
@@ -634,7 +634,7 @@
           type: 'doughnut',
           data: {
             labels: ['Convertidos', 'Não convertidos'],
-            datasets: [{ data: [convRate, convRem], backgroundColor: ['#60a5fa', 'rgba(255,255,255,0.12)'], borderWidth: 0 }]
+            datasets: [{ data: [convRate, convRem], backgroundColor: ['#4A93FE', 'rgba(255,255,255,0.12)'], borderWidth: 0 }]
           },
           options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return c.label + ': ' + c.raw + '%'; } } } } }
         });
@@ -645,7 +645,7 @@
       if (statusEl) {
         var statusLabels = {{ my_status_labels_json|safe }};
         var statusValues = {{ my_status_values_json|safe }};
-        var statusColors = ['#4ade80', '#60a5fa', '#fbbf24', '#f87171', '#a78bfa', '#94a3b8'];
+        var statusColors = ['#5CBE8F', '#4A93FE', '#EE9E55', '#EF9A9A', '#A3BFD6', '#AEB4BD'];
         safeChart(statusEl.getContext('2d'), {
           type: 'pie',
           data: {
@@ -675,8 +675,8 @@
                 type: 'line',
                 label: 'Faturamento (R$)',
                 data: {{ bi_team_chart_values_json|safe }},
-                borderColor: '#16a34a',
-                backgroundColor: 'rgba(22,163,74,0.08)',
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25,135,84,0.08)',
                 fill: true,
                 tension: 0.3,
                 pointRadius: 4,
@@ -687,8 +687,8 @@
                 type: 'bar',
                 label: 'Nº Vendas',
                 data: {{ bi_team_chart_counts_json|safe }},
-                backgroundColor: 'rgba(10,38,64,0.15)',
-                borderColor: '#0A2640',
+                backgroundColor: 'rgba(17,20,24,0.15)',
+                borderColor: '#111418',
                 borderWidth: 1,
                 borderRadius: 4,
                 yAxisID: 'y1'
@@ -699,7 +699,7 @@
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', font: { size: 10 } } } },
             scales: {
-              y: { beginAtZero: true, position: 'left', ticks: { font: { size: 10 }, callback: function(v) { return 'R$ ' + (v/1000).toFixed(0) + 'k'; } }, grid: { color: '#f3f4f6' } },
+              y: { beginAtZero: true, position: 'left', ticks: { font: { size: 10 }, callback: function(v) { return 'R$ ' + (v/1000).toFixed(0) + 'k'; } }, grid: { color: '#F0F1F3' } },
               y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { font: { size: 10 }, stepSize: 1 } },
               x: { ticks: { font: { size: 10 } }, grid: { display: false } }
             }
@@ -716,7 +716,7 @@
             labels: {{ bi_status_labels_json|safe }},
             datasets: [{
               data: {{ bi_status_values_json|safe }},
-              backgroundColor: ['#94a3b8','#3b82f6','#22c55e','#16a34a','#ef4444'],
+              backgroundColor: ['#AEB4BD','#0D6EFD','#5CBE8F','#198754','#D32F2F'],
               borderWidth: 2,
               borderColor: '#fff'
             }]
@@ -742,7 +742,7 @@
               label: 'Faturamento (R$)',
               data: {{ bi_seller_values_json|safe }},
               backgroundColor: function(ctx) {
-                var colors = ['#0A2640','#1e40af','#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#dbeafe','#eff6ff','#f8fafc'];
+                var colors = ['#0A0C0F','#111418','#23272E','#3A3F47','#565C66','#7A818C','#9BA1AA','#AEB4BD','#C9CDD3','#E6E8EB'];
                 return colors[ctx.dataIndex % colors.length];
               },
               borderRadius: 6,
@@ -754,7 +754,7 @@
             indexAxis: 'y',
             plugins: { legend: { display: false } },
             scales: {
-              x: { beginAtZero: true, ticks: { font: { size: 10 }, callback: function(v) { return 'R$ ' + (v/1000).toFixed(0) + 'k'; } }, grid: { color: '#f3f4f6' } },
+              x: { beginAtZero: true, ticks: { font: { size: 10 }, callback: function(v) { return 'R$ ' + (v/1000).toFixed(0) + 'k'; } }, grid: { color: '#F0F1F3' } },
               y: { ticks: { font: { size: 10, weight: 600 } }, grid: { display: false } }
             }
           }
@@ -773,9 +773,9 @@
               data: {{ bi_disc_values_json|safe }},
               backgroundColor: function(ctx) {
                 var v = ctx.raw;
-                if (v > 15) return '#ef4444';
-                if (v > 10) return '#f59e0b';
-                return '#16a34a';
+                if (v > 15) return '#D32F2F';
+                if (v > 10) return '#E67E22';
+                return '#198754';
               },
               borderRadius: 6,
               borderSkipped: false
@@ -785,7 +785,7 @@
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-              y: { beginAtZero: true, max: 30, ticks: { font: { size: 10 }, callback: function(v) { return v + '%'; } }, grid: { color: '#f3f4f6' } },
+              y: { beginAtZero: true, max: 30, ticks: { font: { size: 10 }, callback: function(v) { return v + '%'; } }, grid: { color: '#F0F1F3' } },
               x: { ticks: { font: { size: 10, weight: 600 } }, grid: { display: false } }
             }
           }

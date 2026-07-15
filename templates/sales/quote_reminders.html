@@ -14,14 +14,14 @@
 
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+    <link href="{% static 'assets/css/theme.min.css' %}" rel="stylesheet">
     <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
       :root {
-        --brand: #0A2640;
-        --brand-l: #163a5a;
+        --brand: #111418;
+        --brand-l: #23272E;
         --bg: #f4f6f9;
         --surface: #ffffff;
         --muted: #6c757d;
@@ -30,7 +30,8 @@
         --warn: #e67e22;
         --shadow: 0 1px 4px rgba(0,0,0,.06);
       }
-      body { font-family: 'Manrope', sans-serif; background: var(--bg); }
+      body { font-variant-numeric: tabular-nums; font-family: 'Manrope', sans-serif; background: var(--bg); }
+    input::placeholder, textarea::placeholder { color: #565C66; opacity: 1; }
       .cardx {
         background: var(--surface);
         border: 1px solid rgba(0,0,0,.05);
@@ -71,7 +72,7 @@
         background: #e3f2fd;
         color: #0c5276;
         border-radius: 999px;
-        font-size: .68rem;
+        font-size: .72rem;
         font-weight: 700;
         padding: .2rem .55rem;
         text-transform: uppercase;
@@ -83,13 +84,13 @@
   <body>
     <main class="main" id="top">
       <section class="py-5" style="min-height:100vh;">
-        <div style="position:absolute;top:0;left:0;right:0;height:30vh;background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
+        <div style="position:absolute;top:0;left:0;right:0;height:30vh;background:var(--brand);z-index:-1;"></div>
 
         <div class="container" style="margin-top:80px;max-width:980px;">
           <div class="cardx mb-3 p-3 p-md-4">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
               <div>
-                <h4 class="mb-1" style="font-weight:800;color:var(--brand);">Lembretes</h4>
+                <h1 class="h4 mb-1" style="font-weight:800;color:var(--brand);">Lembretes</h1>
                 <div style="font-size:.86rem;color:var(--muted);">
                   Orçamento #{{ quote.number }} - {{ quote.customer.name }}
                 </div>

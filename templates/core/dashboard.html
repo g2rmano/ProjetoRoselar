@@ -11,32 +11,33 @@
   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'assets/img/favicons/favicon-16x16.png' %}">
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#111418">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/theme.min.css' %}" rel="stylesheet">
   <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
   <style>
-    :root { --brand: #0A2640; --green: #198754; --red: #dc3545; --gray: #6c757d; }
-    body { font-family: 'Manrope', sans-serif; }
+    :root { --brand: #111418; --green: #198754; --red: #D32F2F; --muted: #6c757d; }
+    body { font-variant-numeric: tabular-nums; font-family: 'Manrope', sans-serif; }
+    input::placeholder, textarea::placeholder { color: #565C66; opacity: 1; }
     .metric-card { background: #fff; border: 1px solid #dee2e6; padding: 1.25rem; transition: box-shadow .2s; border-radius: 8px; }
     .metric-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
-    .metric-card .label { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gray); font-weight: 600; margin-bottom: .25rem; }
+    .metric-card .label { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; margin-bottom: .25rem; }
     .metric-card .value { font-size: 1.5rem; font-weight: 700; color: var(--brand); }
     .metric-card .value.green { color: var(--green); }
     .metric-card .value.red { color: var(--red); }
     .section-header { background: var(--brand); color: #fff; padding: .6rem 1rem; font-weight: 600; font-size: .9rem; margin-bottom: 0; border-radius: 8px 8px 0 0; }
     .section-body { border: 1px solid #dee2e6; border-top: none; padding: 1rem; background: #fff; margin-bottom: 1.5rem; border-radius: 0 0 8px 8px; }
     .goal-bar { height: 22px; background: #e9ecef; position: relative; border-radius: 4px; overflow: hidden; }
-    .goal-bar .fill { height: 100%; background: linear-gradient(90deg, var(--green), #28a745); transition: width .5s; }
+    .goal-bar .fill { height: 100%; background: var(--green); }
     .goal-bar .pct { position: absolute; right: 8px; top: 1px; font-size: .75rem; font-weight: 700; color: var(--brand); }
     .mini-table { width: 100%; font-size: .85rem; border-collapse: collapse; }
     .mini-table th, .mini-table td { padding: .4rem .6rem; border-bottom: 1px solid #eee; }
-    .mini-table th { color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: .7rem; }
-    .badge-notif { background: var(--red); color: #fff; font-size: .65rem; padding: 2px 6px; border-radius: 99px; position: absolute; top: -4px; right: -4px; }
+    .mini-table th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: .72rem; }
+    .badge-notif { background: var(--red); color: #fff; font-size: .72rem; padding: 2px 6px; border-radius: 99px; position: absolute; top: -4px; right: -4px; }
 
     /* ── Section body: allow horizontal scroll on any inner table ── */
     .section-body { overflow-x: auto; }
@@ -54,18 +55,18 @@
   <main class="main" id="top">
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
       <div class="container">
-        <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;"></a>
+        <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="Roselar — Início" style="height: 40px;"></a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"><i class="fa-solid fa-bars text-white fs-3"></i></button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav ms-auto align-items-center">
-            <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Inicio</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'core:index' %}">Início</a></li>
             <li class="nav-item"><a class="nav-link active" href="{% url 'core:dashboard' %}">Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'calendar_app:calendar' %}">Calendario</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orcamentos</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'calendar_app:calendar' %}">Calendário</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'sales:quotes_hub' %}">Orçamentos</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'sales:standalone_simulation' %}">Simulador</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'core:reports_hub' %}">Relatorios</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'core:reports_hub' %}">Relatórios</a></li>
             <li class="nav-item position-relative ms-2">
-              <a class="nav-link" href="{% url 'core:notifications_list' %}"><i class="fa-solid fa-bell"></i>
+              <a class="nav-link" href="{% url 'core:notifications_list' %}" aria-label="Notificações"><i class="fa-solid fa-bell" aria-hidden="true"></i>
                 {% if unread_count %}<span class="badge-notif">{{ unread_count }}</span>{% endif %}
               </a>
             </li>
@@ -96,36 +97,36 @@
 
         <div class="bg-white p-4 shadow-sm mb-4" style="border-radius:8px;">
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div><h4 class="fw-bold mb-1" style="color: var(--brand);"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</h4><span style="color: var(--gray);">Bem-vindo, {{ user.username }}! Hoje e {{ today|date:"d/m/Y" }}</span></div>
+            <div><h1 class="h4 fw-bold mb-1" style="color: var(--brand);"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</h1><span style="color: var(--muted);">Bem-vindo, {{ user.username }}! Hoje é {{ today|date:"d/m/Y" }}</span></div>
             <div class="d-flex gap-2">
-              <a href="{% url 'sales:quote_create' %}" class="btn btn-success btn-sm"><i class="fa-solid fa-plus me-1"></i>Novo Orcamento</a>
-              <a href="{% url 'calendar_app:calendar' %}" class="btn btn-outline-dark btn-sm"><i class="fa-solid fa-calendar me-1"></i>Calendario</a>
+              <a href="{% url 'sales:quote_create' %}" class="btn btn-success btn-sm"><i class="fa-solid fa-plus me-1"></i>Novo Orçamento</a>
+              <a href="{% url 'calendar_app:calendar' %}" class="btn btn-outline-dark btn-sm"><i class="fa-solid fa-calendar me-1"></i>Calendário</a>
             </div>
           </div>
         </div>
 
         <div class="row g-3 mb-4">
-          <div class="col-6 col-md-3"><div class="metric-card"><div class="label">Vendas no Mes</div><div class="value green">R$ {{ my_total_sold_month|floatformat:2 }}</div><small style="color:var(--gray)">Mes anterior: R$ {{ prev_total|floatformat:2 }}</small></div></div>
-          <div class="col-6 col-md-3"><div class="metric-card"><div class="label">Orcamentos no Mes</div><div class="value">{{ my_quotes_count_month }}</div><small style="color:var(--gray)">Convertidos: {{ my_converted_count_month }}</small></div></div>
-          <div class="col-6 col-md-3"><div class="metric-card"><div class="label">Taxa de Conversao</div><div class="value {% if my_conversion_rate >= 50 %}green{% elif my_conversion_rate < 20 %}red{% endif %}">{{ my_conversion_rate }}%</div><small style="color:var(--gray)">Desconto medio: {{ avg_discount }}%</small></div></div>
-          <div class="col-6 col-md-3"><div class="metric-card"><div class="label">Ticket Medio</div><div class="value">R$ {{ my_avg_ticket|floatformat:2 }}</div></div></div>
+          <div class="col-6 col-md-3"><div class="metric-card"><div class="label">Vendas no Mês</div><div class="value green">R$ {{ my_total_sold_month|floatformat:2 }}</div><small style="color:var(--muted)">Mês anterior: R$ {{ prev_total|floatformat:2 }}</small></div></div>
+          <div class="col-6 col-md-3"><div class="metric-card"><div class="label">Orçamentos no Mês</div><div class="value">{{ my_quotes_count_month }}</div><small style="color:var(--muted)">Convertidos: {{ my_converted_count_month }}</small></div></div>
+          <div class="col-6 col-md-3"><div class="metric-card"><div class="label">Taxa de Conversão</div><div class="value {% if my_conversion_rate >= 50 %}green{% elif my_conversion_rate < 20 %}red{% endif %}">{{ my_conversion_rate }}%</div><small style="color:var(--muted)">Desconto médio: {{ avg_discount }}%</small></div></div>
+          <div class="col-6 col-md-3"><div class="metric-card"><div class="label">Ticket Médio</div><div class="value">R$ {{ my_avg_ticket|floatformat:2 }}</div></div></div>
         </div>
 
         <div class="section-header"><i class="fa-solid fa-bullseye me-2"></i>Minha Meta</div>
         <div class="section-body">
-          <div class="d-flex justify-content-between mb-1"><span class="fw-bold" style="color:var(--brand);">R$ {{ my_total_sold_month|floatformat:2 }} / R$ {{ goal_target|floatformat:2 }}</span><span style="color:var(--gray);font-size:.85rem;">{{ goal_pct_raw }}%</span></div>
+          <div class="d-flex justify-content-between mb-1"><span class="fw-bold" style="color:var(--brand);">R$ {{ my_total_sold_month|floatformat:2 }} / R$ {{ goal_target|floatformat:2 }}</span><span style="color:var(--muted);font-size:.85rem;">{{ goal_pct_raw }}%</span></div>
           <div class="goal-bar"><div class="fill" style="width: {{ goal_pct|unlocalize }}%;"></div></div>
         </div>
 
         <div class="row">
           <div class="col-lg-7">
-            <div class="section-header"><i class="fa-solid fa-chart-area me-2"></i>Evolucao Mensal</div>
+            <div class="section-header"><i class="fa-solid fa-chart-area me-2"></i>Evolução Mensal</div>
             <div class="section-body" style="height: 300px;"><canvas id="salesChart"></canvas></div>
           </div>
           <div class="col-lg-5">
-            <div class="section-header"><i class="fa-solid fa-truck me-2"></i>Proximas Entregas (7 dias)</div>
+            <div class="section-header"><i class="fa-solid fa-truck me-2"></i>Próximas Entregas (7 dias)</div>
             <div class="section-body" style="max-height: 140px; overflow-y: auto;">
-              {% if upcoming_deliveries %}<table class="mini-table">{% for ev in upcoming_deliveries %}<tr><td>{{ ev.event_date|date:"d/m" }}</td><td>{{ ev.title|truncatechars:35 }}</td></tr>{% endfor %}</table>{% else %}<p class="text-muted mb-0 small">Nenhuma entrega nos proximos 7 dias</p>{% endif %}
+              {% if upcoming_deliveries %}<table class="mini-table">{% for ev in upcoming_deliveries %}<tr><td>{{ ev.event_date|date:"d/m" }}</td><td>{{ ev.title|truncatechars:35 }}</td></tr>{% endfor %}</table>{% else %}<p class="text-muted mb-0 small">Nenhuma entrega nos próximos 7 dias</p>{% endif %}
             </div>
             <div class="section-header" style="background:var(--red);"><i class="fa-solid fa-exclamation-triangle me-2"></i>Atrasados</div>
             <div class="section-body" style="max-height: 140px; overflow-y: auto;">
@@ -134,9 +135,9 @@
           </div>
         </div>
 
-        <div class="section-header"><i class="fa-solid fa-file-invoice me-2"></i>Orcamentos Pendentes</div>
+        <div class="section-header"><i class="fa-solid fa-file-invoice me-2"></i>Orçamentos Pendentes</div>
         <div class="section-body">
-          {% if pending_quotes %}<table class="mini-table"><thead><tr><th>No</th><th>Cliente</th><th>Vendedor</th><th>Data</th><th></th></tr></thead><tbody>{% for q in pending_quotes %}<tr><td>{{ q.number }}</td><td>{{ q.customer.name|truncatechars:30 }}</td><td>{{ q.seller.username }}</td><td>{{ q.quote_date|date:"d/m/Y" }}</td><td><a href="{% url 'sales:quote_detail' q.id %}" class="btn btn-sm btn-outline-dark">Ver</a></td></tr>{% endfor %}</tbody></table>{% else %}<p class="text-muted mb-0">Nenhum orcamento pendente</p>{% endif %}
+          {% if pending_quotes %}<table class="mini-table"><thead><tr><th>Nº</th><th>Cliente</th><th>Vendedor</th><th>Data</th><th></th></tr></thead><tbody>{% for q in pending_quotes %}<tr><td>{{ q.number }}</td><td>{{ q.customer.name|truncatechars:30 }}</td><td>{{ q.seller.username }}</td><td>{{ q.quote_date|date:"d/m/Y" }}</td><td><a href="{% url 'sales:quote_detail' q.id %}" class="btn btn-sm btn-outline-dark">Ver</a></td></tr>{% endfor %}</tbody></table>{% else %}<p class="text-muted mb-0">Nenhum orçamento pendente</p>{% endif %}
         </div>
 
         {% if is_admin %}
@@ -146,16 +147,16 @@
             <div class="section-body">
               <div class="row g-2 mb-3">
                 <div class="col-4"><div class="metric-card py-2 px-2 text-center"><div class="label">Total Vendas</div><div class="value green" style="font-size:1.1rem;">R$ {{ team_total_sold_month|floatformat:0 }}</div></div></div>
-                <div class="col-4"><div class="metric-card py-2 px-2 text-center"><div class="label">Orcamentos</div><div class="value" style="font-size:1.1rem;">{{ team_quotes_month }}</div></div></div>
-                <div class="col-4"><div class="metric-card py-2 px-2 text-center"><div class="label">Conversao</div><div class="value" style="font-size:1.1rem;">{{ team_conversion_rate }}%</div></div></div>
+                <div class="col-4"><div class="metric-card py-2 px-2 text-center"><div class="label">Orçamentos</div><div class="value" style="font-size:1.1rem;">{{ team_quotes_month }}</div></div></div>
+                <div class="col-4"><div class="metric-card py-2 px-2 text-center"><div class="label">Conversão</div><div class="value" style="font-size:1.1rem;">{{ team_conversion_rate }}%</div></div></div>
               </div>
-              {% if collective_goal %}<div class="d-flex justify-content-between mb-1"><span class="fw-bold small" style="color:var(--brand);">Meta Coletiva: R$ {{ collective_goal|floatformat:0 }}</span><span style="color:var(--gray);font-size:.8rem;">{{ collective_goal_pct }}%</span></div><div class="goal-bar"><div class="fill" style="width:{{ collective_goal_pct|unlocalize }}%;"></div></div>{% endif %}
+              {% if collective_goal %}<div class="d-flex justify-content-between mb-1"><span class="fw-bold small" style="color:var(--brand);">Meta Coletiva: R$ {{ collective_goal|floatformat:0 }}</span><span style="color:var(--muted);font-size:.8rem;">{{ collective_goal_pct }}%</span></div><div class="goal-bar"><div class="fill" style="width:{{ collective_goal_pct|unlocalize }}%;"></div></div>{% endif %}
             </div>
           </div>
           <div class="col-lg-6">
-            <div class="section-header"><i class="fa-solid fa-trophy me-2"></i>Ranking do Mes</div>
+            <div class="section-header"><i class="fa-solid fa-trophy me-2"></i>Ranking do Mês</div>
             <div class="section-body">
-              {% if seller_ranking %}<table class="mini-table"><thead><tr><th>#</th><th>Vendedor</th><th>Vendas</th><th>Total</th></tr></thead><tbody>{% for s in seller_ranking %}<tr><td>{{ forloop.counter }}</td><td>{{ s.seller__username }}</td><td>{{ s.count }}</td><td class="fw-bold">R$ {{ s.total|floatformat:0 }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="text-muted mb-0 small">Sem vendas neste mes</p>{% endif %}
+              {% if seller_ranking %}<table class="mini-table"><thead><tr><th>#</th><th>Vendedor</th><th>Vendas</th><th>Total</th></tr></thead><tbody>{% for s in seller_ranking %}<tr><td>{{ forloop.counter }}</td><td>{{ s.seller__username }}</td><td>{{ s.count }}</td><td class="fw-bold">R$ {{ s.total|floatformat:0 }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="text-muted mb-0 small">Sem vendas neste mês</p>{% endif %}
             </div>
           </div>
         </div>

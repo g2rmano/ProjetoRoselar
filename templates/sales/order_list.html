@@ -12,22 +12,22 @@
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
   <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
   <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#111418">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/theme.min.css' %}" rel="stylesheet">
   <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <style>
     :root {
-      --brand:   #0A2640;
-      --brand-l: #163a5a;
+      --brand:   #111418;
+      --brand-l: #23272E;
       --bg:      #f4f6f9;
       --surface: #fff;
       --green:   #198754;
-      --red:     #dc3545;
+      --red:     #D32F2F;
       --orange:  #e67e22;
       --blue:    #0d6efd;
       --cyan:    #0dcaf0;
@@ -38,7 +38,8 @@
       --shadow-h:0 4px 14px rgba(0,0,0,.09);
     }
     * { box-sizing: border-box; }
-    body { font-family: 'Manrope', sans-serif; background: var(--bg); }
+    body { font-variant-numeric: tabular-nums; font-family: 'Manrope', sans-serif; background: var(--bg); }
+    input::placeholder, textarea::placeholder { color: #565C66; opacity: 1; }
 
     .s-card {
       background: var(--surface); border-radius: var(--radius);
@@ -70,6 +71,8 @@
       text-decoration: none; transition: all .2s;
     }
     .btn-a:hover { transform: translateY(-1px); box-shadow: var(--shadow-h); }
+    .btn-a:focus-visible { outline: 3px solid rgba(17,20,24,.35); outline-offset: 2px; }
+    @media (pointer: coarse) { .btn-a, .q-actions a, .q-actions button { min-height: 44px; } }
     .btn-a.primary { background: var(--green); color: #fff; }
     .btn-a.primary:hover { background: #146c43; color: #fff; }
     .btn-a.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--border); }
@@ -81,7 +84,7 @@
 
     .status-badge {
       padding: .25rem .65rem; border-radius: 2rem; font-weight: 700;
-      font-size: .7rem; text-transform: uppercase; letter-spacing: .04em;
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
       display: inline-block;
     }
     .status-PENDING  { background: #fff8e1; color: #b45309; }
@@ -107,7 +110,7 @@
       font-size: .78rem; color: var(--muted);
     }
     .q-row .q-meta span { display: flex; align-items: center; gap: .25rem; }
-    .q-row .q-meta i { font-size: .65rem; opacity: .6; }
+    .q-row .q-meta i { font-size: .72rem; opacity: .6; }
     .q-row .q-actions { display: flex; gap: .5rem; align-items: center; flex-shrink: 0; }
 
     .search-input, .search-select {
@@ -125,7 +128,7 @@
     }
     .search-input:focus, .search-select:focus {
       outline: none; border-color: var(--brand);
-      box-shadow: 0 0 0 3px rgba(10,38,64,.1);
+      box-shadow: 0 0 0 3px rgba(17,20,24,.1);
     }
 
     .s-alert {
@@ -137,6 +140,7 @@
 
     @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
     .fi { animation: fadeIn .35s ease both; }
+    @media (prefers-reduced-motion: reduce) { .fi, [class^="fi-"], [class*=" fi-"] { animation: none !important; } }
     .fi-1 { animation-delay:.05s } .fi-2 { animation-delay:.1s }
     .fi-3 { animation-delay:.15s } .fi-4 { animation-delay:.2s }
 
@@ -156,7 +160,7 @@
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
       <div class="container">
         <a class="navbar-brand" href="{% url 'core:index' %}">
-          <img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;">
+          <img src="{% static 'assets/img/Logo.png' %}?v=2" alt="Roselar — Início" style="height:40px;">
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
           <i class="fa-solid fa-bars text-white fs-3"></i>
@@ -193,7 +197,7 @@
 
     <section class="py-5" style="min-height:100vh;">
       <div style="position:absolute;top:0;left:0;right:0;height:30vh;
-                   background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
+                   background:var(--brand);z-index:-1;"></div>
 
       <div class="container" style="margin-top:80px;max-width:1000px;">
 
@@ -215,7 +219,7 @@
                   <i class="fa-solid fa-clipboard-list"></i>
                 </div>
                 <div>
-                  <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">Pedidos de Compra</h4>
+                  <h1 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">Pedidos de Compra</h1>
                   <div style="font-size:.78rem;color:var(--muted);">Gerencie todos os pedidos de compra</div>
                 </div>
               </div>

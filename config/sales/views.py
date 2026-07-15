@@ -287,6 +287,7 @@ from .models import (
     Order,
     OrderItem,
     OrderStatus,
+    QuoteCommissionSplit,
     FreightResponsible,
     ProposalConfig,
     SaleDocument,
@@ -624,8 +625,26 @@ def quote_detail(request: HttpRequest, quote_id: int) -> HttpResponse:
     total_order = next(
         (o for o in quote.orders.all() if o.is_total_conference), None
     )
+
+    from accounts.models import Role
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    sellers_for_split = (
+        User.objects.filter(is_active=True, role=Role.SELLER)
+        .exclude(pk=quote.seller_id)
+        .order_by("first_name", "username")
+    )
+    existing_split = getattr(quote, "commission_split", None)
+    existing_split_ids = (
+        set(existing_split.users.values_list("pk", flat=True))
+        if existing_split
+        else set()
+    )
+
     return render(request, "sales/quote_detail.html", {
         "quote": quote,
+        "sellers_for_split": sellers_for_split,
+        "existing_split_ids": existing_split_ids,
         "value_breakdown": _build_value_breakdown(quote),
         "today": timezone.localdate(),
         "is_seller": _is_seller(request.user),
@@ -772,22 +791,22 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
             all_items = list(quote.items.all())
             if not all_items:
                 raise ValidationError("Orçamento sem itens não pode ser convertido.")
-            #sexo
+
             # Compatibilidade: se o formulário não enviar seleção explícita,
             # mantém comportamento antigo (todos os itens do orçamento).
             has_item_selection = request.POST.get("has_item_selection") == "1"
             selected_item_ids_raw = request.POST.getlist("selected_item_ids")
             if has_item_selection:
-                if not selected_item_ids_raw:
-                    raise ValidationError("Selecione ao menos um item para gerar pedido de compra.")
+                # `items` = itens que precisam de pedido de compra ao fornecedor.
+                # Seleção vazia é válida: significa que tudo saiu do estoque da
+                # loja e nenhum pedido de compra ao fornecedor é necessário. O
+                # pedido total (conferência) abaixo continua com todos os itens.
                 try:
                     selected_item_ids = {int(item_id) for item_id in selected_item_ids_raw}
                 except (TypeError, ValueError):
                     raise ValidationError("Seleção de itens inválida.")
 
                 items = [it for it in all_items if it.id in selected_item_ids]
-                if not items:
-                    raise ValidationError("Nenhum item válido foi selecionado para pedido.")
             else:
                 items = all_items
 
@@ -801,8 +820,6 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
             for it in items:
                 by_supplier[it.supplier_id].append(it)
 
-            created_orders: list[Order] = []
-
             for supplier_id, supplier_items in by_supplier.items():
                 order = Order.objects.create(
                     number=quote.number,
@@ -812,7 +829,6 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                     status=OrderStatus.PENDING,
                     delivery_deadline=None,
                 )
-                created_orders.append(order)
 
                 OrderItem.objects.bulk_create([
                     OrderItem(
@@ -835,6 +851,9 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                 delivery_deadline=None,
             )
 
+            # Pedido total (conferência) é o pedido mestre da venda: sempre
+            # contém TODOS os itens vendidos, independente de quais precisam de
+            # compra ao fornecedor.
             OrderItem.objects.bulk_create([
                 OrderItem(
                     order=total_order,
@@ -844,12 +863,39 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                     purchase_unit_cost=it.unit_value,
                     quote_item=it,
                 )
-                for it in items
+                for it in all_items
             ])
 
             quote.status = QuoteStatus.CONVERTED
             quote.sale_date = timezone.localdate()
             quote.save(update_fields=["status", "sale_date"])
+
+            # Divisão de comissão: vendedores marcados dividem a comissão
+            # igualmente COM o vendedor do orçamento. Nenhum marcado = 100% ao
+            # vendedor original (não cria registro de divisão).
+            from accounts.models import Role
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+
+            selected_seller_ids: set[int] = set()
+            for raw in request.POST.getlist("commission_seller_ids"):
+                try:
+                    selected_seller_ids.add(int(raw))
+                except (TypeError, ValueError):
+                    continue
+            selected_seller_ids.discard(quote.seller_id)
+
+            valid_split_sellers = list(
+                User.objects.filter(
+                    pk__in=selected_seller_ids,
+                    is_active=True,
+                    role=Role.SELLER,
+                )
+            ) if selected_seller_ids else []
+
+            if valid_split_sellers:
+                split, _ = QuoteCommissionSplit.objects.get_or_create(quote=quote)
+                split.users.set([quote.seller, *valid_split_sellers])
 
             if quote.has_architect:
                 reminder_date = timezone.localdate() + timedelta(days=30)
@@ -921,12 +967,21 @@ def quote_convert_to_orders(request: HttpRequest, quote_id: int) -> HttpResponse
                     url=f"/sales/orders/?status=PENDING",
                 )
 
-        if len(items) != len(all_items):
+        if not items:
+            messages.success(
+                request,
+                (
+                    f"Orçamento {quote.number} convertido em pedido (venda de estoque da loja). "
+                    "Nenhum pedido de compra ao fornecedor foi gerado. "
+                    "Aguardando aprovação do financeiro."
+                ),
+            )
+        elif len(items) != len(all_items):
             messages.success(
                 request,
                 (
                     f"Orçamento {quote.number} convertido em pedido com "
-                    f"{len(items)} de {len(all_items)} item(ns) selecionado(s). "
+                    f"{len(items)} de {len(all_items)} item(ns) enviado(s) para compra ao fornecedor. "
                     "Aguardando aprovação do financeiro."
                 ),
             )
@@ -1217,12 +1272,17 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
                 ty -= 12
 
         price_y = y_top - ITEM_H + 26
+        # Preço de LISTA ao cliente = valor unitário com o Ajuste de Preço (markup)
+        # embutido, sem desconto. Assim a soma dos itens + frete reconcilia com o
+        # "Valor sem desconto"; o desconto entra depois, no bloco de total.
+        markup_pct = quote.price_increase_percent or Decimal('0')
+        unit_price = item.unit_value * (Decimal('1') + markup_pct / Decimal('100'))
         if item.quantity == 1:
             price_label = "valor total"
-            price_amt   = item.unit_value * item.quantity
+            price_amt   = unit_price * item.quantity
         else:
             price_label = "valor unitário"
-            price_amt   = item.unit_value
+            price_amt   = unit_price
 
         c.setFillColor(GRAY)
         _draw_spaced(price_label, txt_x, price_y + 13, FONT_REG, 7.5, cs=1.5)
@@ -1252,7 +1312,9 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
         c.drawRightString(MX + CW, ty + 1, "Orçamento válido por 03 dias")
         ty -= 17
 
-        if quote.freight_responsible == FreightResponsible.STORE:
+        # Só afirma "grátis" quando de fato não há frete cobrado (freight_value=0);
+        # com frete embutido no total, dizer "grátis" seria contraditório.
+        if quote.freight_responsible == FreightResponsible.STORE and not quote.freight_value:
             c.setFillColor(GRAY)
             c.setFont(FONT_REG, 8.5)
             c.drawString(MX, ty, "Entrega e montagem grátis pela equipe Roselar Móveis.")
@@ -1266,15 +1328,15 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
         ty -= 12
 
         # ── Cálculo dos valores ──────────────────────────────────────────
+        # Fonte única de verdade: o total ao cliente é EXATAMENTE o snapshot
+        # mostrado na tela de detalhe (calculate_rounded_total), já com ajuste
+        # de preço, desconto, FRETE e preço final/arredondamento embutidos.
+        # Antes o PDF recomputava sem o frete e divergia do total do sistema.
         subtotal   = quote.calculate_subtotal()
-        markup_pct = quote.price_increase_percent or Decimal('0')
         disc_pct   = quote.discount_percent or Decimal('0')
-        list_price = subtotal * (Decimal('1') + markup_pct / Decimal('100'))  # com ajuste, sem desconto
         disc_val   = subtotal * disc_pct / Decimal('100')
-        avista     = list_price - disc_val  # = subtotal × (1 + ajuste − desconto)
-        # Arredondamento + ajuste manual do total ao cliente (mesma lógica do
-        # snapshot do pedido) — antes o PDF ignorava e mandava valor não-arredondado.
-        avista     = quote.apply_client_rounding(avista)
+        avista     = quote.calculate_rounded_total()   # total real ao cliente (com frete)
+        list_price = avista + disc_val                 # "valor sem desconto"
 
         from core.models import PaymentMethodType
         _pay_names = dict(PaymentMethodType.choices)
@@ -1321,6 +1383,7 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
 
         if split_active:
             # Pagamento composto: Entrada (método 1) + Restante (método 2).
+            # Ambas as pernas particionam o total real ao cliente (com frete).
             entrada_val  = min(quote.payment_split_amount, avista)
             restante_val = max(Decimal('0'), avista - entrada_val)
             n1 = quote.payment_installments or 1
@@ -1328,16 +1391,13 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
             m1 = _method_label(quote.payment_type)
             m2 = _method_label(quote.payment_type_2)
 
-            entrada_lbl = f"Entrada no {m1}" if m1 else "Entrada"
+            _row(f"Entrada no {m1}" if m1 else "Entrada", _fmt_brl(entrada_val))
             if n1 > 1:
-                entrada_lbl += f" em {n1}x"
-            _row(entrada_lbl, _fmt_brl(entrada_val))
+                _subnote(f"em {n1}x de {_fmt_brl(entrada_val / Decimal(n1))} sem juros")
 
-            restante_lbl = f"Restante no {m2}" if m2 else "Restante"
-            _row(restante_lbl, _fmt_brl(restante_val))
+            _row(f"Restante no {m2}" if m2 else "Restante", _fmt_brl(restante_val))
             if n2 > 1:
-                parcela = restante_val / Decimal(n2)
-                _subnote(f"em {n2}x de {_fmt_brl(parcela)} sem juros")
+                _subnote(f"em {n2}x de {_fmt_brl(restante_val / Decimal(n2))} sem juros")
         else:
             n  = quote.payment_installments or 1
             m1 = _method_label(quote.payment_type)
@@ -1346,8 +1406,10 @@ def quote_pdf_client(request: HttpRequest, quote_id: int) -> HttpResponse:
                 lbl = f"Parcelado no {m1}" if m1 else "Parcelado"
                 _row(lbl, f"{n}x de {_fmt_brl(parcela)}")
                 _subnote("sem juros")
-            elif m1:
-                _row(f"À vista no {m1}", _fmt_brl(avista))
+            else:
+                # Sempre mostra a linha à vista — evita a seção "COMO PAGAR"
+                # ficar vazia quando não há forma de pagamento selecionada.
+                _row(f"À vista no {m1}" if m1 else "À vista", _fmt_brl(avista))
 
         # ── Barra de total destacada (navy) ──────────────────────────────
         ty -= 6

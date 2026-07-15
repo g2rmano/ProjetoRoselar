@@ -7,17 +7,17 @@
   <title>Metas | Roselar</title>
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/theme.min.css' %}" rel="stylesheet">
   <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>:root{--brand:#0A2640;}body{font-family:'Manrope',sans-serif;}.goal-bar{height:20px;background:#e9ecef;border-radius:4px;overflow:hidden;}.goal-bar .fill{height:100%;background:linear-gradient(90deg,#198754,#28a745);}</style>
+  <style>:root{--brand:#111418;}body{font-variant-numeric:tabular-nums;font-family:'Manrope',sans-serif;}input::placeholder,textarea::placeholder{color:#565C66;opacity:1;}.goal-bar{height:20px;background:#e9ecef;border-radius:4px;overflow:hidden;}.goal-bar .fill{height:100%;background:#198754;}@media (pointer: coarse){ .btn, .btn-sm { min-height: 44px; display: inline-flex; align-items: center; } }</style>
 </head>
 <body>
   <main class="main" id="top">
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
       <div class="container">
-        <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;"></a>
+        <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="Roselar — Início" style="height:40px;"></a>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav ms-auto align-items-center">
             <li class="nav-item"><a class="nav-link" href="{% url 'core:dashboard' %}">Dashboard</a></li>
@@ -35,7 +35,7 @@
 
         <div class="bg-white shadow-sm p-4 mb-4" style="border-radius:8px;">
           <div class="d-flex justify-content-between align-items-center">
-            <h4 class="fw-bold mb-0" style="color:var(--brand);"><i class="fa-solid fa-bullseye me-2"></i>Metas de Vendas</h4>
+            <h1 class="h4 fw-bold mb-0" style="color:var(--brand);"><i class="fa-solid fa-bullseye me-2"></i>Metas de Vendas</h1>
             {% if is_admin %}<button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#newGoalModal"><i class="fa-solid fa-plus me-1"></i>Nova Meta</button>{% endif %}
           </div>
         </div>

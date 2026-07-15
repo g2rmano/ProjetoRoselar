@@ -12,22 +12,22 @@
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
   <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
   <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#111418">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/css/theme.min.css' %}" rel="stylesheet">
   <link href="{% static 'assets/css/user.css' %}" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <style>
     :root {
-      --brand:   #0A2640;
-      --brand-l: #163a5a;
+      --brand:   #111418;
+      --brand-l: #23272E;
       --bg:      #f4f6f9;
       --surface: #fff;
       --green:   #198754;
-      --red:     #dc3545;
+      --red:     #D32F2F;
       --orange:  #e67e22;
       --blue:    #0d6efd;
       --cyan:    #0dcaf0;
@@ -38,7 +38,8 @@
       --shadow-h:0 4px 14px rgba(0,0,0,.09);
     }
     * { box-sizing: border-box; }
-    body { font-family: 'Manrope', sans-serif; background: var(--bg); }
+    body { font-variant-numeric: tabular-nums; font-family: 'Manrope', sans-serif; background: var(--bg); }
+    input::placeholder, textarea::placeholder { color: #565C66; opacity: 1; }
 
     /* ── Section cards ── */
     .s-card {
@@ -72,7 +73,7 @@
       background: var(--bg); border-radius: 8px;
       padding: .7rem .85rem; text-align: center;
     }
-    .stat-l { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; margin-bottom: .15rem; }
+    .stat-l { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; margin-bottom: .15rem; }
     .stat-v { font-size: 1.1rem; font-weight: 800; color: var(--brand); line-height: 1.2; }
     .stat-v.green { color: var(--green); }
     .stat-v.red   { color: var(--red); }
@@ -87,11 +88,11 @@
       width:120px; height:120px; border-radius:50%;
       background:rgba(255,255,255,.06);
     }
-    .hi .hi-l { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; opacity: .85; margin-bottom: .1rem; font-weight: 600; }
+    .hi .hi-l { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; opacity: .85; margin-bottom: .1rem; font-weight: 600; }
     .hi .hi-v { font-size: 1.6rem; font-weight: 800; }
-    .hi.brand { background: linear-gradient(135deg, var(--brand), var(--brand-l)); }
-    .hi.green { background: linear-gradient(135deg, var(--green), #20a862); }
-    .hi.muted { background: linear-gradient(135deg, var(--muted), #5a6268); }
+    .hi.brand { background: var(--brand); }
+    .hi.green { background: var(--green); }
+    .hi.muted { background: var(--muted); }
 
     /* ── Receipt line ── */
     .r-line {
@@ -109,6 +110,7 @@
       text-decoration: none; transition: all .2s;
     }
     .btn-a:hover { transform: translateY(-1px); box-shadow: var(--shadow-h); }
+    .btn-a:focus-visible { outline: 3px solid rgba(17,20,24,.35); outline-offset: 2px; }
     .btn-a.primary { background: var(--green); color: #fff; }
     .btn-a.primary:hover { background: #146c43; color: #fff; }
     .btn-a.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--border); }
@@ -150,7 +152,7 @@
     /* ── Table ── */
     .items-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
     .items-table thead th {
-      background: var(--bg); color: var(--muted); font-size: .7rem;
+      background: var(--bg); color: var(--muted); font-size: .72rem;
       text-transform: uppercase; letter-spacing: .04em; font-weight: 700;
       padding: .6rem .75rem; border-bottom: 1.5px solid var(--border);
     }
@@ -161,7 +163,7 @@
     .items-table tbody tr:last-child td { border-bottom: none; }
     .items-table tbody tr:hover { background: #fafbfc; }
     .item-num {
-      background: var(--brand); color: #fff; font-size: .65rem; font-weight: 800;
+      background: var(--brand); color: #fff; font-size: .72rem; font-weight: 800;
       padding: 1px 8px; border-radius: 6px; letter-spacing: .03em;
     }
     .supplier-badge {
@@ -181,7 +183,7 @@
     /* ── Modal override ── */
     .modal-content { border-radius: var(--radius) !important; overflow: hidden; border: none !important; }
     .modal-header.s-modal-hdr {
-      background: linear-gradient(135deg, var(--green), #20a862); color: #fff;
+      background: var(--green); color: #fff;
       padding: 1rem 1.2rem; border: none;
     }
     .modal-header.s-modal-hdr .btn-close { filter: invert(1); }
@@ -194,12 +196,13 @@
     }
     .form-control:focus {
       border-color: var(--brand) !important;
-      box-shadow: 0 0 0 3px rgba(10,38,64,.1) !important;
+      box-shadow: 0 0 0 3px rgba(17,20,24,.1) !important;
     }
 
     /* ── Animations ── */
     @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
     .fi { animation: fadeIn .35s ease both; }
+    @media (prefers-reduced-motion: reduce) { .fi, [class^="fi-"], [class*=" fi-"] { animation: none !important; } }
     .fi-1 { animation-delay:.05s } .fi-2 { animation-delay:.1s }
     .fi-3 { animation-delay:.15s } .fi-4 { animation-delay:.2s }
     .fi-5 { animation-delay:.25s } .fi-6 { animation-delay:.3s }
@@ -228,7 +231,7 @@
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
       <div class="container">
         <a class="navbar-brand" href="{% url 'core:index' %}">
-          <img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height:40px;">
+          <img src="{% static 'assets/img/Logo.png' %}?v=2" alt="Roselar — Início" style="height:40px;">
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
           <i class="fa-solid fa-bars text-white fs-3"></i>
@@ -271,7 +274,7 @@
 
     <section class="py-5" style="min-height:100vh;">
       <div style="position:absolute;top:0;left:0;right:0;height:30vh;
-                   background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
+                   background:var(--brand);z-index:-1;"></div>
 
       <div class="container" style="margin-top:80px;max-width:960px;">
 
@@ -287,9 +290,9 @@
                   </div>
                   <div>
                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                      <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">
+                      <h1 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">
                         Orçamento #{{ quote.number }}
-                      </h4>
+                      </h1>
                       <span class="status-badge status-{{ quote.status }}">{{ quote.get_status_display }}</span>
                     </div>
                     <div class="q-info" style="padding-top:.3rem;">
@@ -372,7 +375,7 @@
 
         <!-- ═══ DETALHAMENTO DE VALORES (FINANCEIRO) ═══ -->
         {% if is_finance or is_admin %}
-        <div class="s-card fi fi-2" style="border-left:3px solid var(--orange);">
+        <div class="s-card fi fi-2" style="border:1px solid var(--orange);">
           <div class="s-hdr">
             <div class="s-icon orange"><i class="fa-solid fa-receipt"></i></div>
             Detalhamento de Valores (Venda ao Cliente)
@@ -537,7 +540,7 @@
 
         <!-- ═══ FINANCE ACTION PANEL ═══ -->
         {% if total_order and is_finance or total_order and is_admin %}
-          <div class="s-card fi fi-5" style="border-left:3px solid var(--orange);">
+          <div class="s-card fi fi-5" style="border:1px solid var(--orange);">
             <div class="s-hdr">
               <div class="s-icon orange"><i class="fa-solid fa-star"></i></div>
               Ações do Financeiro
@@ -710,6 +713,7 @@
                         </div>
                         <p style="font-size:.79rem;color:var(--muted);margin-bottom:.5rem;">
                           Desmarque os produtos que já estão em estoque e não precisam ser comprados.
+                          Se a venda saiu <strong>toda do estoque da loja</strong>, desmarque todos — nenhum pedido de compra ao fornecedor será gerado.
                         </p>
 
                         <div style="max-height:190px;overflow:auto;background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:.55rem .6rem;display:flex;flex-direction:column;gap:.35rem;">

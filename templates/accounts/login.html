@@ -23,7 +23,7 @@
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
     <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
     <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#111418">
 
 
     <!-- ===============================================-->
@@ -31,9 +31,8 @@
     <!-- ===============================================-->
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" rel="stylesheet">
-    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'assets/css/theme.min.css' %}" rel="stylesheet" />
     <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
     
     <!-- Flowbite CSS -->
@@ -46,34 +45,35 @@
         40%, 80% { transform: translateX(8px); }
       }
       .shake { animation: shake 0.4s ease-in-out; }
+      @media (prefers-reduced-motion: reduce) { .shake { animation: none; } }
       #togglePassword { border-left: 0; }
       #togglePassword:focus { box-shadow: none; }
       .btn-login {
-        background-color: #0A2640;
-        border-color: #0A2640;
+        background-color: #111418;
+        border-color: #111418;
         color: #fff;
-        --bs-btn-bg: #0A2640;
-        --bs-btn-border-color: #0A2640;
-        --bs-btn-hover-bg: #163a5a;
-        --bs-btn-hover-border-color: #163a5a;
+        --bs-btn-bg: #111418;
+        --bs-btn-border-color: #111418;
+        --bs-btn-hover-bg: #23272E;
+        --bs-btn-hover-border-color: #23272E;
         --bs-btn-hover-color: #fff;
         --bs-btn-active-bg: #071a2d;
         --bs-btn-active-border-color: #071a2d;
         --bs-btn-active-color: #fff;
-        --bs-btn-disabled-bg: #0A2640;
-        --bs-btn-disabled-border-color: #0A2640;
+        --bs-btn-disabled-bg: #111418;
+        --bs-btn-disabled-border-color: #111418;
       }
       .btn-login:hover, .btn-login:focus, .btn-login:active {
-        background-color: #163a5a !important;
-        border-color: #163a5a !important;
+        background-color: #23272E !important;
+        border-color: #23272E !important;
         color: #fff !important;
       }
       .btn-link-brand {
-        color: #0A2640;
+        color: #111418;
         font-weight: 700;
       }
       .btn-link-brand:hover {
-        color: #163a5a;
+        color: #23272E;
       }
       .modal-brand .modal-content {
         border: 0;
@@ -100,7 +100,7 @@
     <!-- ===============================================-->
     <main class="main" id="top">
       <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
-        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 60px;" /></a>
+        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="Roselar — Início" style="height: 60px;" /></a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars text-white fs-3"></i></button>
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ms-auto">
@@ -288,7 +288,6 @@
     <script src="https://cdn.jsdelivr.net/npm/is_js@0.9.0/is.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="{% static 'assets/js/theme.js' %}"></script>
     

@@ -11,23 +11,23 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'assets/img/favicons/apple-touch-icon.png' %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'assets/img/favicons/favicon-32x32.png' %}">
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#111418">
 
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
-    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'assets/css/theme.min.css' %}" rel="stylesheet" />
     <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <style>
       :root {
-        --brand:   #0A2640;
-        --brand-l: #163a5a;
+        --brand:   #111418;
+        --brand-l: #23272E;
         --bg:      #f4f6f9;
         --surface: #fff;
         --green:   #198754;
-        --red:     #dc3545;
+        --red:     #D32F2F;
         --orange:  #e67e22;
         --blue:    #0d6efd;
         --cyan:    #0dcaf0;
@@ -37,7 +37,8 @@
         --shadow:  0 1px 4px rgba(0,0,0,.06);
         --shadow-h:0 4px 14px rgba(0,0,0,.09);
       }
-      body { font-family: 'Manrope', sans-serif; background: var(--bg); }
+      body { font-variant-numeric: tabular-nums; font-family: 'Manrope', sans-serif; background: var(--bg); }
+    input::placeholder, textarea::placeholder { color: #565C66; opacity: 1; }
 
       .s-card {
         background: var(--surface); border-radius: var(--radius);
@@ -70,6 +71,7 @@
         text-decoration: none; transition: all .2s;
       }
       .btn-a:hover { transform: translateY(-1px); box-shadow: var(--shadow-h); }
+    .btn-a:focus-visible { outline: 3px solid rgba(17,20,24,.35); outline-offset: 2px; }
       .btn-a.primary { background: var(--green); color: #fff; }
       .btn-a.primary:hover { background: #146c43; color: #fff; }
       .btn-a.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--border); }
@@ -93,7 +95,7 @@
       .cal-cell:not(.empty):hover { background: #f0f5ff; }
       .cal-cell:not(.empty) .day-add {
         position: absolute; top: 4px; right: 6px; width: 22px; height: 22px;
-        border-radius: 50%; background: var(--green); color: #fff; font-size: .7rem;
+        border-radius: 50%; background: var(--green); color: #fff; font-size: .72rem;
         display: none; align-items: center; justify-content: center; cursor: pointer;
         box-shadow: 0 1px 3px rgba(0,0,0,.15); transition: transform .1s;
       }
@@ -110,12 +112,12 @@
         background: #fff; border-radius: 5px; padding: 3px 6px;
         margin-bottom: 2px; cursor: pointer; font-size: 0.72rem;
         box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-        border-left: 3px solid #bbb;
+        border: 1px solid var(--border);
         transition: box-shadow 0.15s, transform 0.1s;
       }
       .evt-card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.15); transform: translateY(-1px); }
-      .evt-card .evt-title { font-weight: 600; color: #172b4d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .evt-card.overdue { border-left-color: var(--red); background: #fff5f5; }
+      .evt-card .evt-title { font-weight: 600; color: #111418; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .evt-card.overdue { border-color: var(--red); background: #fff5f5; }
       .evt-tag-dots { display: flex; gap: 2px; margin-bottom: 1px; flex-wrap: wrap; }
       .evt-tag-dot { width: 28px; height: 5px; border-radius: 2px; }
 
@@ -124,7 +126,7 @@
 
       /* ── Reminder banner ── */
       .rem-banner {
-        background: #fffbeb; border: 1px solid #fbbf24; border-radius: var(--radius);
+        background: #fff8e1; border: 1px solid #ffe082; border-radius: var(--radius);
         margin-bottom: .8rem; overflow: hidden;
       }
       .rem-hdr {
@@ -134,7 +136,7 @@
       .rem-hdr:hover { background: #fff8e1; }
       .rem-hdr-left { display: flex; align-items: center; gap: .4rem; font-weight: 700; font-size: .82rem; color: #92400e; }
       .rem-count {
-        background: #f59e0b; color: #fff; font-size: .68rem; font-weight: 800;
+        background: #9C5314; color: #fff; font-size: .72rem; font-weight: 800;
         width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
       }
       .rem-dismiss-all { font-size: .72rem; font-weight: 700; color: #b45309; background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
@@ -148,8 +150,8 @@
       .rem-row:last-child { border-bottom: none; }
       .rem-row:hover { background: #fef9e7; }
       .rem-row .rem-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #78350f; font-weight: 600; }
-      .rem-row .rem-type { font-size: .68rem; color: #a16207; white-space: nowrap; flex-shrink: 0; }
-      .rem-row .rem-btn { padding: 2px 8px; font-size: .68rem; font-weight: 700; border-radius: 4px; border: 1px solid #d97706; color: #92400e; background: #fff; cursor: pointer; white-space: nowrap; }
+      .rem-row .rem-type { font-size: .72rem; color: #a16207; white-space: nowrap; flex-shrink: 0; }
+      .rem-row .rem-btn { padding: 2px 8px; font-size: .72rem; font-weight: 700; border-radius: 4px; border: 1px solid #d97706; color: #92400e; background: #fff; cursor: pointer; white-space: nowrap; }
       .rem-row .rem-btn:hover { background: #fef3c7; }
       .rem-row .rem-x { cursor: pointer; color: #ccc; font-size: .9rem; line-height: 1; padding: 0 2px; }
       .rem-row .rem-x:hover { color: #92400e; }
@@ -165,6 +167,7 @@
 
       @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
       .fi { animation: fadeIn .35s ease both; }
+    @media (prefers-reduced-motion: reduce) { .fi, [class^="fi-"], [class*=" fi-"] { animation: none !important; } }
       .fi-1 { animation-delay:.05s } .fi-2 { animation-delay:.1s }
       .fi-3 { animation-delay:.15s } .fi-4 { animation-delay:.2s }
 
@@ -185,7 +188,7 @@
       .mob-date.today { background: var(--blue); }
       .mob-date small { font-size: .58rem; font-weight: 600; text-transform: uppercase; }
       .mob-info { flex: 1; min-width: 0; }
-      .mob-info .mob-title { font-weight: 700; font-size: .88rem; color: #172b4d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .mob-info .mob-title { font-weight: 700; font-size: .88rem; color: #111418; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .mob-info .mob-sub { font-size: .75rem; color: var(--muted); }
       .mob-dots { display: flex; gap: 2px; }
       .mob-dot { width: 8px; height: 8px; border-radius: 50%; }
@@ -226,10 +229,10 @@
         .cal-header { padding: 6px 0; font-size: .72rem; }
         .day-num { font-size: .78rem; }
         .day-num.today-num { width: 24px; height: 24px; line-height: 24px; font-size: .72rem; }
-        .evt-card { font-size: .68rem; padding: 2px 4px; }
-        .evt-card .evt-title { font-size: .65rem; }
+        .evt-card { font-size: .72rem; padding: 2px 4px; }
+        .evt-card .evt-title { font-size: .72rem; }
         .evt-tag-dots { display: none; }
-        .more-badge { font-size: .65rem; }
+        .more-badge { font-size: .72rem; }
         .rem-row .rem-type { display: none; }
         .view-toggle { display: inline-flex; }
         /* Default: hide grid, show list on mobile */
@@ -260,7 +263,7 @@
       /* Header */
       .popup-header { padding: 20px 24px 0; }
       .popup-header .popup-title-input {
-        font-size: 1.2rem; font-weight: 700; color: #172b4d; border: none;
+        font-size: 1.2rem; font-weight: 700; color: #111418; border: none;
         background: transparent; width: 100%; padding: 4px 0;
         border-bottom: 2px solid transparent;
       }
@@ -284,7 +287,7 @@
 
       /* Tag popover */
       .tag-popover {
-        display: none; position: fixed; z-index: 1100; background: #fff; border-radius: 6px;
+        display: none; position: fixed; z-index: 1070; background: #fff; border-radius: 6px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.2); width: 280px; padding: 12px;
       }
       .tag-popover.show { display: block; }
@@ -330,28 +333,28 @@
       }
       .att-icon { font-size: 1.1rem; color: #5e6c84; width: 20px; text-align: center; }
       .att-info { flex: 1; overflow: hidden; }
-      .att-name { font-size: 0.82rem; font-weight: 600; color: #172b4d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .att-name { font-size: 0.82rem; font-weight: 600; color: #111418; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .att-meta { font-size: 0.72rem; color: #888; }
 
       /* Sidebar buttons */
       .side-btn {
         display: block; width: 100%; padding: 6px 10px; margin-bottom: 4px;
         font-size: 0.8rem; border-radius: 4px; border: none; cursor: pointer;
-        text-align: left; background: #dfe1e6; color: #172b4d; font-weight: 500;
+        text-align: left; background: #dfe1e6; color: #111418; font-weight: 500;
         transition: background 0.15s;
       }
       .side-btn:hover { background: #ccc; }
       .side-btn i { width: 18px; margin-right: 4px; text-align: center; }
       .side-btn.btn-green { background: #198754; color: #fff; }
       .side-btn.btn-green:hover { background: #157347; }
-      .side-btn.btn-red { background: #dc3545; color: #fff; }
+      .side-btn.btn-red { background: #D32F2F; color: #fff; }
       .side-btn.btn-red:hover { background: #bb2d3b; }
 
       /* Status badge */
       .status-pill { display: inline-block; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 600; }
       .status-PENDING { background: #ffc107; color: #333; }
       .status-DONE { background: #198754; color: #fff; }
-      .status-OVERDUE { background: #dc3545; color: #fff; }
+      .status-OVERDUE { background: #D32F2F; color: #fff; }
       .status-CANCELED { background: #6c757d; color: #fff; }
 
       @media (max-width: 640px) {
@@ -367,7 +370,7 @@
     <main class="main" id="top">
       <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
         <div class="container">
-          <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;" /></a>
+          <a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="Roselar — Início" style="height: 40px;" /></a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"><i class="fa-solid fa-bars text-white fs-3"></i></button>
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ms-auto">
@@ -392,7 +395,7 @@
 
       <section class="py-5" style="min-height:100vh;">
         <div style="position:absolute;top:0;left:0;right:0;height:30vh;
-                     background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
+                     background:var(--brand);z-index:-1;"></div>
 
         <div class="container" style="margin-top:80px;max-width:1100px;">
 
@@ -406,7 +409,7 @@
                     <i class="fa-solid fa-calendar-days"></i>
                   </div>
                   <div>
-                    <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">Calendário</h4>
+                    <h1 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">Calendário</h1>
                     <div style="font-size:.78rem;color:var(--muted);">Gerencie seus eventos e compromissos</div>
                   </div>
                 </div>
@@ -430,7 +433,7 @@
             <div class="rem-banner" id="remBanner">
               <div class="rem-hdr" onclick="document.getElementById('remBody').classList.toggle('collapsed')">
                 <div class="rem-hdr-left">
-                  <i class="fa-solid fa-bell" style="color:#f59e0b;"></i>
+                  <i class="fa-solid fa-bell" style="color:#E67E22;"></i>
                   <span>Lembretes</span>
                   <span class="rem-count" id="remCount">{{ today_reminders|length }}</span>
                 </div>
@@ -526,7 +529,7 @@
                     {% for evt in cell.events %}
                       {% if forloop.counter <= 3 %}
                       <div class="evt-card{% if evt.is_overdue %} overdue{% endif %}"
-                           style="border-left-color: {% if evt.tags.all %}{{ evt.tags.all.0.color }}{% elif evt.is_overdue %}#dc3545{% else %}#bbb{% endif %};"
+                           style="border-left-color: {% if evt.tags.all %}{{ evt.tags.all.0.color }}{% elif evt.is_overdue %}#D32F2F{% else %}#bbb{% endif %};"
                            onclick="openEventPopup({{ evt.pk }})">
                         {% if evt.tags.all %}
                         <div class="evt-tag-dots">

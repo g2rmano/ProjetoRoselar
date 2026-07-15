@@ -172,15 +172,15 @@
                     </div>
                   </div>
                   {% elif any_method_over_margin %}
-                  <div class="sim-msg" style="background:#fff8e1;border-left:3px solid #f59e0b;color:#78350f;">
-                    <i class="fa-solid fa-circle-info" style="color:#f59e0b;flex-shrink:0;"></i>
+                  <div class="sim-msg" style="background:#fff8e1;border:1px solid #ffe082;color:#6d5200;">
+                    <i class="fa-solid fa-circle-info" style="color:#E67E22;flex-shrink:0;"></i>
                     <div>
                       <strong>Condições OK</strong> — taxa individual do cartão é alta, mas a margem total cobre ({% if can_view_commission %}taxa efetiva: {{ blended_fee_pct|floatformat:2 }}%{% else %}combinação dos métodos{% endif %}).
                       {% if suggested_increase_2 > 0 %}<br><span style="font-size:.8rem;opacity:.85;">Para cobrir a taxa individualmente: ajuste <strong>+{{ suggested_increase_2 }}%</strong> no cartão.</span>{% elif suggested_increase_1 > 0 %}<br><span style="font-size:.8rem;opacity:.85;">Para cobrir a taxa individualmente: ajuste <strong>+{{ suggested_increase_1 }}%</strong> no cartão.</span>{% endif %}
                     </div>
                   </div>
                   {% elif suggestion_is_opportunity and suggested_increase > 0 %}
-                  <div class="sim-msg" style="background:#ecfdf5;border-left:3px solid #10b981;color:#065f46;">
+                  <div class="sim-msg" style="background:#e8f5e9;border:1px solid #a3cfbb;color:#0f5132;">
                     <i class="fa-solid fa-arrow-trend-up" style="color:#10b981;flex-shrink:0;"></i>
                     <div>
                       <strong>Condições OK!</strong> Para maximizar sua comissão, aumente <strong>+{{ suggested_increase }}%</strong> no preço — comissão sobe para <strong>{{ commission_max|floatformat:0 }}%</strong>.
@@ -200,7 +200,7 @@
                   {% if split_mode and can_view_commission %}
                   <div class="col-12 mt-1">
                     <div class="stat" style="background:var(--bg);border-radius:6px;padding:.3rem .6rem;">
-                      <div class="stat-l" style="font-size:.7rem;">Taxa efetiva (blended)</div>
+                      <div class="stat-l" style="font-size:.72rem;">Taxa efetiva (blended)</div>
                       <div class="stat-v" style="font-size:.82rem;color:var(--muted);">{{ blended_fee_pct|floatformat:2 }}%</div>
                     </div>
                   </div>
@@ -304,7 +304,7 @@
                   <!-- Conector "depois" -->
                   <div style="display:flex;align-items:center;gap:.5rem;padding:.5rem .2rem;">
                     <div style="flex:1;height:1px;background:var(--border,#e5e7eb);"></div>
-                    <span style="font-size:.62rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:0 .1rem;">depois</span>
+                    <span style="font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:0 .1rem;">depois</span>
                     <div style="flex:1;height:1px;background:var(--border,#e5e7eb);"></div>
                   </div>
 
@@ -395,12 +395,12 @@
                       <strong style="color:#6d28d9;" id="dp-live-val">—</strong>
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;">
-                      <span style="font-size:.74rem;color:var(--muted);"><i class="fa-solid fa-credit-card me-1" style="font-size:.65rem;"></i>Financiado</span>
+                      <span style="font-size:.74rem;color:var(--muted);"><i class="fa-solid fa-credit-card me-1" style="font-size:.72rem;"></i>Financiado</span>
                       <strong id="dp-live-fin">—</strong>
                     </div>
                   </div>
 
-                  <p style="font-size:.67rem;color:var(--muted);margin:0;line-height:1.35;">
+                  <p style="font-size:.72rem;color:var(--muted);margin:0;line-height:1.35;">
                     <i class="fa-solid fa-circle-info me-1"></i>Taxa incide <strong>só na parte financiada</strong>.
                     {% if sim_installments > 1 %}<br><i class="fa-solid fa-circle-info me-1"></i>Mínimo: valor de <strong>1 parcela</strong>.{% endif %}
                   </p>
@@ -471,21 +471,21 @@
                 </div>
                 {% if price_increase_pct > 0 %}
                 <div class="r-line">
-                  <span style="color:var(--green);font-size:.78rem;"><i class="fa-solid fa-arrow-up me-1" style="font-size:.65rem;"></i>Ajuste de Preço ({{ price_increase_pct|floatformat:1 }}%)</span>
+                  <span style="color:var(--green);font-size:.78rem;"><i class="fa-solid fa-arrow-up me-1" style="font-size:.72rem;"></i>Ajuste de Preço ({{ price_increase_pct|floatformat:1 }}%)</span>
                   <strong style="color:var(--green);">+ R$ {{ price_increase_value|floatformat:2 }}</strong>
                 </div>
                 {% endif %}
                 {% if standalone %}
                 {% if freight_value > 0 %}
                 <div class="r-line">
-                  <span class="r-l"><i class="fa-solid fa-truck me-1" style="font-size:.7rem;"></i>Frete</span>
+                  <span class="r-l"><i class="fa-solid fa-truck me-1" style="font-size:.72rem;"></i>Frete</span>
                   <strong>R$ {{ freight_value|floatformat:2 }}</strong>
                 </div>
                 {% endif %}
                 {% else %}
                 <div class="r-line">
                   <span class="r-l">
-                    <i class="fa-solid fa-truck me-1" style="font-size:.7rem;"></i>
+                    <i class="fa-solid fa-truck me-1" style="font-size:.72rem;"></i>
                     Frete ({{ quote.get_freight_responsible_display }})
                   </span>
                   <strong>R$ {{ freight_value|floatformat:2 }}</strong>
@@ -497,7 +497,7 @@
                 </div>
                 {% if discount_percent > 0 %}
                 <div class="r-line">
-                  <span style="color:var(--red);"><i class="fa-solid fa-arrow-down me-1" style="font-size:.7rem;"></i>Desconto ({{ discount_percent }}%)</span>
+                  <span style="color:var(--red);"><i class="fa-solid fa-arrow-down me-1" style="font-size:.72rem;"></i>Desconto ({{ discount_percent }}%)</span>
                   <strong style="color:var(--red);">– R$ {{ discount_value|floatformat:2 }}</strong>
                 </div>
                 {% endif %}
@@ -510,7 +510,7 @@
                     <strong style="color:#6d28d9;">R$ {{ down_payment_value|floatformat:2 }}</strong>
                   </div>
                   <div class="r-line">
-                    <span style="font-size:.78rem;color:var(--muted);"><i class="fa-solid fa-credit-card me-1" style="font-size:.65rem;"></i>Financiado</span>
+                    <span style="font-size:.78rem;color:var(--muted);"><i class="fa-solid fa-credit-card me-1" style="font-size:.72rem;"></i>Financiado</span>
                     <strong>R$ {{ financed_value|floatformat:2 }}</strong>
                   </div>
                 </div>
@@ -570,10 +570,10 @@
                     <div style="display:flex;align-items:center;gap:.55rem;min-width:0;">
                       <span style="background:var(--brand);color:#fff;font-size:.6rem;width:1.3rem;height:1.3rem;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa-solid fa-hand-holding-dollar"></i></span>
                       <div style="min-width:0;">
-                        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.1rem;">Entrada</div>
+                        <div style="font-size:.72rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.1rem;">Entrada</div>
                         <div style="font-size:.8rem;font-weight:600;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">{{ sim_payment_desc_1 }}</div>
                         {% if sim_installments > 1 %}
-                        <div style="font-size:.7rem;color:var(--muted);">{{ sim_installments }}x de R$ {{ installment_value_1|floatformat:2 }}</div>
+                        <div style="font-size:.72rem;color:var(--muted);">{{ sim_installments }}x de R$ {{ installment_value_1|floatformat:2 }}</div>
                         {% endif %}
                       </div>
                     </div>
@@ -586,10 +586,10 @@
                     <div style="display:flex;align-items:center;gap:.55rem;min-width:0;">
                       <span style="background:var(--muted,#6c757d);color:#fff;font-size:.6rem;width:1.3rem;height:1.3rem;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa-solid fa-money-bill-wave"></i></span>
                       <div style="min-width:0;">
-                        <div style="font-size:.7rem;font-weight:700;color:var(--muted,#6c757d);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.1rem;">Restante</div>
+                        <div style="font-size:.72rem;font-weight:700;color:var(--muted,#6c757d);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.1rem;">Restante</div>
                         <div style="font-size:.8rem;font-weight:600;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">{% if sim_payment_desc_2 %}{{ sim_payment_desc_2 }}{% else %}<span style="color:var(--muted);font-style:italic;">Não definido</span>{% endif %}</div>
                         {% if sim_installments_2 > 1 %}
-                        <div style="font-size:.7rem;color:var(--muted);">{{ sim_installments_2 }}x de R$ {{ installment_value_2|floatformat:2 }}</div>
+                        <div style="font-size:.72rem;color:var(--muted);">{{ sim_installments_2 }}x de R$ {{ installment_value_2|floatformat:2 }}</div>
                         {% endif %}
                       </div>
                     </div>

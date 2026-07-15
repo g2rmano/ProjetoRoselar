@@ -15,25 +15,24 @@
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicons/favicon.ico' %}">
     <link rel="manifest" href="{% static 'assets/img/favicons/manifest.json' %}">
     <meta name="msapplication-TileImage" content="{% static 'assets/img/favicons/mstile-150x150.png' %}">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#111418">
 
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" rel="stylesheet">
-    <link href="{% static 'assets/css/theme.css' %}" rel="stylesheet" />
+    <link href="{% static 'assets/css/theme.min.css' %}" rel="stylesheet" />
     <link href="{% static 'assets/css/user.css' %}" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <style>
       :root {
-        --brand:   #0A2640;
-        --brand-l: #163a5a;
+        --brand:   #111418;
+        --brand-l: #23272E;
         --bg:      #f4f6f9;
         --surface: #fff;
         --green:   #198754;
-        --red:     #dc3545;
+        --red:     #D32F2F;
         --orange:  #e67e22;
         --blue:    #0d6efd;
         --muted:   #6c757d;
@@ -43,7 +42,8 @@
         --shadow-h:0 4px 14px rgba(0,0,0,.09);
       }
       * { box-sizing: border-box; }
-      body { font-family: 'Manrope', sans-serif; background: var(--bg); }
+      body { font-variant-numeric: tabular-nums; font-family: 'Manrope', sans-serif; background: var(--bg); }
+    input::placeholder, textarea::placeholder { color: #565C66; opacity: 1; }
 
       /* ── Section cards ── */
       .s-card {
@@ -86,7 +86,7 @@
       select:focus,
       textarea:focus {
         border-color: var(--brand) !important;
-        box-shadow: 0 0 0 3px rgba(10,38,64,.1) !important;
+        box-shadow: 0 0 0 3px rgba(17,20,24,.1) !important;
       }
       .f-label, .form-label {
         font-size: .72rem !important; font-weight: 700 !important;
@@ -95,7 +95,7 @@
       }
       textarea.form-control {
         min-height: 38px; max-height: 200px; resize: none;
-        overflow-y: auto; transition: height 0.1s ease; line-height: 1.5;
+        overflow-y: auto; line-height: 1.5;
       }
 
       /* ── Formset rows ── */
@@ -108,7 +108,7 @@
       .formset-row:hover { border-color: #c0c7ce; box-shadow: var(--shadow); }
       .formset-row .item-number {
         position: absolute; top: -10px; left: 14px;
-        background: var(--brand); color: #fff; font-size: .68rem; font-weight: 800;
+        background: var(--brand); color: #fff; font-size: .72rem; font-weight: 800;
         padding: 1px 10px; border-radius: 6px; letter-spacing: .03em;
       }
       .delete-row-btn {
@@ -128,6 +128,7 @@
         text-decoration: none; transition: all .2s;
       }
       .btn-a:hover { transform: translateY(-1px); box-shadow: var(--shadow-h); }
+    .btn-a:focus-visible { outline: 3px solid rgba(17,20,24,.35); outline-offset: 2px; }
       .btn-a.primary { background: var(--green); color: #fff; }
       .btn-a.primary:hover { background: #146c43; color: #fff; }
       .btn-a.secondary { background: #fff; color: var(--brand); border: 1.5px solid var(--border); }
@@ -161,6 +162,7 @@
       /* ── Animations ── */
       @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
       .fi { animation: fadeIn .35s ease both; }
+    @media (prefers-reduced-motion: reduce) { .fi, [class^="fi-"], [class*=" fi-"] { animation: none !important; } }
       .fi-1 { animation-delay:.05s } .fi-2 { animation-delay:.1s }
       .fi-3 { animation-delay:.15s } .fi-4 { animation-delay:.2s }
       .fi-5 { animation-delay:.25s }
@@ -178,7 +180,7 @@
   <body>
     <main class="main" id="top">
       <nav class="navbar navbar-expand-lg fixed-top navbar-dark" data-navbar-on-scroll="data-navbar-on-scroll">
-        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="" style="height: 40px;" /></a>
+        <div class="container"><a class="navbar-brand" href="{% url 'core:index' %}"><img src="{% static 'assets/img/Logo.png' %}?v=2" alt="Roselar — Início" style="height: 40px;" /></a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars text-white fs-3"></i></button>
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ms-auto">
@@ -218,7 +220,7 @@
 
       <section class="py-5" style="min-height: 100vh;">
         <div style="position:absolute;top:0;left:0;right:0;height:30vh;
-                     background:linear-gradient(135deg,var(--brand),var(--brand-l));z-index:-1;"></div>
+                     background:var(--brand);z-index:-1;"></div>
         
         <div class="container" style="margin-top:80px;max-width:900px;">
 
@@ -233,9 +235,9 @@
                       <i class="fa-solid fa-file-invoice"></i>
                     </div>
                     <div>
-                      <h4 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">
+                      <h1 style="margin:0;font-weight:800;color:var(--brand);font-size:1.2rem;">
                         {% if quote %}Editar Orçamento #{{ quote.number }}{% else %}Novo Orçamento{% endif %}
-                      </h4>
+                      </h1>
                       <div style="font-size:.78rem;color:var(--muted);">Preencha os dados do orçamento</div>
                     </div>
                   </div>
@@ -605,7 +607,7 @@
                                 {% endif %}
                                 {% if item_form.instance.pk %}
                                   {% for img in item_form.instance.images.all %}
-                                    <div class="mt-1"><img src="{{ img.image.url }}" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6;"></div>
+                                    <div class="mt-1"><img src="{{ img.image.url }}" alt="Foto do produto" loading="lazy" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6;"></div>
                                   {% endfor %}
                                 {% endif %}
                               </div>
@@ -712,7 +714,6 @@
     <script src="https://cdn.jsdelivr.net/npm/is_js@0.9.0/is.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="{% static 'assets/js/theme.js' %}"></script>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
@@ -1236,7 +1237,7 @@
         })
         .catch(err => {
           console.error('Error creating customer:', err);
-          alert('Erro ao criar cliente. Verifique o console.');
+          alert('Não foi possível criar o cliente. Verifique sua conexão e tente novamente.');
         });
       }
 
@@ -1378,7 +1379,7 @@
         })
         .catch(err => {
           console.error('Error creating shipping company:', err);
-          alert('Erro ao cadastrar transportadora. Verifique o console.');
+          alert('Não foi possível cadastrar a transportadora. Verifique sua conexão e tente novamente.');
         });
       }
 
@@ -1593,7 +1594,7 @@
             if (!qVal) missing.push('Quantidade');
             if (!uVal) missing.push('Valor Unitário');
             incompleteMsg = 'Item incompleto. Preencha: ' + missing.join(', ') + '.';
-            row.style.border = '2px solid #dc3545';
+            row.style.border = '2px solid #D32F2F';
           }
         });
 
@@ -1646,13 +1647,13 @@
           const field = errDiv.previousElementSibling;
           if (field && (field.tagName === 'INPUT' || field.tagName === 'SELECT' || field.tagName === 'TEXTAREA')) {
             field.classList.add('is-invalid');
-            field.style.borderColor = '#dc3545';
+            field.style.borderColor = '#D32F2F';
           }
         });
         // Also highlight formset rows that have errors
         document.querySelectorAll('[data-formset-row]').forEach(function(row) {
           if (row.querySelector('.text-danger.small')) {
-            row.style.border = '2px solid #dc3545';
+            row.style.border = '2px solid #D32F2F';
           }
         });
         // Scroll to server error block if present
@@ -1668,7 +1669,7 @@
     <div class="modal fade" id="supplierModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
-          <div class="modal-header" style="background:#0A2640;color:#fff;">
+          <div class="modal-header" style="background:#111418;color:#fff;">
             <h5 class="modal-title"><i class="fa-solid fa-truck-field me-2"></i>Cadastrar Fornecedor</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
@@ -1752,7 +1753,7 @@
         })
         .catch(err => {
           console.error('Error creating supplier:', err);
-          errBox.textContent = 'Erro ao cadastrar fornecedor. Verifique o console.';
+          errBox.textContent = 'Não foi possível cadastrar o fornecedor. Verifique sua conexão e tente novamente.';
           errBox.classList.remove('d-none');
         });
       }

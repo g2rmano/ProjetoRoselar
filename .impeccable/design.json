@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-13T00:00:00Z",
+  "title": "Design System: Roselar Móveis — Sistema Interno",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Vermelho Roselar", "canonical": "#D32F2F", "tonalRamp": ["#3B0D0D", "#611414", "#8A1B1B", "#B02424", "#D32F2F", "#E25858", "#EF9A9A", "#FBE4E4"] },
+      "ink": { "role": "neutral", "displayName": "Preto Roselar", "canonical": "#111418", "tonalRamp": ["#0A0C0F", "#111418", "#23272E", "#3A3F47", "#565C66", "#7A818C", "#AEB4BD", "#E6E8EB"] },
+      "navy-legacy": { "role": "neutral", "displayName": "Navy Legado (migrar)", "canonical": "#0A2640", "tonalRamp": ["#051423", "#0A2640", "#163A5A", "#245078", "#3A6A96", "#6C93B5", "#A3BFD6", "#DCE7F0"] },
+      "bg": { "role": "neutral", "displayName": "Névoa", "canonical": "#F4F6F9", "tonalRamp": ["#2E3338", "#4A5259", "#6B747D", "#8F98A1", "#B3BBC3", "#D2D8DE", "#E5E9EE", "#F4F6F9"] },
+      "surface": { "role": "neutral", "displayName": "Branco", "canonical": "#FFFFFF", "tonalRamp": ["#33363A", "#55595E", "#797E84", "#9DA2A8", "#C1C5CA", "#DDE0E3", "#F0F1F3", "#FFFFFF"] },
+      "success": { "role": "tertiary", "displayName": "Verde Confirmado", "canonical": "#198754", "tonalRamp": ["#062416", "#0C4029", "#12603E", "#198754", "#2FA06A", "#5CBE8F", "#A3DCC0", "#E8F5E9"] },
+      "info": { "role": "tertiary", "displayName": "Azul Informativo", "canonical": "#0D6EFD", "tonalRamp": ["#031E45", "#063A80", "#0955BC", "#0D6EFD", "#4A93FE", "#84B6FE", "#BDD9FF", "#E3F2FD"] },
+      "warning": { "role": "tertiary", "displayName": "Laranja Atenção", "canonical": "#E67E22", "tonalRamp": ["#3D2007", "#6B380D", "#9C5314", "#CC6E1B", "#E67E22", "#EE9E55", "#F5C593", "#FBE9D5"] },
+      "muted": { "role": "neutral", "displayName": "Cinza Apoio", "canonical": "#6C757D", "tonalRamp": ["#1B1D20", "#33383C", "#4C5359", "#6C757D", "#8A929A", "#ACB2B8", "#CDD1D5", "#EEF0F1"] },
+      "border": { "role": "neutral", "displayName": "Traço", "canonical": "#DEE2E6", "tonalRamp": ["#33363A", "#54585D", "#787D83", "#9CA1A7", "#BFC4C9", "#DEE2E6", "#ECEEF1", "#F8F9FA"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Metric values and page-level financial figures; always tabular-nums." },
+      "headline": { "displayName": "Headline", "purpose": "Page titles." },
+      "title": { "displayName": "Title", "purpose": "Card/section headers, row primary text." },
+      "body": { "displayName": "Body", "purpose": "Form values, table cells, descriptions." },
+      "label": { "displayName": "Label", "purpose": "Field labels, metric labels, badges. Uppercase, 0.72rem floor." }
+    },
+    "shadows": [
+      { "name": "repouso", "value": "0 1px 4px rgba(0,0,0,.06)", "purpose": "Resting cards and rows; barely perceptible." },
+      { "name": "foco", "value": "0 4px 14px rgba(0,0,0,.09)", "purpose": "Hover lift on interactive cards, rows, buttons; pair with translateY(-1px)." },
+      { "name": "anel-foco", "value": "0 0 0 3px rgba(17,20,24,.1)", "purpose": "Focus ring on inputs, paired with ink border." }
+    ],
+    "motion": [
+      { "name": "transicao-padrao", "value": "all .2s ease-out", "purpose": "Hover/focus state changes on buttons, cards, inputs." },
+      { "name": "fade-in", "value": "fadeIn .35s ease both (opacity 0→1, translateY 6px→0)", "purpose": "Alert and content entrance; disabled under prefers-reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "576px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "992px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botão Primário (Confirmar)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Money-positive confirm action — Novo Orçamento, Salvar.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Novo Orçamento</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .55rem 1.2rem; font-family: Manrope, sans-serif; font-weight: 700; font-size: .85rem; border: none; border-radius: 8px; cursor: pointer; text-decoration: none; transition: all .2s ease-out; } .ds-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.09); } .ds-btn-primary { background: #198754; color: #fff; } .ds-btn-primary:hover { background: #146C43; } .ds-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(17,20,24,.2); }"
+    },
+    {
+      "name": "Botão Escuro (Navegar)",
+      "kind": "button",
+      "refersTo": "button-dark",
+      "description": "Neutral navigation action on Preto Roselar chrome.",
+      "html": "<button class=\"ds-btn ds-btn-dark\">Ver Detalhes</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .55rem 1.2rem; font-family: Manrope, sans-serif; font-weight: 700; font-size: .85rem; border: none; border-radius: 8px; cursor: pointer; transition: all .2s ease-out; } .ds-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.09); } .ds-btn-dark { background: #111418; color: #fff; } .ds-btn-dark:hover { background: #23272E; }"
+    },
+    {
+      "name": "Botão Secundário",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Low-emphasis alternative action.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">Limpar filtros</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .55rem 1.2rem; font-family: Manrope, sans-serif; font-weight: 700; font-size: .85rem; border-radius: 8px; cursor: pointer; transition: all .2s ease-out; } .ds-btn-secondary { background: #fff; color: #111418; border: 1.5px solid #DEE2E6; } .ds-btn-secondary:hover { background: #F4F6F9; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.09); }"
+    },
+    {
+      "name": "Botão Destrutivo",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Irreversible action in Vermelho Roselar; always paired with consequence-stating confirm.",
+      "html": "<button class=\"ds-btn ds-btn-danger\">Excluir orçamento</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .55rem 1.2rem; font-family: Manrope, sans-serif; font-weight: 700; font-size: .85rem; border: none; border-radius: 8px; cursor: pointer; transition: all .2s ease-out; } .ds-btn-danger { background: #D32F2F; color: #fff; } .ds-btn-danger:hover { background: #B02424; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.09); }"
+    },
+    {
+      "name": "Badge de Status",
+      "kind": "chip",
+      "refersTo": "card",
+      "description": "Pill status marker: tinted background, deep same-hue text, uppercase label.",
+      "html": "<span class=\"ds-badge ds-badge-approved\">Aprovado</span> <span class=\"ds-badge ds-badge-draft\">Rascunho</span> <span class=\"ds-badge ds-badge-canceled\">Cancelado</span>",
+      "css": ".ds-badge { display: inline-block; padding: .25rem .65rem; border-radius: 2rem; font-family: Manrope, sans-serif; font-weight: 700; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; margin-right: .3rem; } .ds-badge-approved { background: #E8F5E9; color: #0F5132; } .ds-badge-draft { background: #E9ECEF; color: #4C5359; } .ds-badge-canceled { background: #FBE4E4; color: #8A1B1B; }"
+    },
+    {
+      "name": "Cartão de Métrica",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Dashboard metric: uppercase label over a heavy tabular number.",
+      "html": "<div class=\"ds-metric\"><div class=\"ds-metric-label\">Vendas no Mês</div><div class=\"ds-metric-value\">R$ 48.350,00</div></div>",
+      "css": ".ds-metric { background: #fff; border: 1px solid rgba(0,0,0,.04); border-radius: 10px; padding: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,.06); transition: box-shadow .2s ease-out; font-family: Manrope, sans-serif; } .ds-metric:hover { box-shadow: 0 4px 14px rgba(0,0,0,.09); } .ds-metric-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: #6C757D; font-weight: 700; margin-bottom: .25rem; } .ds-metric-value { font-size: 1.5rem; font-weight: 800; color: #111418; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Campo de Busca",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Search/filter input with ink focus ring.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Buscar cliente ou nº do orçamento\">",
+      "css": ".ds-input { border: 1.5px solid #DEE2E6; border-radius: 8px; font-family: Manrope, sans-serif; font-size: .86rem; font-weight: 500; color: #111418; padding: .5rem .9rem; width: 100%; background: #fff; transition: border-color .2s ease-out, box-shadow .2s ease-out; } .ds-input::placeholder { color: #565C66; } .ds-input:focus { outline: none; border-color: #111418; box-shadow: 0 0 0 3px rgba(17,20,24,.1); }"
+    },
+    {
+      "name": "Alerta",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Signature alert: tinted surface, same-hue border and deep text, icon leading.",
+      "html": "<div class=\"ds-alert ds-alert-success\">✓ Orçamento salvo! As alterações já estão em vigor.</div><div class=\"ds-alert ds-alert-danger\">⚠ Margem abaixo do limite. Ajuste o desconto antes de enviar.</div>",
+      "css": ".ds-alert { padding: .7rem 1rem; border-radius: 8px; font-family: Manrope, sans-serif; font-size: .84rem; font-weight: 500; display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem; } .ds-alert-success { background: #E8F5E9; border: 1px solid #A3CFBB; color: #0F5132; } .ds-alert-danger { background: #FBE4E4; border: 1px solid #EF9A9A; color: #8A1B1B; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "O Instrumento de Precisão",
+    "overview": "The internal sales-operations system of Roselar Móveis. Calm, near-monochrome chrome that stays out of the way so financial numbers carry the screen. Personality is confiável, preciso, sóbrio — banking-grade trust in the brand's own materials: black wordmark chrome, white working surfaces, and a single red voice reserved for what demands attention. The brand is black + red; the legacy navy (#0A2640) still present in templates is to be migrated away from.",
+    "keyCharacteristics": [
+      "Black chrome, white surfaces, one red voice",
+      "Numbers get the strongest hierarchy on every screen",
+      "Flat at rest; shadows respond only to interaction",
+      "Restrained color strategy: accent ≤10% of any screen",
+      "pt-BR voice: direct, professional, never blaming"
+    ],
+    "rules": [
+      { "name": "A Regra do Vermelho Único", "body": "One red. Vermelho Roselar means attention required — margin violations, overdue, destructive. Never decorative; never a second red. Its rarity is what makes it loud.", "section": "colors" },
+      { "name": "A Regra dos Números", "body": "Financial values are always Preto Roselar at 700–800 weight with tabular figures. Color on a number is a signal, never decoration.", "section": "colors" },
+      { "name": "A Regra do Peso", "body": "Hierarchy comes from weight (500 → 700 → 800), not from adding sizes. Five steps; no intermediate sizes.", "section": "typography" },
+      { "name": "A Regra do Plano", "body": "Surfaces are flat at rest. If a shadow is visible while nothing is being pointed at, it is too strong.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use Preto Roselar (#111418) for chrome and all financial values; weight 700–800, tabular figures.",
+      "Do keep Vermelho Roselar (#D32F2F) under 10% of any screen — it is the alarm and the brand voice at once.",
+      "Do replace Navy Legado (#0A2640) with Preto Roselar whenever you touch a legacy surface.",
+      "Do put muted gray text (#6C757D) on white surfaces only; on the tinted body background it fails AA.",
+      "Do state consequences in destructive confirms with specific button labels.",
+      "Do provide a prefers-reduced-motion alternative for every animation."
+    ],
+    "donts": [
+      "Don't ship startup SaaS flash: no gradient decoration, no glassmorphism, no hero-metric marketing tiles.",
+      "Don't build dense ERP (Excel-like) walls of fields and grids; one task per screen, progressive disclosure.",
+      "Don't introduce a second red or use red decoratively — A Regra do Vermelho Único.",
+      "Don't use border-left/border-right stripes thicker than 1px as accents.",
+      "Don't convey status by color alone; pair every red/green signal with an icon or text.",
+      "Don't go below 0.72rem text anywhere, or add font sizes between the five hierarchy steps."
+    ]
+  }
+}
