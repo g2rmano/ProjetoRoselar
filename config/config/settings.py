@@ -102,9 +102,9 @@ if DATABASE_URL:
         "default": dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=600,
-            ssl_require=False,          # Railway internal network = no SSL
         )
     }
+    DATABASES["default"].setdefault("OPTIONS", {})["sslmode"] = "disable"
 elif os.environ.get("RAILWAY_ENVIRONMENT"):
     raise ImproperlyConfigured(
         "DATABASE_URL is not set on Railway. "
