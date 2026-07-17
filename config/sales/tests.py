@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -193,3 +194,54 @@ class OrderDateSyncTests(TestCase):
         self.assertEqual(resp.status_code, 302, getattr(resp, "context", None) and resp.context["form"].errors)
         self.quote.refresh_from_db()
         self.assertEqual(self.quote.sale_date, date(2026, 6, 24))
+
+
+class SimulationTariffTests(TestCase):
+    """Simulador não pode liberar parcela cujo custo do banco é desconhecido."""
+
+    def setUp(self):
+        from core.models import PaymentTariff
+
+        PaymentTariff.objects.all().delete()
+        for inst, fee in ((1, "4.00"), (6, "3.00"), (12, "13.30")):
+            PaymentTariff.objects.create(
+                payment_type="CREDIT_CARD", installments=inst, fee_percent=Decimal(fee)
+            )
+
+    def _sim(self, payment_type, installments):
+        from sales.views import _build_simulation_context
+
+        return _build_simulation_context(
+            subtotal=Decimal("10000"),
+            freight_value=Decimal("0"),
+            sim_payment_type=payment_type,
+            sim_has_architect=False,
+            sim_discount=Decimal("0"),
+            price_increase_pct=Decimal("0"),
+            sim_installments=installments,
+        )
+
+    def test_cartao_12x_estoura_margem_e_bloqueia(self):
+        ctx = self._sim("CREDIT_CARD", 12)
+        self.assertEqual(ctx["payment_fee_percent"], Decimal("13.30"))
+        self.assertLess(ctx["margin_balance"], 0)
+        self.assertTrue(ctx["controls_blocked"])
+
+    def test_cheque_12x_cobra_taxa_do_cartao(self):
+        ctx = self._sim("CHEQUE", 12)
+        self.assertEqual(ctx["payment_fee_percent"], Decimal("13.30"))
+        self.assertTrue(ctx["controls_blocked"])
+
+    def test_parcela_sem_tarifa_bloqueia_em_vez_de_sair_de_graca(self):
+        ctx = self._sim("CREDIT_CARD", 7)
+        self.assertTrue(ctx["controls_blocked"])
+
+    def test_parcela_sem_tarifa_nao_aparece_na_tela(self):
+        import json
+
+        ctx = self._sim("CREDIT_CARD", 1)
+        oferecidas = [
+            o["installments"]
+            for o in json.loads(ctx["tariffs_by_type_json"])["CREDIT_CARD"]
+        ]
+        self.assertEqual(oferecidas, [1, 6, 12])

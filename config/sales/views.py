@@ -344,20 +344,20 @@ def payment_method_fees_api(request: HttpRequest) -> JsonResponse:
     
     is_installment = payment_type in ['CREDIT_CARD', 'CHEQUE', 'BOLETO']
     max_installments = max_installments_map.get(payment_type, 1)
-    
-    tariff_lookup_type = 'CREDIT_CARD' if payment_type == 'CHEQUE' else payment_type
-    tariffs = PaymentTariff.objects.filter(payment_type=tariff_lookup_type).order_by('installments')
-    
-    tariffs_data = []
-    existing_installments = {t.installments: t.fee_percent for t in tariffs}
-    
-    for i in range(1, max_installments + 1):
-        fee_percent = existing_installments.get(i, 0)
-        tariffs_data.append({
-            'installments': i,
-            'fee_percent': str(fee_percent),
-        })
-    
+
+    tariffs = PaymentTariff.objects.filter(
+        payment_type=PaymentTariff.lookup_type(payment_type)
+    ).order_by('installments')
+
+    # Só expõe parcelas com tarifa cadastrada. Preencher as faltantes com 0%
+    # oferecia parcelamento sem custo e estourava a margem silenciosamente.
+    tariffs_data = [
+        {'installments': t.installments, 'fee_percent': str(t.fee_percent)}
+        for t in tariffs
+        if t.installments <= max_installments
+    ]
+    max_installments = tariffs_data[-1]['installments'] if tariffs_data else 1
+
     type_display = dict(PaymentMethodType.choices).get(payment_type, payment_type)
     
     data = {
@@ -2726,12 +2726,24 @@ def _build_simulation_context(
     split_mode = bool(sim_payment_type_2)
 
     # ---- Taxas antecipadas (necessárias para calcular o markup do frete) ----
+    # Tarifa ausente (None) = parcelamento não cadastrado. Bloqueia em vez de
+    # assumir 0%, que liberaria a venda sem cobrar o custo do banco.
+    tariff_missing = False
+
+    def _fee_for(payment_type: str, installments: int) -> Decimal:
+        nonlocal tariff_missing
+        fee = PaymentTariff.get_fee(payment_type, installments)
+        if fee is None:
+            tariff_missing = True
+            return Decimal("0")
+        return Decimal(str(fee))
+
     fee_1 = Decimal("0")
     fee_2 = Decimal("0")
     if sim_payment_type:
-        fee_1 = Decimal(str(PaymentTariff.get_fee(sim_payment_type, sim_installments)))
+        fee_1 = _fee_for(sim_payment_type, sim_installments)
     if split_mode and sim_payment_type_2:
-        fee_2 = Decimal(str(PaymentTariff.get_fee(sim_payment_type_2, sim_installments_2)))
+        fee_2 = _fee_for(sim_payment_type_2, sim_installments_2)
 
     # ---- Markup por dentro no Frete ANTES de dividir o valor entre pernas ----
     # Usa a maior taxa para garantir que a pior perna ainda cobre o frete exato.
@@ -2883,23 +2895,23 @@ def _build_simulation_context(
     tariffs_by_type: dict[str, list] = {}
     for pt_val, _pt_lbl in payment_type_choices:
         max_inst = max_inst_map.get(pt_val, 1)
-        tariff_lookup = 'CREDIT_CARD' if pt_val == 'CHEQUE' else pt_val
-        existing = {
-            t.installments: float(t.fee_percent)
-            for t in PaymentTariff.objects.filter(payment_type=tariff_lookup)
-        }
-        options = []
-        for i in range(1, max_inst + 1):
-            options.append({
-                'installments': i,
-                'fee': existing.get(i, 0),
-                'label': "À vista" if i == 1 else f"{i}x",
-            })
+        tariff_lookup = PaymentTariff.lookup_type(pt_val)
+        # Só oferece parcelas com tarifa cadastrada — ausência não é 0%.
+        options = [
+            {
+                'installments': t.installments,
+                'fee': float(t.fee_percent),
+                'label': "À vista" if t.installments == 1 else f"{t.installments}x",
+            }
+            for t in PaymentTariff.objects.filter(
+                payment_type=tariff_lookup, installments__lte=max_inst
+            ).order_by('installments')
+        ]
         tariffs_by_type[pt_val] = options
 
     # ---- Status e flags do template ----
     status = resultado['status']
-    controls_blocked = resultado['controls_blocked']
+    controls_blocked = resultado['controls_blocked'] or tariff_missing
 
     _AVISTA_TYPES = {'PIX', 'CASH', 'DEBIT_CARD', 'CHEQUE', 'BOLETO'}
     split_m1_avista  = split_mode and sim_payment_type   in _AVISTA_TYPES

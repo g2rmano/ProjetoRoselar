@@ -177,14 +177,28 @@ class PaymentTariff(models.Model):
             return f"{type_display} - À vista ({self.fee_percent}%)"
         return f"{type_display} - {self.installments}x ({self.fee_percent}%)"
     
+    # CHEQUE não tem tabela própria: usa a do cartão como referência.
+    TARIFF_LOOKUP_OVERRIDES = {"CHEQUE": "CREDIT_CARD"}
+
+    @classmethod
+    def lookup_type(cls, payment_type):
+        """Tipo cuja tabela de tarifas vale para `payment_type`."""
+        return cls.TARIFF_LOOKUP_OVERRIDES.get(payment_type, payment_type)
+
     @classmethod
     def get_fee(cls, payment_type, installments):
-        """Retorna a taxa para um método e parcelas específicos."""
+        """Retorna a taxa cadastrada, ou None se a combinação não existir.
+
+        None = parcelamento indisponível, nunca 0%. Sem tarifa cadastrada não há
+        como saber o custo do banco, e assumir zero oferece a parcela de graça.
+        """
         try:
-            tariff = cls.objects.get(payment_type=payment_type, installments=installments)
+            tariff = cls.objects.get(
+                payment_type=cls.lookup_type(payment_type), installments=installments
+            )
             return tariff.fee_percent
         except cls.DoesNotExist:
-            return 0
+            return None
 
 
 class Architect(models.Model):
